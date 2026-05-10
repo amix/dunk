@@ -35,11 +35,9 @@ Make the selected hunk visually brighter so it's obvious where you are. Today th
 
 ## Hunk selection — remaining polish
 
-Done: the viewport-centered tracker that fought J/K reveals is gone, and the active rail blends 55% toward `theme.accent` so the selected hunk is unmistakable. Still pending:
+Done: the viewport-centered tracker that fought J/K reveals is gone; the active rail blends 55% toward `theme.accent` so the selected hunk is unmistakable; click-to-select on hunk rows; scroll-to-top snaps to the first hunk. Still pending:
 
-- **Click-to-select on hunk rows.** Clicking anywhere inside a hunk's rendered rows should mark it as the current hunk. Requires threading an `onSelectHunk(fileId, hunkIndex)` callback through `DiffSection` → `PierreDiffView` → `renderRows` and attaching `onMouseUp` on each row's outer container. Sidebar file-clicks and the file-header click already work.
-- **Top of stream → first hunk.** Scrolling all the way up should reselect the first visible hunk.
-- **Smart mouse-scroll selection.** Track which hunk's body owns the viewport center on wheel scroll, with debounce. Reintroducing the tracker will need a tighter cooldown than the previous one.
+- **Smart mouse-scroll selection.** Track which hunk's body owns the viewport center on wheel scroll, with debounce. Reintroducing the tracker will need a tighter cooldown than the previous one — and probably gating to only fire while actively wheel-scrolling, not on programmatic reveal.
 
 ## LLM-driven refresh
 
