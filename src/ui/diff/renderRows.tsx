@@ -81,10 +81,18 @@ function sliceSpansWindow(spans: RenderSpan[], offset: number, width: number) {
 }
 
 const INACTIVE_RAIL_BLEND = 0.35;
+// Active hunk rails brighten toward the theme accent so the current selection
+// stands out at a glance without losing its addition/deletion identity.
+const ACTIVE_RAIL_ACCENT_BLEND = 0.55;
 
 /** Dim a rail color for inactive hunks by blending toward the panel background. */
 function dimRailColor(color: string, theme: AppTheme) {
   return blendHex(color, theme.panel, INACTIVE_RAIL_BLEND);
+}
+
+/** Brighten a rail color for the active hunk by blending toward the theme accent. */
+function activeRailColor(color: string, theme: AppTheme) {
+  return blendHex(color, theme.accent, ACTIVE_RAIL_ACCENT_BLEND);
 }
 
 /** The rail marker is always visible. */
@@ -109,19 +117,19 @@ function stackRailColor(kind: StackLineCell["kind"], theme: AppTheme, selected: 
     color = neutralRailColor(theme);
   }
 
-  return selected ? color : dimRailColor(color, theme);
+  return selected ? activeRailColor(color, theme) : dimRailColor(color, theme);
 }
 
 /** Pick the left split-view rail color from the old-side cell state. */
 function splitLeftRailColor(kind: SplitLineCell["kind"], theme: AppTheme, selected: boolean) {
   const color = kind === "deletion" ? theme.removedSignColor : neutralRailColor(theme);
-  return selected ? color : dimRailColor(color, theme);
+  return selected ? activeRailColor(color, theme) : dimRailColor(color, theme);
 }
 
 /** Pick the right split-view rail color from the new-side cell state. */
 function splitRightRailColor(kind: SplitLineCell["kind"], theme: AppTheme, selected: boolean) {
   const color = kind === "addition" ? theme.addedSignColor : neutralRailColor(theme);
-  return selected ? color : dimRailColor(color, theme);
+  return selected ? activeRailColor(color, theme) : dimRailColor(color, theme);
 }
 
 /** Pick split-view colors from the semantic diff cell kind. */

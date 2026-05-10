@@ -538,52 +538,13 @@ export function DiffPane({
   // immediately after imperative scrolls instead of waiting for the polled viewport snapshot.
   const effectiveScrollTop = scrollRef.current?.scrollTop ?? scrollViewport.top;
 
-  // Keep the selected file/hunk derived from the visible viewport for actual scroll-driven
-  // movement, while leaving the initial mount and non-scroll relayouts alone.
-  useLayoutEffect(() => {
-    const previousViewportTop = lastViewportSelectionTopRef.current;
-    lastViewportSelectionTopRef.current = scrollViewport.top;
-
-    if (
-      previousViewportTop === null ||
-      previousViewportTop === scrollViewport.top ||
-      !onViewportCenteredHunkChange ||
-      suppressViewportSelectionSyncRef.current ||
-      files.length === 0 ||
-      scrollViewport.height <= 0
-    ) {
-      return;
-    }
-
-    const centeredTarget = findViewportCenteredHunkTarget({
-      files,
-      fileSectionLayouts,
-      sectionGeometry,
-      scrollTop: scrollViewport.top,
-      viewportHeight: scrollViewport.height,
-    });
-    if (!centeredTarget) {
-      return;
-    }
-
-    if (
-      centeredTarget.fileId === selectedFileId &&
-      centeredTarget.hunkIndex === selectedHunkIndex
-    ) {
-      return;
-    }
-
-    onViewportCenteredHunkChange(centeredTarget.fileId, centeredTarget.hunkIndex);
-  }, [
-    fileSectionLayouts,
-    files,
-    onViewportCenteredHunkChange,
-    scrollViewport.height,
-    scrollViewport.top,
-    sectionGeometry,
-    selectedFileId,
-    selectedHunkIndex,
-  ]);
+  // Selection used to follow the viewport center on every scroll, but that fought with explicit
+  // J/K reveals and produced flicker. Selection is now driven only by explicit user actions:
+  // J/K, sidebar clicks, and (soon) hunk-row clicks. Snapping the selection to the first visible
+  // hunk when the viewport reaches the very top lives in a dedicated effect below.
+  void onViewportCenteredHunkChange;
+  void fileSectionLayouts;
+  void sectionGeometry;
 
   const pinnedHeaderFile = useMemo(() => {
     if (files.length === 0) {
