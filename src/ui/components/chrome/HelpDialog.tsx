@@ -42,7 +42,8 @@ export function HelpDialog({
       title: "Comments",
       items: [
         ["a", "add comment on this hunk"],
-        ["d / D", "delete one / all on this hunk"],
+        ["d", "delete one comment on this hunk"],
+        ["D", "delete all comments in this diff (confirm)"],
         ["e", "open this file in $EDITOR at the hunk"],
       ],
     },

@@ -22,8 +22,9 @@ export interface UseAppKeyboardShortcutsOptions {
   canRefreshCurrentInput: boolean;
   closeHelp: () => void;
   commentEditorActive: boolean;
+  confirmActive: boolean;
   cycleTheme: () => void;
-  deleteAllFocusedComments: () => void;
+  deleteAllVisibleComments: () => void;
   deleteFocusedComment: () => void;
   focusArea: FocusArea;
   focusFilter: () => void;
@@ -52,8 +53,9 @@ export function useAppKeyboardShortcuts({
   canRefreshCurrentInput,
   closeHelp,
   commentEditorActive,
+  confirmActive,
   cycleTheme,
-  deleteAllFocusedComments,
+  deleteAllVisibleComments,
   deleteFocusedComment,
   focusArea,
   focusFilter,
@@ -80,11 +82,13 @@ export function useAppKeyboardShortcuts({
   const pagerModeRef = useRef(pagerMode);
   const showHelpRef = useRef(showHelp);
   const commentEditorActiveRef = useRef(commentEditorActive);
+  const confirmActiveRef = useRef(confirmActive);
 
   focusAreaRef.current = focusArea;
   pagerModeRef.current = pagerMode;
   showHelpRef.current = showHelp;
   commentEditorActiveRef.current = commentEditorActive;
+  confirmActiveRef.current = confirmActive;
 
   const handlePagerShortcut = (key: KeyEvent) => {
     if (key.name === "q" || isEscapeKey(key)) {
@@ -317,7 +321,7 @@ export function useAppKeyboardShortcuts({
     }
 
     if (key.sequence === "D") {
-      deleteAllFocusedComments();
+      deleteAllVisibleComments();
       return;
     }
 
@@ -342,9 +346,9 @@ export function useAppKeyboardShortcuts({
   };
 
   useKeyboard((key: KeyEvent) => {
-    if (commentEditorActiveRef.current) {
-      // The comment editor's focused <input> owns the keyboard while it is open.
-      // Don't let `q`, `?`, `s`, etc. fire as global shortcuts mid-typing.
+    if (commentEditorActiveRef.current || confirmActiveRef.current) {
+      // The comment editor and confirm dialog own the keyboard while they are open;
+      // don't let `q`, `?`, `s`, etc. fire as global shortcuts mid-prompt.
       return;
     }
 

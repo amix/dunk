@@ -45,6 +45,9 @@ const LazyHelpDialog = lazy(async () => ({
 const LazyCommentEditor = lazy(async () => ({
   default: (await import("./components/chrome/CommentEditor")).CommentEditor,
 }));
+const LazyConfirmDialog = lazy(async () => ({
+  default: (await import("./components/chrome/ConfirmDialog")).ConfirmDialog,
+}));
 
 /** Clamp a value into an inclusive range. */
 function clamp(value: number, min: number, max: number) {
@@ -126,6 +129,11 @@ export function App({
     filePath: string;
     line: number;
     anchor: string;
+  } | null>(null);
+  const [confirmPrompt, setConfirmPrompt] = useState<{
+    message: string;
+    title?: string;
+    onConfirm: () => void;
   } | null>(null);
   const [focusArea, setFocusArea] = useState<FocusArea>("files");
   const [sidebarWidth, setSidebarWidth] = useState(34);
@@ -419,14 +427,46 @@ export function App({
     });
   }, [mutateFocusedHunkComments]);
 
-  const deleteAllFocusedComments = useCallback(() => {
-    mutateFocusedHunkComments((current, matching) =>
-      withRemovedComments(
-        current,
-        matching.map((comment) => comment.id),
-      ),
-    );
-  }, [mutateFocusedHunkComments]);
+  /** Delete every comment whose file appears in the current diff, after a Y/N confirm. */
+  const deleteAllVisibleComments = useCallback(() => {
+    if (!repoRoot) {
+      return;
+    }
+
+    const visiblePaths = new Set<string>();
+    for (const file of bootstrap.changeset.files) {
+      visiblePaths.add(file.path);
+      if (file.previousPath) {
+        visiblePaths.add(file.previousPath);
+      }
+    }
+
+    setConfirmPrompt({
+      title: "Delete all comments",
+      message: `Delete every comment in the current diff (${bootstrap.changeset.files.length} files)?`,
+      onConfirm: () => {
+        setConfirmPrompt(null);
+        try {
+          mutateCommentsFile(repoRoot, (current) => {
+            const targets = current.comments.filter((comment) => visiblePaths.has(comment.file));
+            if (targets.length === 0) {
+              return current;
+            }
+
+            return withRemovedComments(
+              current,
+              targets.map((comment) => comment.id),
+            );
+          });
+        } catch (error) {
+          console.error("Failed to delete comments in the current diff.", error);
+          return;
+        }
+
+        triggerRefreshCurrentInput();
+      },
+    });
+  }, [bootstrap.changeset.files, repoRoot, triggerRefreshCurrentInput]);
 
   /** Open the comment-authoring modal for the bottom line of the focused hunk. */
   const openCommentEditor = useCallback(() => {
@@ -592,8 +632,9 @@ export function App({
     canRefreshCurrentInput,
     closeHelp,
     commentEditorActive: Boolean(commentEditorTarget),
+    confirmActive: Boolean(confirmPrompt),
     cycleTheme,
-    deleteAllFocusedComments,
+    deleteAllVisibleComments,
     deleteFocusedComment,
     focusArea,
     focusFilter,
@@ -781,6 +822,20 @@ export function App({
             theme={activeTheme}
             onCancel={closeCommentEditor}
             onSubmit={saveComment}
+          />
+        </Suspense>
+      ) : null}
+
+      {!pagerMode && confirmPrompt ? (
+        <Suspense fallback={null}>
+          <LazyConfirmDialog
+            message={confirmPrompt.message}
+            terminalHeight={terminal.height}
+            terminalWidth={terminal.width}
+            theme={activeTheme}
+            title={confirmPrompt.title}
+            onCancel={() => setConfirmPrompt(null)}
+            onConfirm={confirmPrompt.onConfirm}
           />
         </Suspense>
       ) : null}
