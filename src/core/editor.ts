@@ -102,10 +102,26 @@ export async function runEditorLaunch(
     };
 
     const child = spawn(program!, args, spawnOptions);
+
     if (!plan.needsTty) {
-      // Detach GUI editors so killing dunk does not also kill the editor.
-      child.unref();
-      resolveExit({ exitCode: 0 });
+      // GUI editors detach so killing dunk doesn't also kill the editor.
+      // Wait one event-loop tick for the immediate ENOENT-style spawn error
+      // before resolving — previously we resolved synchronously and the error
+      // event silently fell into the unhandled rejection bucket. On macOS this
+      // is the common failure for `EDITOR=zed`/`cursor` when the CLI helper is
+      // not on PATH but the GUI app is installed.
+      let errored = false;
+      child.on("error", (error) => {
+        errored = true;
+        rejectExit(error);
+      });
+      queueMicrotask(() => {
+        if (errored) {
+          return;
+        }
+        child.unref();
+        resolveExit({ exitCode: 0 });
+      });
       return;
     }
 

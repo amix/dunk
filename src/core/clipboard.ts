@@ -5,8 +5,17 @@ import { spawn } from "node:child_process";
  * helper accepted the input. Stays best-effort: a missing helper resolves
  * to `false` rather than throwing, since this is wired to a passive UI
  * action (selection auto-copy) where failure should be silent.
+ *
+ * macOS note: pbcopy reads from stdin and exits when stdin closes. Some
+ * spawn paths (especially under bun's bundled binary) raced the stdin
+ * close before pbcopy could consume the bytes. The implementation here
+ * uses node's `spawn` and writes via `child.stdin.end(text)` which queues
+ * the write and closes after flush — that's the shape pbcopy expects.
  */
 export async function copyToClipboard(text: string): Promise<boolean> {
+  if (text.length === 0) {
+    return false;
+  }
   const candidates = pickClipboardCommands();
   for (const command of candidates) {
     if (await runClipboardCommand(command, text)) {

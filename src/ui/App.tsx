@@ -299,9 +299,11 @@ export function App({
       }
 
       void copyToClipboard(text).then((copied) => {
-        if (copied) {
-          flashStatus("copied to clipboard");
-        }
+        // Surface both success and failure so the user can tell whether the
+        // OS helper (pbcopy / wl-copy / xclip) actually accepted the
+        // selection. On macOS in particular a silent failure used to look
+        // like "select-to-copy isn't working at all".
+        flashStatus(copied ? "copied to clipboard" : "clipboard copy failed");
       });
     };
 
@@ -672,7 +674,7 @@ export function App({
     const line = target.range[1];
     const plan = resolveEditorLaunch(target.filePath, line);
     if (!plan) {
-      console.error("Set $VISUAL or $EDITOR to use the `e` shortcut.");
+      flashStatus("set $EDITOR or $VISUAL to use e");
       return;
     }
 
@@ -685,9 +687,14 @@ export function App({
         }
       })
       .catch((error) => {
-        console.error("Failed to launch the editor.", error);
+        // Common macOS failure: $EDITOR=zed/cursor/code but the CLI helper is
+        // not on PATH (the GUI app installs without a shell shim). Surface a
+        // user-facing hint instead of dropping the error into the void.
+        const message = error instanceof Error ? error.message : String(error);
+        const programName = plan.command[0] ?? "editor";
+        flashStatus(`could not launch ${programName}: ${message}`, 4000);
       });
-  }, [focusedHunkTarget, triggerRefreshCurrentInput]);
+  }, [flashStatus, focusedHunkTarget, triggerRefreshCurrentInput]);
 
   /** Persist the entered body and reload so the new comment shows up inline. */
   const saveComment = useCallback(
