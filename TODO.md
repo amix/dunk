@@ -26,6 +26,15 @@ A *smaller* terminal diff + notes tool than upstream `hunk`. Sharing happens by 
 
 When tunk surfaces review comments to an LLM (skill, JSON export, MCP-style bridge — *if* we keep one), emit **file paths + line numbers + comment bodies only**. Never feed raw code snippets. The LLM can read the files itself; keeping the output free of content avoids stale snippets, reduces context bloat, and keeps `.tunk/comments.json` itself snippet-free as a side benefit. This applies to any `tunk export`, `tunk review --json`, or skill SKILL.md flow we ship.
 
+## LLM-driven refresh
+
+The LLM doesn't need a daemon or RPC. It works on the file system:
+
+- LLM edits a tracked file (resolves an issue) → tunk re-reads the diff.
+- LLM edits or deletes entries in `.tunk/comments.json` (resolves a comment) → tunk re-reads the comment list.
+
+Mechanism is plain `fs.watch` on the relevant paths, layered on the existing `--watch` flag. Keep the watch surface tight: the diff inputs and `.tunk/comments.json` only.
+
 ## Rethinks (locked in from review)
 
 - `D` scope: **current hunk only**, never the whole file.

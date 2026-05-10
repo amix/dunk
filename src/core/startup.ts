@@ -8,7 +8,7 @@ import {
   usesPipedPatchInput,
   type ControllingTerminal,
 } from "./terminal";
-import type { AppBootstrap, CliInput, ParsedCliInput, SessionCommandInput } from "./types";
+import type { AppBootstrap, CliInput, ParsedCliInput } from "./types";
 import { canReloadInput } from "./watch";
 import { parseCli } from "./cli";
 
@@ -16,13 +16,6 @@ export type StartupPlan =
   | {
       kind: "help";
       text: string;
-    }
-  | {
-      kind: "daemon-serve";
-    }
-  | {
-      kind: "session-command";
-      input: SessionCommandInput;
     }
   | {
       kind: "plain-text-pager";
@@ -67,19 +60,6 @@ export async function prepareStartupPlan(
     return {
       kind: "help",
       text: parsedCliInput.text,
-    };
-  }
-
-  if (parsedCliInput.kind === "daemon-serve") {
-    return {
-      kind: "daemon-serve",
-    };
-  }
-
-  if (parsedCliInput.kind === "session") {
-    return {
-      kind: "session-command",
-      input: parsedCliInput,
     };
   }
 

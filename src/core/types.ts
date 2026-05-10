@@ -88,130 +88,6 @@ export interface PagerCommandInput {
   options: CommonOptions;
 }
 
-export interface DaemonServeCommandInput {
-  kind: "daemon-serve";
-}
-
-export type SessionCommandOutput = "text" | "json";
-
-export interface SessionSelectorInput {
-  sessionId?: string;
-  sessionPath?: string;
-  repoRoot?: string;
-}
-
-export interface SessionListCommandInput {
-  kind: "session";
-  action: "list";
-  output: SessionCommandOutput;
-}
-
-export interface SessionGetCommandInput {
-  kind: "session";
-  action: "get" | "context";
-  output: SessionCommandOutput;
-  selector: SessionSelectorInput;
-}
-
-export interface SessionReviewCommandInput {
-  kind: "session";
-  action: "review";
-  output: SessionCommandOutput;
-  selector: SessionSelectorInput;
-  includePatch: boolean;
-}
-
-export interface SessionNavigateCommandInput {
-  kind: "session";
-  action: "navigate";
-  output: SessionCommandOutput;
-  selector: SessionSelectorInput;
-  filePath?: string;
-  hunkNumber?: number;
-  side?: "old" | "new";
-  line?: number;
-  commentDirection?: "next" | "prev";
-}
-
-export interface SessionReloadCommandInput {
-  kind: "session";
-  action: "reload";
-  output: SessionCommandOutput;
-  selector: SessionSelectorInput;
-  nextInput: CliInput;
-  sourcePath?: string;
-}
-
-export interface SessionCommentAddCommandInput {
-  kind: "session";
-  action: "comment-add";
-  output: SessionCommandOutput;
-  selector: SessionSelectorInput;
-  filePath: string;
-  side: "old" | "new";
-  line: number;
-  summary: string;
-  rationale?: string;
-  author?: string;
-  reveal: boolean;
-}
-
-export interface SessionCommentApplyItemInput {
-  filePath: string;
-  hunkNumber?: number;
-  side?: "old" | "new";
-  line?: number;
-  summary: string;
-  rationale?: string;
-  author?: string;
-}
-
-export interface SessionCommentApplyCommandInput {
-  kind: "session";
-  action: "comment-apply";
-  output: SessionCommandOutput;
-  selector: SessionSelectorInput;
-  comments: SessionCommentApplyItemInput[];
-  revealMode: "none" | "first";
-}
-
-export interface SessionCommentListCommandInput {
-  kind: "session";
-  action: "comment-list";
-  output: SessionCommandOutput;
-  selector: SessionSelectorInput;
-  filePath?: string;
-}
-
-export interface SessionCommentRemoveCommandInput {
-  kind: "session";
-  action: "comment-rm";
-  output: SessionCommandOutput;
-  selector: SessionSelectorInput;
-  commentId: string;
-}
-
-export interface SessionCommentClearCommandInput {
-  kind: "session";
-  action: "comment-clear";
-  output: SessionCommandOutput;
-  selector: SessionSelectorInput;
-  filePath?: string;
-  confirmed: boolean;
-}
-
-export type SessionCommandInput =
-  | SessionListCommandInput
-  | SessionGetCommandInput
-  | SessionReviewCommandInput
-  | SessionNavigateCommandInput
-  | SessionReloadCommandInput
-  | SessionCommentAddCommandInput
-  | SessionCommentApplyCommandInput
-  | SessionCommentListCommandInput
-  | SessionCommentRemoveCommandInput
-  | SessionCommentClearCommandInput;
-
 export interface VcsCommandInput {
   kind: "vcs";
   range?: string;
@@ -263,12 +139,7 @@ export type CliInput =
   | PatchCommandInput
   | DiffToolCommandInput;
 
-export type ParsedCliInput =
-  | CliInput
-  | HelpCommandInput
-  | PagerCommandInput
-  | DaemonServeCommandInput
-  | SessionCommandInput;
+export type ParsedCliInput = CliInput | HelpCommandInput | PagerCommandInput;
 
 export interface AppBootstrap {
   input: CliInput;

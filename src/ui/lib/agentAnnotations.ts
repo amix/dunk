@@ -1,6 +1,6 @@
 import type { Hunk } from "@pierre/diffs";
 import type { AgentAnnotation, DiffFile } from "../../core/types";
-import { hunkLineRange } from "../../core/liveComments";
+import { hunkLineRange } from "../../core/hunkRange";
 import { fileLabel } from "./files";
 
 export interface VisibleAgentNote {

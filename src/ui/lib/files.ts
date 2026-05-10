@@ -1,7 +1,7 @@
 import { basename, dirname } from "node:path/posix";
 import type { FileDiffMetadata } from "@pierre/diffs";
 import { normalizeDiffPath } from "../../core/diffPaths";
-import type { AgentAnnotation, DiffFile } from "../../core/types";
+import type { DiffFile } from "../../core/types";
 
 export interface FileListEntry {
   kind: "file";
@@ -72,28 +72,6 @@ export function sidebarEntryStatsWidth(
     (width, stat, index) => width + stat.text.length + (index > 0 ? 1 : 0),
     0,
   );
-}
-
-/** Merge one file-id keyed annotation map into the review stream file list. */
-export function mergeFileAnnotationsByFileId<T extends AgentAnnotation>(
-  files: DiffFile[],
-  annotationsByFileId: Record<string, T[]>,
-): DiffFile[] {
-  return files.map((file) => {
-    const annotations = annotationsByFileId[file.id];
-    if (!annotations || annotations.length === 0) {
-      return file;
-    }
-
-    return {
-      ...file,
-      agent: {
-        path: file.path,
-        summary: file.agent?.summary,
-        annotations: [...(file.agent?.annotations ?? []), ...annotations],
-      },
-    };
-  });
 }
 
 /** Apply the app's file filter query to the visible review stream. */

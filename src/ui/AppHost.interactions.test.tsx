@@ -4,13 +4,6 @@ import { join } from "node:path";
 import { describe, expect, mock, test } from "bun:test";
 import { testRender } from "@opentui/react/test-utils";
 import { act } from "react";
-import { SESSION_BROKER_REGISTRATION_VERSION } from "@hunk/session-broker-core";
-import type {
-  HunkSessionBrokerClient,
-  HunkSessionRegistration,
-  HunkSessionServerMessage,
-  HunkSessionSnapshot,
-} from "../hunk-session/types";
 import type { AppBootstrap, LayoutMode } from "../core/types";
 import { createTestVcsAppBootstrap } from "../../test/helpers/app-bootstrap";
 import { createTestDiffFile as buildTestDiffFile, lines } from "../../test/helpers/diff-helpers";
@@ -45,54 +38,6 @@ function createNumberedAssignmentLines(start: number, count: number, valueOffset
   });
 }
 
-function createMockHostClient() {
-  type Bridge = Parameters<HunkSessionBrokerClient["setBridge"]>[0];
-
-  let bridge: Bridge = null;
-  let latestSnapshot: HunkSessionSnapshot["state"] | null = null;
-  const registration: HunkSessionRegistration = {
-    registrationVersion: SESSION_BROKER_REGISTRATION_VERSION,
-    sessionId: "session-1",
-    pid: process.pid,
-    cwd: process.cwd(),
-    repoRoot: process.cwd(),
-    launchedAt: "2026-03-24T00:00:00.000Z",
-    info: {
-      inputKind: "vcs",
-      title: "repo working tree",
-      sourceLabel: "repo",
-      files: [],
-    },
-  };
-  return {
-    hostClient: {
-      getRegistration: () => registration,
-      replaceSession: () => {},
-      setBridge: (nextBridge: Bridge) => {
-        bridge = nextBridge;
-      },
-      updateSnapshot: (snapshot: HunkSessionSnapshot) => {
-        latestSnapshot = snapshot.state;
-      },
-    } as unknown as HunkSessionBrokerClient,
-    getBridge: () => bridge,
-    getLatestSnapshot: () => latestSnapshot,
-    navigateToHunk: async (
-      input: Extract<HunkSessionServerMessage, { command: "navigate_to_hunk" }>["input"],
-    ) => {
-      if (!bridge) {
-        throw new Error("Expected App to register a bridge before running the test command.");
-      }
-
-      return bridge.dispatchCommand({
-        type: "command",
-        requestId: "test-request",
-        command: "navigate_to_hunk",
-        input,
-      });
-    },
-  };
-}
 
 function createBootstrap(initialMode: LayoutMode = "split", pager = false): AppBootstrap {
   return createTestVcsAppBootstrap({
@@ -161,47 +106,6 @@ function createLineScrollBootstrap(pager = false): AppBootstrap {
 }
 
 /** Build a two-hunk fixture with a deep inline note for CLI comment-navigation scroll tests. */
-function createDeepNoteBootstrap(): AppBootstrap {
-  const beforeLines = Array.from(
-    { length: 80 },
-    (_, index) => `export const line${index + 1} = ${index + 1};`,
-  );
-  const afterLines = [...beforeLines];
-
-  afterLines[0] = "export const line1 = 100;";
-  afterLines[59] = "export const line60 = 6000;";
-  afterLines[60] = "export const line61 = 6100;";
-  afterLines[61] = "export const line62 = 6200;";
-  afterLines[62] = "export const line63 = 6300;";
-  afterLines[63] = "export const line64 = 6400;";
-  afterLines[64] = "export const line65 = 6500;";
-
-  const file = createTestDiffFile(
-    "deep-note",
-    "deep-note.ts",
-    `${beforeLines.join("\n")}\n`,
-    `${afterLines.join("\n")}\n`,
-  );
-  file.agent = {
-    path: file.path,
-    summary: "file note",
-    annotations: [
-      {
-        newRange: [62, 62],
-        summary: "Note anchored on second hunk.",
-      },
-    ],
-  };
-
-  return createTestVcsAppBootstrap({
-    changesetId: "changeset:app-deep-note",
-    files: [file],
-    vcsOptions: { agentNotes: true },
-    initialShowAgentNotes: true,
-  });
-}
-
-/** Build a long-line fixture that is tall enough to verify viewport-anchor restoration. */
 function createWrapScrollBootstrap(): AppBootstrap {
   const before = lines(...createNumberedAssignmentLines(1, 18));
   const after = lines(
@@ -326,40 +230,6 @@ function createRapidViewportLoopBootstrap(): AppBootstrap {
   });
 }
 
-function createMouseScrollSelectionBootstrap(): AppBootstrap {
-  const firstBeforeLines = createNumberedAssignmentLines(1, 12);
-  const secondBeforeLines = Array.from(
-    { length: 90 },
-    (_, index) => `export const line${String(index + 13).padStart(2, "0")} = ${index + 13};`,
-  );
-  const secondAfterLines = [...secondBeforeLines];
-
-  secondAfterLines[0] = "export const line13 = 1300;";
-  secondAfterLines[59] = "export const line72 = 7200;";
-  secondAfterLines[60] = "export const line73 = 7300;";
-  secondAfterLines[61] = "export const line74 = 7400;";
-
-  return createTestVcsAppBootstrap({
-    changesetId: "changeset:mouse-scroll-selection",
-    files: [
-      createTestDiffFile(
-        "first",
-        "first.ts",
-        lines(...firstBeforeLines),
-        lines("export const line01 = 101;", ...createNumberedAssignmentLines(2, 11)),
-        true,
-      ),
-      createTestDiffFile(
-        "second",
-        "second.ts",
-        lines(...secondBeforeLines),
-        lines(...secondAfterLines),
-        true,
-      ),
-    ],
-  });
-}
-
 function createCollapsedTopBootstrap(): AppBootstrap {
   const beforeLines = Array.from(
     { length: 400 },
@@ -449,28 +319,6 @@ function firstCrossFileHunkNavigationHeader(frame: string) {
   );
 }
 
-async function waitForSnapshot(
-  setup: Awaited<ReturnType<typeof testRender>>,
-  getSnapshot: () => HunkSessionSnapshot["state"] | null,
-  predicate: (snapshot: HunkSessionSnapshot["state"]) => boolean,
-  attempts = 8,
-) {
-  let snapshot = getSnapshot();
-
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
-    if (snapshot && predicate(snapshot)) {
-      return snapshot;
-    }
-
-    await act(async () => {
-      await Bun.sleep(30);
-      await setup.renderOnce();
-    });
-    snapshot = getSnapshot();
-  }
-
-  return snapshot;
-}
 
 function firstVisibleAddedLine(frame: string) {
   return frame.match(/line\d{2} = 1\d{2}/)?.[0] ?? null;
@@ -1710,96 +1558,6 @@ describe("App interactions", () => {
     }
   });
 
-  test("CLI comment navigation respects the active file filter", async () => {
-    const { hostClient, navigateToHunk } = createMockHostClient();
-    const setup = await testRender(
-      <AppHost bootstrap={createBootstrap()} hostClient={hostClient} />,
-      {
-        width: 240,
-        height: 24,
-      },
-    );
-
-    try {
-      await flush(setup);
-
-      await act(async () => {
-        await setup.mockInput.pressTab();
-      });
-      await flush(setup);
-      await act(async () => {
-        await setup.mockInput.typeText("beta");
-      });
-      await flush(setup);
-
-      let frame = setup.captureCharFrame();
-      expect(frame).toContain("filter:");
-      expect(frame).toContain("beta");
-      expect(frame).toContain("betaValue");
-      expect(frame).not.toContain("add = true");
-
-      let navigationError: unknown;
-      await act(async () => {
-        try {
-          await navigateToHunk({ commentDirection: "next" });
-        } catch (error) {
-          navigationError = error;
-        }
-      });
-
-      expect(navigationError).toBeInstanceOf(Error);
-      expect((navigationError as Error).message).toContain(
-        "No annotated hunks found in the current review.",
-      );
-
-      await flush(setup);
-      frame = setup.captureCharFrame();
-      expect(frame).toContain("betaValue");
-      expect(frame).not.toContain("add = true");
-    } finally {
-      await act(async () => {
-        setup.renderer.destroy();
-      });
-    }
-  });
-
-  test("CLI comment navigation scrolls the inline note into view", async () => {
-    const { hostClient, navigateToHunk } = createMockHostClient();
-    const setup = await testRender(
-      <AppHost bootstrap={createDeepNoteBootstrap()} hostClient={hostClient} />,
-      {
-        width: 104,
-        height: 18,
-      },
-    );
-
-    try {
-      await flush(setup);
-
-      let frame = setup.captureCharFrame();
-      expect(frame).not.toContain("Note anchored on second hunk.");
-
-      let result: Awaited<ReturnType<typeof navigateToHunk>> | undefined;
-      await act(async () => {
-        result = await navigateToHunk({ commentDirection: "next" });
-      });
-
-      expect(result).toMatchObject({
-        filePath: "deep-note.ts",
-        hunkIndex: 1,
-      });
-
-      frame = await waitForFrame(setup, (currentFrame) =>
-        currentFrame.includes("Note anchored on second hunk."),
-      );
-      expect(frame).toContain("Note anchored on second hunk.");
-    } finally {
-      await act(async () => {
-        setup.renderer.destroy();
-      });
-    }
-  });
-
   test("sidebar visibility can toggle off and back on", async () => {
     const setup = await testRender(<AppHost bootstrap={createBootstrap()} />, {
       width: 240,
@@ -2004,175 +1762,6 @@ describe("App interactions", () => {
 
       expect(frame).toContain("line 341 changed");
       expect(frame).not.toContain("line 002 changed");
-    } finally {
-      await act(async () => {
-        setup.renderer.destroy();
-      });
-    }
-  });
-
-  test("mouse wheel scrolling updates the active file and hunk to the viewport center", async () => {
-    const { getLatestSnapshot, hostClient } = createMockHostClient();
-    const setup = await testRender(
-      <AppHost bootstrap={createMouseScrollSelectionBootstrap()} hostClient={hostClient} />,
-      {
-        width: 220,
-        height: 11,
-      },
-    );
-
-    try {
-      await flush(setup);
-
-      expect(getLatestSnapshot()).toMatchObject({
-        selectedFilePath: "first.ts",
-        selectedHunkIndex: 0,
-      });
-
-      let snapshot = getLatestSnapshot();
-      for (let index = 0; index < 24; index += 1) {
-        await act(async () => {
-          await setup.mockMouse.scroll(120, 7, "down");
-        });
-        await flush(setup);
-
-        snapshot = await waitForSnapshot(
-          setup,
-          getLatestSnapshot,
-          (currentSnapshot) =>
-            currentSnapshot.selectedFilePath === "second.ts" &&
-            currentSnapshot.selectedHunkIndex === 1,
-          4,
-        );
-        if (snapshot?.selectedFilePath === "second.ts" && snapshot.selectedHunkIndex === 1) {
-          break;
-        }
-      }
-
-      expect(snapshot).toMatchObject({
-        selectedFilePath: "second.ts",
-        selectedHunkIndex: 1,
-      });
-    } finally {
-      await act(async () => {
-        setup.renderer.destroy();
-      });
-    }
-  });
-
-  test("PageDown and PageUp scrolling update the active file to match the viewport", async () => {
-    const { getLatestSnapshot, hostClient } = createMockHostClient();
-    const setup = await testRender(
-      <AppHost bootstrap={createMouseScrollSelectionBootstrap()} hostClient={hostClient} />,
-      {
-        width: 220,
-        height: 12,
-      },
-    );
-
-    try {
-      await flush(setup);
-
-      expect(getLatestSnapshot()).toMatchObject({
-        selectedFilePath: "first.ts",
-        selectedHunkIndex: 0,
-      });
-
-      let snapshot = getLatestSnapshot();
-      for (let index = 0; index < 8; index += 1) {
-        await act(async () => {
-          await setup.mockInput.pressKeys([PAGE_DOWN_SEQUENCE]);
-        });
-        await flush(setup);
-
-        snapshot = await waitForSnapshot(
-          setup,
-          getLatestSnapshot,
-          (currentSnapshot) => currentSnapshot.selectedFilePath === "second.ts",
-          4,
-        );
-        if (snapshot?.selectedFilePath === "second.ts") {
-          break;
-        }
-      }
-
-      // Page-sized scrolling should move selection ownership into the later file. The exact hunk
-      // can vary with viewport handoff timing because the page jump may land near either visible
-      // hunk in second.ts on slower CI machines.
-      expect(snapshot).toMatchObject({
-        selectedFilePath: "second.ts",
-      });
-
-      for (let index = 0; index < 8; index += 1) {
-        await act(async () => {
-          await setup.mockInput.pressKeys([PAGE_UP_SEQUENCE]);
-        });
-        await flush(setup);
-
-        snapshot = await waitForSnapshot(
-          setup,
-          getLatestSnapshot,
-          (currentSnapshot) => currentSnapshot.selectedFilePath === "first.ts",
-          4,
-        );
-        if (snapshot?.selectedFilePath === "first.ts") {
-          break;
-        }
-      }
-
-      expect(snapshot).toMatchObject({
-        selectedFilePath: "first.ts",
-        selectedHunkIndex: 0,
-      });
-    } finally {
-      await act(async () => {
-        setup.renderer.destroy();
-      });
-    }
-  });
-
-  test("down-arrow scrolling updates the active file and hunk to the viewport center", async () => {
-    const { getLatestSnapshot, hostClient } = createMockHostClient();
-    const setup = await testRender(
-      <AppHost bootstrap={createMouseScrollSelectionBootstrap()} hostClient={hostClient} />,
-      {
-        width: 220,
-        height: 12,
-      },
-    );
-
-    try {
-      await flush(setup);
-
-      expect(getLatestSnapshot()).toMatchObject({
-        selectedFilePath: "first.ts",
-        selectedHunkIndex: 0,
-      });
-
-      let snapshot = getLatestSnapshot();
-      for (let index = 0; index < 80; index += 1) {
-        await act(async () => {
-          await setup.mockInput.pressArrow("down");
-        });
-        await flush(setup);
-
-        snapshot = await waitForSnapshot(
-          setup,
-          getLatestSnapshot,
-          (currentSnapshot) =>
-            currentSnapshot.selectedFilePath === "second.ts" &&
-            currentSnapshot.selectedHunkIndex === 1,
-          4,
-        );
-        if (snapshot?.selectedFilePath === "second.ts" && snapshot.selectedHunkIndex === 1) {
-          break;
-        }
-      }
-
-      expect(snapshot).toMatchObject({
-        selectedFilePath: "second.ts",
-        selectedHunkIndex: 1,
-      });
     } finally {
       await act(async () => {
         setup.renderer.destroy();

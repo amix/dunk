@@ -9,36 +9,12 @@ import { prepareStartupPlan } from "./core/startup";
 import { shouldUseMouseForApp } from "./core/terminal";
 import { resolveStartupUpdateNotice } from "./core/updateNotice";
 import { AppHost } from "./ui/AppHost";
-import { SessionBrokerClient } from "./session-broker/brokerClient";
-import { serveSessionBrokerDaemon } from "./session-broker/brokerServer";
-import {
-  createInitialSessionSnapshot,
-  createSessionRegistration,
-} from "./hunk-session/sessionRegistration";
-import type {
-  HunkSessionCommandResult,
-  HunkSessionInfo,
-  HunkSessionServerMessage,
-  HunkSessionState,
-} from "./hunk-session/types";
-import { runSessionCommand } from "./session/commands";
 
 async function main() {
   const startupPlan = await prepareStartupPlan();
 
   if (startupPlan.kind === "help") {
     process.stdout.write(startupPlan.text);
-    process.exit(0);
-  }
-
-  if (startupPlan.kind === "daemon-serve") {
-    const server = serveSessionBrokerDaemon();
-    await server.stopped;
-    return;
-  }
-
-  if (startupPlan.kind === "session-command") {
-    process.stdout.write(await runSessionCommand(startupPlan.input));
     process.exit(0);
   }
 
@@ -52,13 +28,6 @@ async function main() {
   }
 
   const { bootstrap, controllingTerminal } = startupPlan;
-  const hostClient = new SessionBrokerClient<
-    HunkSessionInfo,
-    HunkSessionState,
-    HunkSessionServerMessage,
-    HunkSessionCommandResult
-  >(createSessionRegistration(bootstrap), createInitialSessionSnapshot(bootstrap));
-  hostClient.start();
 
   const renderer = await createCliRenderer({
     stdin: controllingTerminal?.stdin,
@@ -82,7 +51,6 @@ async function main() {
     }
 
     shuttingDown = true;
-    hostClient.stop();
     shutdownSession({ root, renderer });
   }
 
@@ -90,7 +58,6 @@ async function main() {
   root.render(
     <AppHost
       bootstrap={bootstrap}
-      hostClient={hostClient}
       onQuit={shutdown}
       startupNoticeResolver={resolveStartupUpdateNotice}
     />,

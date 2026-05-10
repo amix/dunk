@@ -7,7 +7,6 @@ import { useRenderer, useTerminalDimensions } from "@opentui/react";
 import { Suspense, lazy, useCallback, useEffect, useMemo, useState, useRef } from "react";
 import type { AppBootstrap, CliInput, LayoutMode } from "../core/types";
 import { canReloadInput, computeWatchSignature } from "../core/watch";
-import type { HunkSessionBrokerClient, ReloadedSessionResult } from "../hunk-session/types";
 import { StatusBar } from "./components/chrome/StatusBar";
 import { DiffPane } from "./components/panes/DiffPane";
 import { SidebarPane } from "./components/panes/SidebarPane";
@@ -18,7 +17,6 @@ import {
   resolveCodeViewportWidth,
 } from "./diff/codeColumns";
 import { useAppKeyboardShortcuts } from "./hooks/useAppKeyboardShortcuts";
-import { useHunkSessionBridge } from "./hooks/useHunkSessionBridge";
 import { useReviewController } from "./hooks/useReviewController";
 import { fileRowId } from "./lib/ids";
 import { resolveResponsiveLayout } from "./lib/responsive";
@@ -67,19 +65,17 @@ function withCurrentViewOptions(
 /** Orchestrate global app state, layout, navigation, and pane coordination. */
 export function App({
   bootstrap,
-  hostClient,
   noticeText,
   onQuit = () => process.exit(0),
   onReloadSession,
 }: {
   bootstrap: AppBootstrap;
-  hostClient?: HunkSessionBrokerClient;
   noticeText?: string | null;
   onQuit?: () => void;
   onReloadSession: (
     nextInput: CliInput,
     options?: { resetApp?: boolean; sourcePath?: string },
-  ) => Promise<ReloadedSessionResult>;
+  ) => Promise<void>;
 }) {
   const SIDEBAR_MIN_WIDTH = 22;
   const DIFF_MIN_WIDTH = 48;
@@ -131,23 +127,6 @@ export function App({
   const openAgentNotes = useCallback(() => {
     setShowAgentNotes(true);
   }, []);
-
-  useHunkSessionBridge({
-    addLiveComment: review.addLiveComment,
-    addLiveCommentBatch: review.addLiveCommentBatch,
-    clearLiveComments: review.clearLiveComments,
-    hostClient,
-    liveCommentCount: review.liveCommentCount,
-    liveCommentSummaries: review.liveCommentSummaries,
-    navigateToLocation: review.navigateToLocation,
-    openAgentNotes,
-    reloadSession: onReloadSession,
-    removeLiveComment: review.removeLiveComment,
-    selectedFile,
-    selectedHunk: review.selectedHunk,
-    selectedHunkIndex,
-    showAgentNotes,
-  });
 
   const bodyPadding = pagerMode ? 0 : BODY_PADDING;
   const bodyWidth = Math.max(0, terminal.width - bodyPadding);

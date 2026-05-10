@@ -1,10 +1,8 @@
 /**
- * Shared review-stream state for both the app shell and the session bridge.
+ * Shared review-stream state for the app shell.
  *
- * This hook owns the live review state that both callers need to agree on:
- * filtering, merged live comments, selected file and hunk, and relative review
- * navigation. `App` uses it for rendering and keyboard or menu actions, while
- * the session bridge uses the same state and actions for daemon-driven navigation.
+ * Owns: filtering, selected file and hunk, and relative review navigation.
+ * `App` uses it for rendering and keyboard actions.
  */
 import {
   startTransition,
@@ -14,32 +12,9 @@ import {
   useMemo,
   useState,
 } from "react";
-import {
-  buildLiveComment,
-  findDiffFileByPath,
-  resolveCommentTarget,
-} from "../../core/liveComments";
 import type { DiffFile } from "../../core/types";
-import type {
-  AppliedCommentBatchResult,
-  AppliedCommentResult,
-  ClearedCommentsResult,
-  CommentBatchItemInput,
-  CommentToolInput,
-  LiveComment,
-  NavigateToHunkToolInput,
-  NavigatedSelectionResult,
-  RemovedCommentResult,
-  SessionLiveCommentSummary,
-} from "../../hunk-session/types";
 import { findNextHunkCursor } from "../lib/hunks";
-import {
-  buildReviewState,
-  buildSelectedHunkSummary,
-  findNextAnnotatedFile,
-  type ReviewState,
-  resolveReviewNavigationTarget,
-} from "../lib/reviewState";
+import { buildReviewState, findNextAnnotatedFile, type ReviewState } from "../lib/reviewState";
 
 /** Clamp one numeric index into an inclusive range. */
 function clamp(value: number, min: number, max: number) {
@@ -55,9 +30,6 @@ export interface ReviewSelectionOptions {
 export interface ReviewController {
   allFiles: DiffFile[];
   filter: string;
-  liveCommentCount: number;
-  liveCommentSummaries: SessionLiveCommentSummary[];
-  liveCommentsByFileId: Record<string, LiveComment[]>;
   moveToAnnotatedFile: (delta: number) => void;
   moveToAnnotatedHunk: (delta: number) => void;
   moveToHunk: (delta: number) => void;
@@ -70,26 +42,13 @@ export interface ReviewController {
   selectedHunkIndex: number;
   sidebarEntries: ReviewState["sidebarEntries"];
   visibleFiles: DiffFile[];
-  addLiveComment: (
-    input: CommentToolInput,
-    commentId: string,
-    options?: { reveal?: boolean },
-  ) => AppliedCommentResult;
-  addLiveCommentBatch: (
-    inputs: CommentBatchItemInput[],
-    requestId: string,
-    options?: { revealMode?: "none" | "first" },
-  ) => AppliedCommentBatchResult;
   clearFilter: () => void;
-  clearLiveComments: (filePath?: string) => ClearedCommentsResult;
-  navigateToLocation: (input: NavigateToHunkToolInput) => NavigatedSelectionResult;
-  removeLiveComment: (commentId: string) => RemovedCommentResult;
   selectFile: (fileId: string, nextHunkIndex?: number, options?: ReviewSelectionOptions) => void;
   selectHunk: (fileId: string, hunkIndex: number, options?: ReviewSelectionOptions) => void;
   setFilter: (value: string) => void;
 }
 
-/** Own the shared review stream state used by both the UI and session bridge. */
+/** Own the shared review stream state for the UI shell. */
 export function useReviewController({ files }: { files: DiffFile[] }): ReviewController {
   const [filter, setFilter] = useState("");
   const [selectedFileId, setSelectedFileId] = useState(files[0]?.id ?? "");
@@ -97,9 +56,6 @@ export function useReviewController({ files }: { files: DiffFile[] }): ReviewCon
   const [selectedFileTopAlignRequestId, setSelectedFileTopAlignRequestId] = useState(0);
   const [selectedHunkRevealRequestId, setSelectedHunkRevealRequestId] = useState(0);
   const [scrollToNote, setScrollToNote] = useState(false);
-  const [liveCommentsByFileId, setLiveCommentsByFileId] = useState<Record<string, LiveComment[]>>(
-    {},
-  );
   const deferredFilter = useDeferredValue(filter);
 
   const {
@@ -114,12 +70,11 @@ export function useReviewController({ files }: { files: DiffFile[] }): ReviewCon
     () =>
       buildReviewState({
         files,
-        liveCommentsByFileId,
         filterQuery: deferredFilter,
         selectedFileId,
         selectedHunkIndex,
       }),
-    [deferredFilter, files, liveCommentsByFileId, selectedFileId, selectedHunkIndex],
+    [deferredFilter, files, selectedFileId, selectedHunkIndex],
   );
 
   /** Update the selection and reveal intent together so diff scrolling stays explicit. */
@@ -216,7 +171,7 @@ export function useReviewController({ files }: { files: DiffFile[] }): ReviewCon
     [hunkCursors, selectHunk, selectedFile?.id, selectedHunkIndex],
   );
 
-  /** Move through only hunks that currently have agent notes or live comments. */
+  /** Move through only hunks that currently have agent notes. */
   const moveToAnnotatedHunk = useCallback(
     (delta: number) => {
       const nextCursor = findNextHunkCursor(
@@ -252,243 +207,9 @@ export function useReviewController({ files }: { files: DiffFile[] }): ReviewCon
     setFilter("");
   }, []);
 
-  /** Resolve one session-daemon navigation request against the current review state and select it. */
-  const navigateToLocation = useCallback(
-    (input: NavigateToHunkToolInput): NavigatedSelectionResult => {
-      const target = resolveReviewNavigationTarget({
-        allFiles,
-        currentFileId: selectedFile?.id,
-        currentHunkIndex: selectedHunkIndex,
-        input,
-        visibleFiles,
-      });
-
-      selectHunk(target.file.id, target.hunkIndex, { scrollToNote: target.scrollToNote });
-      return {
-        fileId: target.file.id,
-        filePath: target.file.path,
-        hunkIndex: target.hunkIndex,
-        selectedHunk: buildSelectedHunkSummary(target.file, target.hunkIndex),
-      };
-    },
-    [allFiles, selectHunk, selectedFile?.id, selectedHunkIndex, visibleFiles],
-  );
-
-  /** Add one live comment, optionally revealing its hunk in the active review. */
-  const addLiveComment = useCallback(
-    (
-      input: CommentToolInput,
-      commentId: string,
-      options?: { reveal?: boolean },
-    ): AppliedCommentResult => {
-      const file = findDiffFileByPath(allFiles, input.filePath);
-      if (!file) {
-        throw new Error(`No diff file matches ${input.filePath}.`);
-      }
-
-      const target = resolveCommentTarget(file, input);
-
-      const liveComment = buildLiveComment(
-        {
-          ...input,
-          side: target.side,
-          line: target.line,
-        },
-        commentId,
-        new Date().toISOString(),
-        target.hunkIndex,
-      );
-      setLiveCommentsByFileId((current) => ({
-        ...current,
-        [file.id]: [...(current[file.id] ?? []), liveComment],
-      }));
-
-      if (options?.reveal ?? false) {
-        selectHunk(file.id, target.hunkIndex);
-      }
-
-      return {
-        commentId,
-        fileId: file.id,
-        filePath: file.path,
-        hunkIndex: target.hunkIndex,
-        side: target.side,
-        line: target.line,
-      };
-    },
-    [allFiles, selectHunk],
-  );
-
-  /** Apply several live comments together after validating every target first. */
-  const addLiveCommentBatch = useCallback(
-    (
-      inputs: CommentBatchItemInput[],
-      requestId: string,
-      options?: { revealMode?: "none" | "first" },
-    ): AppliedCommentBatchResult => {
-      const createdAt = new Date().toISOString();
-      const prepared = inputs.map((input, index) => {
-        const file = findDiffFileByPath(allFiles, input.filePath);
-        if (!file) {
-          throw new Error(`No diff file matches ${input.filePath}.`);
-        }
-
-        const target = resolveCommentTarget(file, input);
-        return {
-          file,
-          target,
-          liveComment: buildLiveComment(
-            {
-              ...input,
-              side: target.side,
-              line: target.line,
-            },
-            `mcp:${requestId}:${index}`,
-            createdAt,
-            target.hunkIndex,
-          ),
-        };
-      });
-
-      if (prepared.length > 0) {
-        setLiveCommentsByFileId((current) => {
-          const next = { ...current };
-          for (const entry of prepared) {
-            next[entry.file.id] = [...(next[entry.file.id] ?? []), entry.liveComment];
-          }
-
-          return next;
-        });
-      }
-
-      if (options?.revealMode === "first" && prepared.length > 0) {
-        const first = prepared[0]!;
-        selectHunk(first.file.id, first.target.hunkIndex);
-      }
-
-      return {
-        applied: prepared.map(({ file, target, liveComment }) => ({
-          commentId: liveComment.id,
-          fileId: file.id,
-          filePath: file.path,
-          hunkIndex: target.hunkIndex,
-          side: target.side,
-          line: target.line,
-        })),
-      };
-    },
-    [allFiles, selectHunk],
-  );
-
-  /** Remove one live comment by id and report how many remain. */
-  const removeLiveComment = useCallback(
-    (commentId: string): RemovedCommentResult => {
-      let removed = false;
-      let remainingCommentCount = 0;
-      const next: Record<string, LiveComment[]> = {};
-
-      for (const [fileId, comments] of Object.entries(liveCommentsByFileId)) {
-        const filtered = comments.filter((comment) => comment.id !== commentId);
-        if (filtered.length !== comments.length) {
-          removed = true;
-        }
-
-        if (filtered.length > 0) {
-          next[fileId] = filtered;
-          remainingCommentCount += filtered.length;
-        }
-      }
-
-      if (!removed) {
-        throw new Error(`No live comment matches id ${commentId}.`);
-      }
-
-      setLiveCommentsByFileId(next);
-      return {
-        commentId,
-        removed: true,
-        remainingCommentCount,
-      };
-    },
-    [liveCommentsByFileId],
-  );
-
-  /** Clear all live comments, or only the comments attached to one specific file. */
-  const clearLiveComments = useCallback(
-    (filePath?: string): ClearedCommentsResult => {
-      let removedCount = 0;
-      let remainingCommentCount = 0;
-
-      if (filePath) {
-        const file = findDiffFileByPath(allFiles, filePath);
-        if (!file) {
-          throw new Error(`No diff file matches ${filePath}.`);
-        }
-
-        const next: Record<string, LiveComment[]> = {};
-        for (const [fileId, comments] of Object.entries(liveCommentsByFileId)) {
-          if (fileId === file.id) {
-            removedCount = comments.length;
-            continue;
-          }
-
-          next[fileId] = comments;
-          remainingCommentCount += comments.length;
-        }
-
-        if (removedCount > 0) {
-          setLiveCommentsByFileId(next);
-        }
-      } else {
-        removedCount = Object.values(liveCommentsByFileId).reduce(
-          (sum, comments) => sum + comments.length,
-          0,
-        );
-        if (removedCount > 0) {
-          setLiveCommentsByFileId({});
-        }
-      }
-
-      return {
-        removedCount,
-        remainingCommentCount,
-        filePath,
-      };
-    },
-    [allFiles, liveCommentsByFileId],
-  );
-
-  /** Count all currently tracked live comments, including ones hidden by the active filter. */
-  const liveCommentCount = useMemo(
-    () => Object.values(liveCommentsByFileId).reduce((sum, comments) => sum + comments.length, 0),
-    [liveCommentsByFileId],
-  );
-
-  /** Format current live comments for daemon snapshots without exposing merged UI-only objects. */
-  const liveCommentSummaries = useMemo<SessionLiveCommentSummary[]>(
-    () =>
-      allFiles.flatMap((file) =>
-        (liveCommentsByFileId[file.id] ?? []).map((comment) => ({
-          commentId: comment.id,
-          filePath: file.path,
-          hunkIndex: comment.hunkIndex,
-          side: comment.side,
-          line: comment.line,
-          summary: comment.summary,
-          rationale: comment.rationale,
-          author: comment.author,
-          createdAt: comment.createdAt,
-        })),
-      ),
-    [allFiles, liveCommentsByFileId],
-  );
-
   return {
     allFiles,
     filter,
-    liveCommentCount,
-    liveCommentSummaries,
-    liveCommentsByFileId,
     scrollToNote,
     selectedFile,
     selectedFileId,
@@ -498,15 +219,10 @@ export function useReviewController({ files }: { files: DiffFile[] }): ReviewCon
     selectedHunkIndex,
     sidebarEntries,
     visibleFiles,
-    addLiveComment,
-    addLiveCommentBatch,
     clearFilter,
-    clearLiveComments,
     moveToAnnotatedFile,
     moveToAnnotatedHunk,
     moveToHunk,
-    navigateToLocation,
-    removeLiveComment,
     selectFile,
     selectHunk,
     setFilter,

@@ -12,10 +12,6 @@
         "zod": "^4.3.6",
       },
       "devDependencies": {
-        "@hunk/session-broker": "workspace:*",
-        "@hunk/session-broker-bun": "workspace:*",
-        "@hunk/session-broker-core": "workspace:*",
-        "@hunk/session-broker-node": "workspace:*",
         "@opentui/core": "^0.1.88",
         "@opentui/react": "^0.1.88",
         "@types/bun": "latest",
@@ -35,45 +31,11 @@
         "react": "^19.2.4",
       },
     },
-    "packages/session-broker": {
-      "name": "@hunk/session-broker",
-      "version": "0.0.0",
-      "dependencies": {
-        "@hunk/session-broker-core": "workspace:*",
-      },
-    },
-    "packages/session-broker-bun": {
-      "name": "@hunk/session-broker-bun",
-      "version": "0.0.0",
-      "dependencies": {
-        "@hunk/session-broker": "workspace:*",
-      },
-    },
-    "packages/session-broker-core": {
-      "name": "@hunk/session-broker-core",
-      "version": "0.0.0",
-    },
-    "packages/session-broker-node": {
-      "name": "@hunk/session-broker-node",
-      "version": "0.0.0",
-      "dependencies": {
-        "@hunk/session-broker": "workspace:*",
-        "ws": "^8.18.3",
-      },
-    },
   },
   "packages": {
     "@dimforge/rapier2d-simd-compat": ["@dimforge/rapier2d-simd-compat@0.17.3", "", {}, "sha512-bijvwWz6NHsNj5e5i1vtd3dU2pDhthSaTUZSh14DUGGKJfw8eMnlWZsxwHBxB/a3AXVNDjL9abuHw1k9FGR+jg=="],
 
     "@hono/node-server": ["@hono/node-server@1.19.11", "", { "peerDependencies": { "hono": "^4" } }, "sha512-dr8/3zEaB+p0D2n/IUrlPF1HZm586qgJNXK1a9fhg/PzdtkK7Ksd5l312tJX2yBuALqDYBlG20QEbayqPyxn+g=="],
-
-    "@hunk/session-broker": ["@hunk/session-broker@workspace:packages/session-broker"],
-
-    "@hunk/session-broker-bun": ["@hunk/session-broker-bun@workspace:packages/session-broker-bun"],
-
-    "@hunk/session-broker-core": ["@hunk/session-broker-core@workspace:packages/session-broker-core"],
-
-    "@hunk/session-broker-node": ["@hunk/session-broker-node@workspace:packages/session-broker-node"],
 
     "@jimp/core": ["@jimp/core@1.6.0", "", { "dependencies": { "@jimp/file-ops": "1.6.0", "@jimp/types": "1.6.0", "@jimp/utils": "1.6.0", "await-to-js": "^3.0.0", "exif-parser": "^0.1.12", "file-type": "^16.0.0", "mime": "3" } }, "sha512-EQQlKU3s9QfdJqiSrZWNTxBs3rKXgO2W+GxNXDtwchF3a4IqxDheFX1ti+Env9hdJXDiYLp2jTRjlxhPthsk8w=="],
 
