@@ -28,6 +28,10 @@ A *smaller* terminal diff + notes tool than upstream `hunk`. Sharing happens by 
 
 When tunk surfaces review comments to an LLM (skill, JSON export, MCP-style bridge — *if* we keep one), emit **file paths + line numbers + comment bodies only**. Never feed raw code snippets. The LLM can read the files itself; keeping the output free of content avoids stale snippets, reduces context bloat, and keeps `.tunk/comments.json` itself snippet-free as a side benefit. This applies to any `tunk export`, `tunk review --json`, or skill SKILL.md flow we ship.
 
+## Selected hunk visibility
+
+Make the selected hunk visually brighter so it's obvious where you are. Today the selection rail is subtle. Options: brighten the hunk rail to `theme.accent`, give the selected hunk a slightly tinted background, or both. Whatever change lands here also has to look reasonable on every theme (graphite/midnight/paper/ember).
+
 ## Hunk selection — needs polish
 
 Selection has visible flicker today. Specific issues to fix together:
