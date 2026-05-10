@@ -56,7 +56,7 @@ function assertPaths(pack: PackResult, requiredPaths: string[]) {
 
 const repoRoot = path.resolve(import.meta.dir, "..");
 const releaseRoot = releaseNpmDir(repoRoot);
-const metaDir = path.join(releaseRoot, "dunk");
+const metaDir = path.join(releaseRoot, "dunkdiff");
 
 if (!existsSync(metaDir)) {
   throw new Error(`Missing staged top-level package at ${metaDir}`);
@@ -72,7 +72,7 @@ assertPaths(metaPack, [
 ]);
 
 const packageDirectories = readdirSync(releaseRoot, { withFileTypes: true })
-  .filter((entry) => entry.isDirectory() && entry.name !== "dunk")
+  .filter((entry) => entry.isDirectory() && entry.name !== "dunkdiff")
   .map((entry) => path.join(releaseRoot, entry.name))
   .sort();
 

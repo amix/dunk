@@ -165,7 +165,7 @@ const artifacts = artifactRoot
   : [
       {
         spec: getHostPlatformPackageSpec(),
-        compiledBinary: path.join(repoRoot, "dist", "dunk"),
+        compiledBinary: path.join(repoRoot, "dist", "dunkdiff"),
       },
     ];
 
@@ -184,5 +184,5 @@ for (const spec of stagedSpecs) {
 if (artifactRoot) {
   console.log(`Artifacts source: ${artifactRoot}`);
 } else {
-  console.log(`Artifacts source: ${path.join(repoRoot, "dist", "dunk")}`);
+  console.log(`Artifacts source: ${path.join(repoRoot, "dist", "dunkdiff")}`);
 }

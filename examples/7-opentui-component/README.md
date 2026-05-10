@@ -19,4 +19,4 @@ bun run examples/7-opentui-component/from-patch.tsx
 - switching between split and stacked layouts with example shell controls
 - a scrollable terminal diff component that other OpenTUI apps can reuse
 
-The in-repo demos import from `../../src/opentui` so they run from source. Published consumers should import from `dunk/opentui` instead.
+The in-repo demos import from `../../src/opentui` so they run from source. Published consumers should import from `dunkdiff/opentui` instead.

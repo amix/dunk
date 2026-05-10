@@ -1,5 +1,5 @@
 {
-  "name": "dunk",
+  "name": "dunkdiff",
   "version": "0.11.0",
   "description": "Personal terminal diff viewer with file-driven review comments.",
   "keywords": [

@@ -79,8 +79,8 @@ for (const file of pack.files) {
   }
 }
 
-if (pack.name !== "dunk") {
-  throw new Error(`Expected npm package name to be dunk, got ${pack.name}.`);
+if (pack.name !== "dunkdiff") {
+  throw new Error(`Expected npm package name to be dunkdiff, got ${pack.name}.`);
 }
 
 console.log(

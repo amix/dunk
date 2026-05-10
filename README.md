@@ -18,7 +18,7 @@ Review diffs in a terminal UI, leave inline comments, and let a coding agent fix
 `dunk` ships through npm with prebuilt binaries for macOS and Linux:
 
 ```bash
-npm i -g dunk
+npm i -g dunkdiff
 ```
 
 Requirements: Node.js 18+ and Git for most workflows.
@@ -150,7 +150,7 @@ selection_auto_copy = true
 
 ## OpenTUI component
 
-`dunk` exports `DunkDiffView` from `dunk/opentui` for embedding the diff renderer in your own OpenTUI app.
+`dunk` exports `DunkDiffView` from `dunkdiff/opentui` for embedding the diff renderer in your own OpenTUI app.
 
 See [docs/opentui-component.md](docs/opentui-component.md).
 

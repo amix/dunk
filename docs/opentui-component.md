@@ -1,13 +1,13 @@
 # OpenTUI component
 
-`dunk/opentui` exports `DunkDiffView`, a reusable terminal diff component built from the same renderer as the dunk CLI.
+`dunkdiff/opentui` exports `DunkDiffView`, a reusable terminal diff component built from the same renderer as the dunk CLI.
 
 Use it when you want dunk's split or stack diff view inside your own OpenTUI app.
 
 ## Install
 
 ```bash
-npm i dunk @opentui/core @opentui/react react
+npm i dunkdiff @opentui/core @opentui/react react
 ```
 
 `dunk` declares OpenTUI and React as peer dependencies, so install them in your app.
@@ -17,7 +17,7 @@ npm i dunk @opentui/core @opentui/react react
 ```tsx
 import { createCliRenderer } from "@opentui/core";
 import { createRoot } from "@opentui/react";
-import { DunkDiffView, parseDiffFromFile } from "dunk/opentui";
+import { DunkDiffView, parseDiffFromFile } from "dunkdiff/opentui";
 
 const metadata = parseDiffFromFile(
   {
@@ -77,7 +77,7 @@ type DunkDiffFile = {
 Use `parseDiffFromFile(...)` when you already have the old and new file contents.
 
 ```tsx
-import { parseDiffFromFile } from "dunk/opentui";
+import { parseDiffFromFile } from "dunkdiff/opentui";
 
 const metadata = parseDiffFromFile(beforeFile, afterFile, { context: 3 }, true);
 ```
@@ -87,7 +87,7 @@ const metadata = parseDiffFromFile(beforeFile, afterFile, { context: 3 }, true);
 Use `parsePatchFiles(...)` when you already have a patch string.
 
 ```tsx
-import { parsePatchFiles } from "dunk/opentui";
+import { parsePatchFiles } from "dunkdiff/opentui";
 
 const parsed = parsePatchFiles(patchText, "example:patch", true);
 const metadata = parsed.flatMap((entry) => entry.files)[0];
@@ -131,4 +131,4 @@ if (!metadata) {
 - Runnable demo overview: [`examples/README.md`](../examples/README.md)
 - Component demos: [`examples/7-opentui-component/README.md`](../examples/7-opentui-component/README.md)
 
-The in-repo demos import from `../../src/opentui` so they run from source. Published consumers should import from `dunk/opentui`.
+The in-repo demos import from `../../src/opentui` so they run from source. Published consumers should import from `dunkdiff/opentui`.

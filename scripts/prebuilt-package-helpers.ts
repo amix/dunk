@@ -28,35 +28,35 @@ const ARCH_NAME_MAP: Partial<Record<NodeJS.Architecture, SupportedArch>> = {
 /** Platforms we actually plan to publish in the first prebuilt-binary rollout. */
 export const PLATFORM_PACKAGE_MATRIX: PlatformPackageSpec[] = [
   {
-    packageName: "dunk-darwin-arm64",
+    packageName: "dunkdiff-darwin-arm64",
     os: "darwin",
     cpu: "arm64",
     binaryName: "dunk",
     binaryRelativePath: "bin/dunk",
   },
   {
-    packageName: "dunk-darwin-x64",
+    packageName: "dunkdiff-darwin-x64",
     os: "darwin",
     cpu: "x64",
     binaryName: "dunk",
     binaryRelativePath: "bin/dunk",
   },
   {
-    packageName: "dunk-linux-arm64",
+    packageName: "dunkdiff-linux-arm64",
     os: "linux",
     cpu: "arm64",
     binaryName: "dunk",
     binaryRelativePath: "bin/dunk",
   },
   {
-    packageName: "dunk-linux-x64",
+    packageName: "dunkdiff-linux-x64",
     os: "linux",
     cpu: "x64",
     binaryName: "dunk",
     binaryRelativePath: "bin/dunk",
   },
   {
-    packageName: "dunk-windows-x64",
+    packageName: "dunkdiff-windows-x64",
     os: "windows",
     cpu: "x64",
     binaryName: "dunk",

@@ -56,13 +56,13 @@ function hostCandidates() {
   const binary = platform === "windows" ? "dunk.exe" : "dunk";
 
   if (platform === "darwin") {
-    if (arch === "arm64") return [{ packageName: "dunk-darwin-arm64", binary }];
-    if (arch === "x64") return [{ packageName: "dunk-darwin-x64", binary }];
+    if (arch === "arm64") return [{ packageName: "dunkdiff-darwin-arm64", binary }];
+    if (arch === "x64") return [{ packageName: "dunkdiff-darwin-x64", binary }];
   }
 
   if (platform === "linux") {
-    if (arch === "arm64") return [{ packageName: "dunk-linux-arm64", binary }];
-    if (arch === "x64") return [{ packageName: "dunk-linux-x64", binary }];
+    if (arch === "arm64") return [{ packageName: "dunkdiff-linux-arm64", binary }];
+    if (arch === "x64") return [{ packageName: "dunkdiff-linux-x64", binary }];
   }
 
   return [];

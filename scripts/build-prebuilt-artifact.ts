@@ -36,7 +36,7 @@ const repoRoot = path.resolve(import.meta.dir, "..");
 const options = parseArgs(process.argv.slice(2));
 const spec = getHostPlatformPackageSpec();
 const binaryName = binaryFilenameForSpec(spec);
-const compiledBinary = path.join(repoRoot, "dist", "dunk");
+const compiledBinary = path.join(repoRoot, "dist", "dunkdiff");
 const outputRoot = path.resolve(options.outputRoot ?? releaseArtifactsDir(repoRoot));
 const outputDir = path.join(outputRoot, spec.packageName);
 

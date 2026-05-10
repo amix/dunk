@@ -86,7 +86,7 @@ try {
   // Point a temp copy of the staged meta package at the local platform tarball.
   // The real manifest uses semver ranges, but this smoke test runs before publish.
   const smokePackageDir = path.join(smokeMetaDir, "dunk");
-  cpSync(path.join(releaseRoot, "dunk"), smokePackageDir, { recursive: true });
+  cpSync(path.join(releaseRoot, "dunkdiff"), smokePackageDir, { recursive: true });
   const smokeManifestPath = path.join(smokePackageDir, "package.json");
   const smokeManifest = JSON.parse(readFileSync(smokeManifestPath, "utf8")) as {
     optionalDependencies?: Record<string, string>;
