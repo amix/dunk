@@ -24,7 +24,7 @@ export function HelpDialog({
         ["Space / f", "page down (alt: f)"],
         ["b", "page up"],
         ["Shift+Space", "page up (alt)"],
-        ["d / u", "half page down / up"],
+        ["Ctrl+D / Ctrl+U", "half page down / up"],
         ["K / J", "previous / next hunk"],
         ["{ / }", "previous / next comment"],
         ["← / →", "scroll code left / right (Shift = faster)"],
@@ -45,6 +45,12 @@ export function HelpDialog({
         ["s / t", "sidebar / theme"],
         ["a", "toggle AI notes"],
         ["l / w / m", "lines / wrap / metadata"],
+      ],
+    },
+    {
+      title: "Comments",
+      items: [
+        ["d / D", "delete one / all on this hunk"],
       ],
     },
     {

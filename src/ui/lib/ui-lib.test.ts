@@ -76,8 +76,11 @@ describe("ui helpers", () => {
     expect(isPageUpKey(createKeyEvent({ name: "b" }))).toBe(true);
     expect(isPageUpKey(createKeyEvent({ sequence: "b" }))).toBe(true);
     expect(isShiftSpacePageUpKey(createKeyEvent({ name: "space", shift: true }))).toBe(true);
-    expect(isHalfPageDownKey(createKeyEvent({ name: "d" }))).toBe(true);
-    expect(isHalfPageUpKey(createKeyEvent({ sequence: "u" }))).toBe(true);
+    expect(isHalfPageDownKey(createKeyEvent({ name: "d", ctrl: true }))).toBe(true);
+    expect(isHalfPageUpKey(createKeyEvent({ sequence: "u", ctrl: true }))).toBe(true);
+    // Bare d / u no longer half-page; reserved for the comments shortcuts.
+    expect(isHalfPageDownKey(createKeyEvent({ name: "d" }))).toBe(false);
+    expect(isHalfPageUpKey(createKeyEvent({ sequence: "u" }))).toBe(false);
     expect(isStepDownKey(createKeyEvent({ name: "down" }))).toBe(true);
     expect(isStepDownKey(createKeyEvent({ sequence: "j" }))).toBe(true);
     expect(isStepUpKey(createKeyEvent({ name: "up" }))).toBe(true);

@@ -5,6 +5,14 @@ import {
 } from "@opentui/core";
 import { useRenderer, useTerminalDimensions } from "@opentui/react";
 import { Suspense, lazy, useCallback, useEffect, useMemo, useState, useRef } from "react";
+import {
+  commentsForHunkRange,
+  mutateCommentsFile,
+  withRemovedComment,
+  withRemovedComments,
+} from "../core/comments";
+import { findRepoRoot } from "../core/config";
+import { hunkLineRange } from "../core/hunkRange";
 import type { AppBootstrap, CliInput, LayoutMode } from "../core/types";
 import { canReloadInput, computeWatchSignature } from "../core/watch";
 import { StatusBar } from "./components/chrome/StatusBar";
@@ -351,6 +359,75 @@ export function App({
     });
   }, [refreshCurrentInput]);
 
+  /** Resolve the comments matching the currently selected hunk's post-image range. */
+  const focusedHunkComments = useCallback(() => {
+    const selected = review.selectedFile;
+    const hunk = review.selectedHunk;
+    if (!selected || !hunk) {
+      return null;
+    }
+
+    const repoRoot = findRepoRoot();
+    if (!repoRoot) {
+      return null;
+    }
+
+    const range = hunkLineRange(hunk).newRange;
+    return { repoRoot, filePath: selected.path, range };
+  }, [review.selectedFile, review.selectedHunk]);
+
+  /** Delete the lowest-id comment on the focused hunk. */
+  const deleteFocusedComment = useCallback(() => {
+    const target = focusedHunkComments();
+    if (!target) {
+      return;
+    }
+
+    try {
+      mutateCommentsFile(target.repoRoot, (current) => {
+        const matching = commentsForHunkRange(current.comments, target.filePath, target.range);
+        if (matching.length === 0) {
+          return current;
+        }
+
+        const oldest = matching.reduce((a, b) => (a.id < b.id ? a : b));
+        return withRemovedComment(current, oldest.id);
+      });
+    } catch (error) {
+      console.error("Failed to delete the focused comment.", error);
+      return;
+    }
+
+    triggerRefreshCurrentInput();
+  }, [focusedHunkComments, triggerRefreshCurrentInput]);
+
+  /** Delete every comment that anchors to the focused hunk. */
+  const deleteAllFocusedComments = useCallback(() => {
+    const target = focusedHunkComments();
+    if (!target) {
+      return;
+    }
+
+    try {
+      mutateCommentsFile(target.repoRoot, (current) => {
+        const matching = commentsForHunkRange(current.comments, target.filePath, target.range);
+        if (matching.length === 0) {
+          return current;
+        }
+
+        return withRemovedComments(
+          current,
+          matching.map((comment) => comment.id),
+        );
+      });
+    } catch (error) {
+      console.error("Failed to delete the focused hunk's comments.", error);
+      return;
+    }
+
+    triggerRefreshCurrentInput();
+  }, [focusedHunkComments, triggerRefreshCurrentInput]);
+
   useEffect(() => {
     if (!watchEnabled) {
       return;
@@ -443,6 +520,8 @@ export function App({
     canRefreshCurrentInput,
     closeHelp,
     cycleTheme,
+    deleteAllFocusedComments,
+    deleteFocusedComment,
     focusArea,
     focusFilter,
     moveToAnnotatedHunk,

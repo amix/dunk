@@ -22,6 +22,8 @@ export interface UseAppKeyboardShortcutsOptions {
   canRefreshCurrentInput: boolean;
   closeHelp: () => void;
   cycleTheme: () => void;
+  deleteAllFocusedComments: () => void;
+  deleteFocusedComment: () => void;
   focusArea: FocusArea;
   focusFilter: () => void;
   moveToAnnotatedHunk: (delta: number) => void;
@@ -47,6 +49,8 @@ export function useAppKeyboardShortcuts({
   canRefreshCurrentInput,
   closeHelp,
   cycleTheme,
+  deleteAllFocusedComments,
+  deleteFocusedComment,
   focusArea,
   focusFilter,
   moveToAnnotatedHunk,
@@ -296,6 +300,16 @@ export function useAppKeyboardShortcuts({
 
     if (key.sequence === "J") {
       moveToHunk(1);
+      return;
+    }
+
+    if (key.sequence === "D") {
+      deleteAllFocusedComments();
+      return;
+    }
+
+    if (key.sequence === "d") {
+      deleteFocusedComment();
       return;
     }
 

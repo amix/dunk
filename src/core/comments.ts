@@ -238,3 +238,26 @@ export function ensureCommentsDir(repoRoot: string): string {
   mkdirSync(dir, { recursive: true });
   return dirname(join(dir, COMMENTS_FILE));
 }
+
+/** Find every comment whose `file` and post-image `line` fall inside one hunk. */
+export function commentsForHunkRange(
+  comments: PersistedComment[],
+  filePath: string,
+  postLineRange: [number, number],
+): PersistedComment[] {
+  const [start, end] = postLineRange;
+  return comments.filter(
+    (comment) => comment.file === filePath && comment.line >= start && comment.line <= end,
+  );
+}
+
+/** Read, mutate, write the comments file in one go. Returns the loaded shape. */
+export function mutateCommentsFile(
+  repoRoot: string,
+  mutate: (current: CommentsFile) => CommentsFile,
+): CommentsFile {
+  const current = readCommentsFile(repoRoot);
+  const next = mutate(current);
+  writeCommentsFile(repoRoot, next);
+  return next;
+}

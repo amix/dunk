@@ -39,12 +39,13 @@ export function isStepUpKey(key: KeyEvent) {
 
 /** Match any key alias that should scroll forward by half a viewport. */
 export function isHalfPageDownKey(key: KeyEvent) {
-  return key.name === "d" || key.sequence === "d";
+  // Vim's `Ctrl-D`. Plain `d` is reserved for deleting a comment.
+  return key.ctrl && (key.name === "d" || key.sequence === "d");
 }
 
 /** Match any key alias that should scroll backward by half a viewport. */
 export function isHalfPageUpKey(key: KeyEvent) {
-  return key.name === "u" || key.sequence === "u";
+  return key.ctrl && (key.name === "u" || key.sequence === "u");
 }
 
 /** Match the less-style Shift+Space reverse page key. */
