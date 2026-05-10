@@ -1,7 +1,7 @@
 {
   "name": "dunkdiff",
   "version": "0.11.0",
-  "description": "Personal terminal diff viewer with file-driven review comments.",
+  "description": "Review diffs in a TUI, leave inline comments, and let a coding agent resolve them.",
   "keywords": [
     "code-review",
     "diff",
