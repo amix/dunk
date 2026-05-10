@@ -9,26 +9,47 @@ export function expandDiffTabs(text: string) {
   return text.replaceAll("\t", " ".repeat(DIFF_CODE_TAB_WIDTH));
 }
 
-/** Measure one rendered code line after tab expansion and newline trimming. */
+/** Measure one rendered code line after tab expansion and newline trimming, without allocating an expanded string. */
 export function measureRenderedCodeLineWidth(line: string | undefined) {
-  return expandDiffTabs((line ?? "").replace(/\n$/, "")).length;
+  if (!line) {
+    return 0;
+  }
+
+  let width = 0;
+  let end = line.length;
+  if (end > 0 && line.charCodeAt(end - 1) === 10) {
+    end -= 1;
+  }
+
+  for (let index = 0; index < end; index += 1) {
+    width += line.charCodeAt(index) === 9 ? DIFF_CODE_TAB_WIDTH : 1;
+  }
+
+  return width;
 }
 
-/** Track the widest rendered code line for one file. */
+// Cache one max-width per file. WeakMap so DiffFiles released by a reload
+// drop their cached width without an explicit invalidation hook.
+const FILE_MAX_LINE_WIDTHS = new WeakMap<DiffFile, number>();
+
+/** Track the widest rendered code line for one file (cached per DiffFile identity). */
 export function maxFileCodeLineWidth(file: DiffFile) {
-  const deletionLines = file.metadata.deletionLines ?? [];
-  const additionLines = file.metadata.additionLines ?? [];
+  const cached = FILE_MAX_LINE_WIDTHS.get(file);
+  if (cached !== undefined) {
+    return cached;
+  }
 
   let maxWidth = 0;
-
-  for (const line of deletionLines) {
-    maxWidth = Math.max(maxWidth, measureRenderedCodeLineWidth(line));
+  for (const line of file.metadata.deletionLines ?? []) {
+    const width = measureRenderedCodeLineWidth(line);
+    if (width > maxWidth) maxWidth = width;
+  }
+  for (const line of file.metadata.additionLines ?? []) {
+    const width = measureRenderedCodeLineWidth(line);
+    if (width > maxWidth) maxWidth = width;
   }
 
-  for (const line of additionLines) {
-    maxWidth = Math.max(maxWidth, measureRenderedCodeLineWidth(line));
-  }
-
+  FILE_MAX_LINE_WIDTHS.set(file, maxWidth);
   return maxWidth;
 }
 

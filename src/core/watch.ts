@@ -3,14 +3,12 @@ import { join } from "node:path";
 import { findRepoRoot } from "./config";
 import { DUNK_COMMENTS_RELATIVE_PATH } from "./dunkPaths";
 import {
-  buildGitDiffArgs,
-  buildGitShowArgs,
-  buildGitStashShowArgs,
+  buildGitDiffNumstatArgs,
   listGitUntrackedFiles,
   resolveGitRepoRoot,
   runGitText,
 } from "./git";
-import { buildJjDiffArgs, buildJjShowArgs, runJjText } from "./jj";
+import { runJjText } from "./jj";
 import type { CliInput } from "./types";
 
 /** Return whether the current input can be rebuilt from files or VCS state without rereading stdin. */
@@ -28,36 +26,56 @@ function statSignature(path: string) {
   return `${path}:${stat.size}:${stat.mtimeMs}:${stat.ino}`;
 }
 
-/** Build the cheaper watch signature for working-tree git diff inputs without rendering full untracked patches. */
+/**
+ * Build a cheap change-detection signature for VCS inputs.
+ *
+ * The previous version called the full `git diff` (or `jj diff`) every poll
+ * tick, allocating a complete patch string four times per second. That's
+ * expensive on medium-to-large repos and scales with patch size instead of
+ * with actual filesystem activity. We swap in cheap commands that only
+ * report *that* something changed: `git diff --numstat` for tracked work,
+ * `git rev-parse` for ref-backed reviews, `jj log -T commit_id` for jj.
+ *
+ * The full patch still runs once during the reload, which is when we
+ * actually need the bytes.
+ */
 function gitWorkingTreeWatchSignature(input: Extract<CliInput, { kind: "vcs" }>) {
-  const trackedPatch = runGitText({ input, args: buildGitDiffArgs(input) });
+  const numstat = runGitText({ input, args: buildGitDiffNumstatArgs(input) });
   const repoRoot = resolveGitRepoRoot(input);
   const untrackedSignatures = listGitUntrackedFiles(input, { repoRoot }).map(
     (filePath) => `untracked:${statSignature(join(repoRoot, filePath))}`,
   );
 
-  return [trackedPatch, ...untrackedSignatures].join("\n---\n");
+  return [numstat, ...untrackedSignatures].join("\n---\n");
 }
 
-/** Build one exact patch signature for Git-backed review inputs. */
-function gitPatchSignature(input: Extract<CliInput, { kind: "vcs" | "show" | "stash-show" }>) {
+function gitVcsSignature(input: Extract<CliInput, { kind: "vcs" | "show" | "stash-show" }>) {
   switch (input.kind) {
     case "vcs":
       return gitWorkingTreeWatchSignature(input);
     case "show":
-      return runGitText({ input, args: buildGitShowArgs(input) });
+      // Resolve the ref to its commit SHA. Cheap, and changes only when the
+      // ref moves (e.g., HEAD after a new commit).
+      return runGitText({ input, args: ["rev-parse", input.ref ?? "HEAD"] });
     case "stash-show":
-      return runGitText({ input, args: buildGitStashShowArgs(input) });
+      return runGitText({ input, args: ["rev-parse", input.ref ?? "stash@{0}"] });
   }
 }
 
-/** Build one exact patch signature for Jujutsu-backed review inputs. */
-function jjPatchSignature(input: Extract<CliInput, { kind: "vcs" | "show" }>) {
+function jjVcsSignature(input: Extract<CliInput, { kind: "vcs" | "show" }>) {
+  // jj log with a fixed template emits just the commit id, which is enough
+  // to detect any change in the working copy or the reviewed revset.
   switch (input.kind) {
     case "vcs":
-      return runJjText({ input, args: buildJjDiffArgs(input) });
+      return runJjText({
+        input,
+        args: ["log", "--no-graph", "-T", "commit_id", "-r", input.range ?? "@"],
+      });
     case "show":
-      return runJjText({ input, args: buildJjShowArgs(input) });
+      return runJjText({
+        input,
+        args: ["log", "--no-graph", "-T", "commit_id", "-r", input.ref ?? "@"],
+      });
   }
 }
 
@@ -67,13 +85,13 @@ export function computeWatchSignature(input: CliInput) {
 
   switch (input.kind) {
     case "vcs":
-      parts.push(input.options.vcs === "jj" ? jjPatchSignature(input) : gitPatchSignature(input));
+      parts.push(input.options.vcs === "jj" ? jjVcsSignature(input) : gitVcsSignature(input));
       break;
     case "show":
-      parts.push(input.options.vcs === "jj" ? jjPatchSignature(input) : gitPatchSignature(input));
+      parts.push(input.options.vcs === "jj" ? jjVcsSignature(input) : gitVcsSignature(input));
       break;
     case "stash-show":
-      parts.push(gitPatchSignature(input));
+      parts.push(gitVcsSignature(input));
       break;
     case "diff":
     case "difftool":

@@ -103,11 +103,30 @@ export function collectIntersectingFileSectionIds(
   maxY: number,
 ) {
   const next = new Set<string>();
+  if (fileSectionLayouts.length === 0 || maxY < minY) {
+    return next;
+  }
 
-  for (const layout of fileSectionLayouts) {
-    if (layout.sectionBottom >= minY && layout.sectionTop <= maxY) {
-      next.add(layout.fileId);
+  // Sections are stored top-to-bottom in absolute order. Binary-search the
+  // first one whose bottom edge clears `minY`, then walk forward until a
+  // section's top crosses `maxY`. Worst case becomes O(log n + visible).
+  let low = 0;
+  let high = fileSectionLayouts.length;
+  while (low < high) {
+    const mid = (low + high) >>> 1;
+    if (fileSectionLayouts[mid]!.sectionBottom >= minY) {
+      high = mid;
+    } else {
+      low = mid + 1;
     }
+  }
+
+  for (let index = low; index < fileSectionLayouts.length; index += 1) {
+    const layout = fileSectionLayouts[index]!;
+    if (layout.sectionTop > maxY) {
+      break;
+    }
+    next.add(layout.fileId);
   }
 
   return next;
