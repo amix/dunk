@@ -1044,10 +1044,9 @@ export function DiffPane({
     <box
       style={{
         width,
-        border: pagerMode ? [] : ["top"],
-        borderColor: theme.border,
         backgroundColor: theme.panel,
-        paddingY: pagerMode ? 0 : 1,
+        paddingTop: 0,
+        paddingBottom: pagerMode ? 0 : 1,
         paddingX: 0,
         flexDirection: "column",
       }}

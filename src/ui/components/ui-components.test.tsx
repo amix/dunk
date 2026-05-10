@@ -552,7 +552,7 @@ describe("UI components", () => {
     });
     const setup = await testRender(<DiffPane {...props} />, {
       width: 104,
-      height: 12,
+      height: 10,
     });
 
     try {
@@ -701,7 +701,7 @@ describe("UI components", () => {
     });
     const setup = await testRender(<DiffPane {...props} />, {
       width: 96,
-      height: 9,
+      height: 7,
     });
 
     try {
@@ -743,7 +743,7 @@ describe("UI components", () => {
     });
     const setup = await testRender(<DiffPane {...props} />, {
       width: 96,
-      height: 9,
+      height: 7,
     });
 
     try {

@@ -996,7 +996,7 @@ describe("App interactions", () => {
   test("arrow keys scroll the review pane line by line", async () => {
     const setup = await testRender(<AppHost bootstrap={createLineScrollBootstrap()} />, {
       width: 220,
-      height: 12,
+      height: 10,
     });
 
     try {
@@ -1043,7 +1043,7 @@ describe("App interactions", () => {
   test("the first down-arrow step still advances content under the always-pinned file header above a collapsed gap", async () => {
     const setup = await testRender(<AppHost bootstrap={createCollapsedTopBootstrap()} />, {
       width: 220,
-      height: 9,
+      height: 7,
     });
 
     try {
@@ -1081,7 +1081,7 @@ describe("App interactions", () => {
   test("one-line down then up at the top restores the collapsed-gap view beneath the pinned file header", async () => {
     const setup = await testRender(<AppHost bootstrap={createCollapsedTopBootstrap()} />, {
       width: 220,
-      height: 9,
+      height: 7,
     });
 
     try {
@@ -1182,7 +1182,7 @@ describe("App interactions", () => {
   test("toggling wrap preserves the current viewport anchor instead of snapping to the top", async () => {
     const setup = await testRender(<AppHost bootstrap={createWrapScrollBootstrap()} />, {
       width: 102,
-      height: 12,
+      height: 10,
     });
 
     try {
@@ -1243,7 +1243,7 @@ describe("App interactions", () => {
   test("layout toggles preserve the current viewport anchor across split and stack", async () => {
     const setup = await testRender(<AppHost bootstrap={createLineScrollBootstrap()} />, {
       width: 220,
-      height: 12,
+      height: 10,
     });
 
     try {
@@ -1702,7 +1702,7 @@ describe("App interactions", () => {
       <AppHost bootstrap={createCrossFileHunkNavigationBootstrap()} />,
       {
         width: 120,
-        height: 16,
+        height: 14,
       },
     );
 
