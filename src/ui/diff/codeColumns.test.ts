@@ -9,7 +9,7 @@ function createLargeLineFixture(lineCount: number, widestLine: string): DiffFile
   );
 
   return {
-    agent: null,
+    annotations: null,
     id: "large-untracked",
     metadata: {
       additionLines,

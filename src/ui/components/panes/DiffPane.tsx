@@ -254,7 +254,7 @@ export function DiffPane({
     }
 
     files.forEach((file) => {
-      const annotations = file.agent?.annotations ?? [];
+      const annotations = file.annotations?.annotations ?? [];
       if (annotations.length === 0) {
         return;
       }

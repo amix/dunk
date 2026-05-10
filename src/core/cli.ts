@@ -52,7 +52,6 @@ function buildCommonOptions(
   options: {
     mode?: LayoutMode;
     theme?: string;
-    agentContext?: string;
     pager?: boolean;
     watch?: boolean;
   },
@@ -61,7 +60,6 @@ function buildCommonOptions(
   return {
     mode: options.mode,
     theme: options.theme,
-    agentContext: options.agentContext,
     pager: options.pager ? true : undefined,
     watch: options.watch ? true : undefined,
     excludeUntracked: resolveBooleanFlag(argv, "--exclude-untracked", "--no-exclude-untracked"),
@@ -77,7 +75,6 @@ function applyCommonOptions(command: Command) {
   return command
     .option("--mode <mode>", "layout mode: auto, split, stack", parseLayoutMode)
     .option("--theme <theme>", "named theme override")
-    .option("--agent-context <path>", "JSON sidecar with agent rationale")
     .option("--pager", "use pager-style chrome and controls")
     .option("--line-numbers", "show line numbers")
     .option("--no-line-numbers", "hide line numbers")
@@ -140,7 +137,6 @@ function renderCliHelp() {
     "Common review options:",
     "  --mode <mode>                           layout mode: auto, split, stack",
     "  --watch                                 auto-reload when the current diff input changes",
-    "  --agent-context <path>                  JSON sidecar with agent rationale",
     "  --pager                                 use pager-style chrome and controls",
     "  --line-numbers / --no-line-numbers      show or hide line numbers",
     "  --wrap / --no-wrap                      wrap or truncate long diff lines",

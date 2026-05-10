@@ -23,7 +23,7 @@ function createTestDiffFile(
 ) {
   return buildTestDiffFile({
     after,
-    agent: withAgent,
+    annotations: withAgent,
     before,
     context: 3,
     id,
@@ -209,9 +209,8 @@ function createRapidViewportLoopBootstrap(): AppBootstrap {
       after: lines(...afterLines),
       context: 3,
     });
-    file.agent = {
+    file.annotations = {
       path: file.path,
-      summary: `rapid ${fileIndex}`,
       annotations: [
         { newRange: [start, start], summary: `note start ${fileIndex}` },
         { newRange: [start + 30, start + 30], summary: `note middle ${fileIndex}` },
@@ -963,9 +962,8 @@ describe("App interactions", () => {
   test("comments are visible by default across every visible review file", async () => {
     const bootstrap = createBootstrap();
     bootstrap.initialShowComments = true;
-    bootstrap.changeset.files[1]!.agent = {
+    bootstrap.changeset.files[1]!.annotations = {
       path: "beta.ts",
-      summary: "beta.ts note",
       annotations: [
         {
           newRange: [1, 1],

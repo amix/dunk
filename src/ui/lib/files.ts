@@ -82,11 +82,7 @@ export function filterReviewFiles(files: DiffFile[], query: string): DiffFile[] 
   }
 
   return files.filter((file) => {
-    const haystack = [
-      normalizeDiffPath(file.path),
-      normalizeDiffPath(file.previousPath),
-      file.agent?.summary,
-    ]
+    const haystack = [normalizeDiffPath(file.path), normalizeDiffPath(file.previousPath)]
       .filter(Boolean)
       .join(" ")
       .toLowerCase();
@@ -115,7 +111,7 @@ export function buildSidebarEntries(files: DiffFile[]): SidebarEntry[] {
       }
     }
 
-    const agentCommentCount = file.agent?.annotations.length ?? 0;
+    const agentCommentCount = file.annotations?.annotations.length ?? 0;
 
     entries.push({
       kind: "file",

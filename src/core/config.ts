@@ -75,7 +75,6 @@ function mergeOptions(base: CommonOptions, overrides: CommonOptions): CommonOpti
     mode: overrides.mode ?? base.mode,
     vcs: overrides.vcs ?? base.vcs,
     theme: overrides.theme ?? base.theme,
-    agentContext: overrides.agentContext ?? base.agentContext,
     pager: overrides.pager ?? base.pager,
     watch: overrides.watch ?? base.watch,
     excludeUntracked: overrides.excludeUntracked ?? base.excludeUntracked,
@@ -160,7 +159,6 @@ export function resolveConfiguredCliInput(
     // Keep the built-in theme default explicit so stdin-backed startup paths do not depend on
     // renderer theme-mode detection for their initial palette.
     theme: "graphite",
-    agentContext: input.options.agentContext,
     pager: input.options.pager ?? false,
     watch: input.options.watch ?? false,
     excludeUntracked: false,
@@ -189,7 +187,6 @@ export function resolveConfiguredCliInput(
   resolvedOptions = {
     ...resolvedOptions,
     // Per-invocation flags always win — they come from CLI args, not config layers.
-    agentContext: input.options.agentContext,
     pager: input.options.pager ?? false,
     watch: input.options.watch ?? false,
     excludeUntracked: resolvedOptions.excludeUntracked ?? false,

@@ -70,7 +70,7 @@ describe("files helpers", () => {
       path: "src/ui/commented.ts",
       before: lines("const alpha = 1;", "const beta = 2;", "const gamma = 3;"),
       after: lines("const alpha = 10;", "const beta = 2;", "const gamma = 30;"),
-      agent: {
+      annotations: {
         path: "src/ui/commented.ts",
         annotations: [
           { summary: "Note on first hunk", newRange: [1, 1] },
@@ -96,7 +96,7 @@ describe("files helpers", () => {
       path: "src/ui/all-comments.ts",
       before: lines("const alpha = 1;", "const beta = 2;", "const gamma = 3;"),
       after: lines("const alpha = 10;", "const beta = 2;", "const gamma = 30;"),
-      agent: {
+      annotations: {
         path: "src/ui/all-comments.ts",
         annotations: [
           { summary: "First note", newRange: [1, 1] },

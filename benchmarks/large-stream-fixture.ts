@@ -75,14 +75,7 @@ export function createLargeSplitDiffFile(
     language: "typescript",
     stats: { additions: 48, deletions: 48 },
     metadata,
-    agent:
-      annotations.length > 0
-        ? {
-            path,
-            summary: `Synthetic note-heavy benchmark context for ${path}`,
-            annotations,
-          }
-        : null,
+    annotations: annotations.length > 0 ? { path, annotations } : null,
   };
 }
 

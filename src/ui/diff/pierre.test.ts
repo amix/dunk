@@ -31,7 +31,7 @@ function createDiffFile(): DiffFile {
       deletions: 1,
     },
     metadata,
-    agent: null,
+    annotations: null,
   };
 }
 
@@ -61,7 +61,7 @@ function createEmptyLineDiffFile(): DiffFile {
       deletions: 1,
     },
     metadata,
-    agent: null,
+    annotations: null,
   };
 }
 
@@ -91,7 +91,7 @@ function createMarkdownDiffFile(): DiffFile {
       deletions: 0,
     },
     metadata,
-    agent: null,
+    annotations: null,
   };
 }
 

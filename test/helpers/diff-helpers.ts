@@ -1,5 +1,5 @@
 import { parseDiffFromFile } from "@pierre/diffs";
-import type { AgentAnnotation, AgentFileContext, DiffFile } from "../../src/core/types";
+import type { Annotation, FileAnnotations, DiffFile } from "../../src/core/types";
 
 function collectChangeStats(metadata: DiffFile["metadata"]) {
   let additions = 0;
@@ -21,10 +21,9 @@ export function lines(...values: string[]) {
   return `${values.join("\n")}\n`;
 }
 
-export function createTestAgentFileContext(
+export function createTestFileAnnotations(
   path: string,
   {
-    summary = `${path} note`,
     annotations = [
       {
         newRange: [2, 2],
@@ -33,13 +32,11 @@ export function createTestAgentFileContext(
       },
     ],
   }: {
-    summary?: string;
-    annotations?: AgentAnnotation[];
+    annotations?: Annotation[];
   } = {},
-): AgentFileContext {
+): FileAnnotations {
   return {
     path,
-    summary,
     annotations,
   };
 }
@@ -52,7 +49,7 @@ export function createTestDiffFile({
   path = "example.ts",
   previousPath,
   context = 0,
-  agent = null,
+  annotations = null,
 }: {
   after?: string;
   before?: string;
@@ -61,7 +58,7 @@ export function createTestDiffFile({
   path?: string;
   previousPath?: string;
   context?: number;
-  agent?: DiffFile["agent"] | boolean;
+  annotations?: DiffFile["annotations"] | boolean;
 } = {}): DiffFile {
   const metadata = parseDiffFromFile(
     { cacheKey: `${id}:before`, contents: before, name: path },
@@ -71,7 +68,12 @@ export function createTestDiffFile({
   );
 
   return {
-    agent: agent === true ? createTestAgentFileContext(path) : agent === false ? null : agent,
+    annotations:
+      annotations === true
+        ? createTestFileAnnotations(path)
+        : annotations === false
+          ? null
+          : annotations,
     id,
     language,
     metadata,

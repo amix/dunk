@@ -67,7 +67,7 @@ export function findNextAnnotatedFile(
   currentFileId: string | undefined,
   delta: number,
 ) {
-  const annotatedFiles = visibleFiles.filter((file) => file.agent);
+  const annotatedFiles = visibleFiles.filter((file) => file.annotations);
   if (annotatedFiles.length === 0) {
     return null;
   }

@@ -3,11 +3,12 @@ import type { FileDiffMetadata } from "@pierre/diffs";
 export type LayoutMode = "auto" | "split" | "stack";
 export type VcsMode = "git" | "jj";
 
-export interface AgentAnnotation {
+/** One inline annotation rendered alongside a diff hunk. Carries a user comment today. */
+export interface Annotation {
   id?: string;
   oldRange?: [number, number];
   newRange?: [number, number];
-  summary: string;
+  summary?: string;
   rationale?: string;
   tags?: string[];
   confidence?: "low" | "medium" | "high";
@@ -16,16 +17,9 @@ export interface AgentAnnotation {
   createdAt?: string;
 }
 
-export interface AgentFileContext {
+export interface FileAnnotations {
   path: string;
-  summary?: string;
-  annotations: AgentAnnotation[];
-}
-
-export interface AgentContext {
-  version: number;
-  summary?: string;
-  files: AgentFileContext[];
+  annotations: Annotation[];
 }
 
 export interface DiffFile {
@@ -39,7 +33,7 @@ export interface DiffFile {
     deletions: number;
   };
   metadata: FileDiffMetadata;
-  agent: AgentFileContext | null;
+  annotations: FileAnnotations | null;
   isUntracked?: boolean;
   isBinary?: boolean;
   isTooLarge?: boolean;
@@ -51,7 +45,6 @@ export interface Changeset {
   sourceLabel: string;
   title: string;
   summary?: string;
-  agentSummary?: string;
   files: DiffFile[];
 }
 
@@ -59,7 +52,6 @@ export interface CommonOptions {
   mode?: LayoutMode;
   vcs?: VcsMode;
   theme?: string;
-  agentContext?: string;
   pager?: boolean;
   watch?: boolean;
   excludeUntracked?: boolean;

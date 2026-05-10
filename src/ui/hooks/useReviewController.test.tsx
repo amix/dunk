@@ -11,7 +11,7 @@ function createDiffFile(
   path: string,
   before: string,
   after: string,
-  agent: DiffFile["agent"] = null,
+  annotations: DiffFile["annotations"] = null,
 ): DiffFile {
   const metadata = parseDiffFromFile(
     { name: path, contents: before, cacheKey: `${id}:before` },
@@ -38,7 +38,7 @@ function createDiffFile(
     language: "typescript",
     stats: { additions, deletions },
     metadata,
-    agent,
+    annotations,
   };
 }
 

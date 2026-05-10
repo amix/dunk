@@ -8,7 +8,6 @@ import {
 import { createTwoFilesPatch } from "diff";
 import fs from "node:fs";
 import { join, resolve as resolvePath } from "node:path";
-import { findAgentFileContext, loadAgentContext } from "./agent";
 import { createSkippedBinaryMetadata, isProbablyBinaryFile, patchLooksBinary } from "./binary";
 import { applyCommentsToChangeset, readCommentsFile, resolveComments } from "./comments";
 import { DEFAULT_VIEW_PREFERENCES, findRepoRoot } from "./config";
@@ -34,7 +33,6 @@ import {
 } from "./jj";
 import type {
   AppBootstrap,
-  AgentContext,
   Changeset,
   CliInput,
   DiffFile,
@@ -225,7 +223,6 @@ function buildDiffFile(
   patch: string,
   index: number,
   sourcePrefix: string,
-  agentContext: AgentContext | null,
   {
     isUntracked,
     previousPath,
@@ -247,7 +244,7 @@ function buildDiffFile(
     language: getFiletypeFromFileName(path) ?? undefined,
     stats: stats ?? countDiffStats(normalizedMetadata),
     metadata: normalizedMetadata,
-    agent: findAgentFileContext(agentContext, path, resolvedPreviousPath),
+    annotations: null,
     isUntracked,
     isBinary: isBinary ?? patchLooksBinary(patch),
     isTooLarge,
@@ -688,14 +685,12 @@ function buildSkippedLargeTrackedDiffFile(
   file: GitNumstatFile,
   index: number,
   sourcePrefix: string,
-  agentContext: AgentContext | null,
 ) {
   return buildDiffFile(
     createSkippedLargeMetadata(file.path, "change"),
     "",
     index,
     sourcePrefix,
-    agentContext,
     {
       isTooLarge: true,
       stats: {
@@ -741,7 +736,6 @@ function buildUntrackedDiffFile(
   index: number,
   repoRoot: string,
   sourcePrefix: string,
-  agentContext: AgentContext | null,
 ) {
   const largeFileCheck = inspectLargeUntrackedFile(repoRoot, filePath);
   if (largeFileCheck.shouldSkip) {
@@ -750,7 +744,6 @@ function buildUntrackedDiffFile(
       "",
       index,
       sourcePrefix,
-      agentContext,
       {
         isTooLarge: true,
         isUntracked: true,
@@ -770,48 +763,15 @@ function buildUntrackedDiffFile(
     patch,
     index,
     sourcePrefix,
-    agentContext,
     {
       isUntracked: true,
     },
   );
 }
 
-/** Reorder files to follow agent-context narrative order when a sidecar provides one. */
-export function orderDiffFiles(files: DiffFile[], agentContext: AgentContext | null) {
-  if (!agentContext || agentContext.files.length === 0) {
-    return files;
-  }
-
-  const ranks = new Map<string, number>();
-
-  agentContext.files.forEach((file, index) => {
-    if (!ranks.has(file.path)) {
-      ranks.set(file.path, index);
-    }
-  });
-
-  return files
-    .map((file, index) => {
-      const rankCandidates = [file.path, file.previousPath]
-        .filter((path): path is string => Boolean(path))
-        .map((path) => ranks.get(path))
-        .filter((rank): rank is number => rank !== undefined);
-
-      return {
-        file,
-        index,
-        rank: rankCandidates.length > 0 ? Math.min(...rankCandidates) : Number.POSITIVE_INFINITY,
-      };
-    })
-    .sort((left, right) => {
-      if (left.rank !== right.rank) {
-        return left.rank - right.rank;
-      }
-
-      return left.index - right.index;
-    })
-    .map((entry) => entry.file);
+/** File ordering matches the parsed diff order; no agent-sidecar reordering anymore. */
+export function orderDiffFiles(files: DiffFile[]) {
+  return files;
 }
 
 /** Parse raw patch text into the shared changeset model used by the app. */
@@ -819,7 +779,6 @@ function normalizePatchChangeset(
   patchText: string,
   title: string,
   sourceLabel: string,
-  agentContext: AgentContext | null,
 ): Changeset {
   const normalizedPatchText = normalizeGitPatchPrefixes(
     stripGitLogMetadata(stripTerminalControl(patchText.replaceAll("\r\n", "\n"))),
@@ -834,7 +793,7 @@ function normalizePatchChangeset(
       sourceLabel,
       title,
       summary: normalizedPatchText.trim() || undefined,
-      agentSummary: agentContext?.summary,
+      
       files: [],
     };
   }
@@ -851,14 +810,13 @@ function normalizePatchChangeset(
         .map((entry) => entry.patchMetadata)
         .filter(Boolean)
         .join("\n\n") || undefined,
-    agentSummary: agentContext?.summary,
+    
     files: metadataFiles.map((metadata, index) =>
       buildDiffFile(
         metadata,
         findPatchChunk(metadata, chunks, index),
         index,
         sourceLabel,
-        agentContext,
       ),
     ),
   };
@@ -887,20 +845,18 @@ function buildBinaryFileDiffChangeset(
   title: string,
   leftPath: string,
   rightPath: string,
-  agentContext: AgentContext | null,
 ) {
   return {
     id: `pair:${displayPath}`,
     sourceLabel: input.kind === "difftool" ? "git difftool" : "file compare",
     title,
-    agentSummary: agentContext?.summary,
+    
     files: [
       buildDiffFile(
         createSkippedBinaryMetadata(displayPath, resolveBinaryComparisonType(leftPath, rightPath)),
         `Binary file skipped: ${basename(input.left)} ↔ ${basename(input.right)}\n`,
         0,
         displayPath,
-        agentContext,
         {
           previousPath: basename(input.left),
           isBinary: true,
@@ -913,7 +869,6 @@ function buildBinaryFileDiffChangeset(
 /** Build a changeset by diffing two concrete files on disk. */
 async function loadFileDiffChangeset(
   input: FileCommandInput | DiffToolCommandInput,
-  agentContext: AgentContext | null,
   cwd = process.cwd(),
 ) {
   const leftPath = resolvePath(cwd, input.left);
@@ -934,7 +889,6 @@ async function loadFileDiffChangeset(
       title,
       leftPath,
       rightPath,
-      agentContext,
     );
   }
 
@@ -960,9 +914,9 @@ async function loadFileDiffChangeset(
     id: `pair:${displayPath}`,
     sourceLabel: input.kind === "difftool" ? "git difftool" : "file compare",
     title,
-    agentSummary: agentContext?.summary,
+    
     files: [
-      buildDiffFile(metadata, patch, 0, displayPath, agentContext, {
+      buildDiffFile(metadata, patch, 0, displayPath, {
         previousPath: basename(input.left),
       }),
     ],
@@ -972,7 +926,6 @@ async function loadFileDiffChangeset(
 /** Build a changeset from the current repository working tree or a git range. */
 async function loadGitChangeset(
   input: VcsCommandInput,
-  agentContext: AgentContext | null,
   cwd = process.cwd(),
 ) {
   const repoRoot = resolveGitRepoRoot(input, { cwd });
@@ -996,7 +949,6 @@ async function loadGitChangeset(
     }),
     title,
     repoRoot,
-    agentContext,
   );
   const trackedFiles = [
     ...trackedChangeset.files,
@@ -1005,7 +957,6 @@ async function loadGitChangeset(
         file,
         trackedChangeset.files.length + index,
         repoRoot,
-        agentContext,
       ),
     ),
   ];
@@ -1029,7 +980,6 @@ async function loadGitChangeset(
           trackedFiles.length + index,
           repoRoot,
           repoRoot,
-          agentContext,
         ),
       ),
     ],
@@ -1039,7 +989,6 @@ async function loadGitChangeset(
 /** Build a changeset from the current Jujutsu working-copy commit or a revset. */
 async function loadJjDiffChangeset(
   input: VcsCommandInput,
-  agentContext: AgentContext | null,
   cwd = process.cwd(),
 ) {
   if (input.staged) {
@@ -1054,14 +1003,12 @@ async function loadJjDiffChangeset(
     runJjText({ input, args: buildJjDiffArgs(input), cwd }),
     title,
     repoRoot,
-    agentContext,
   );
 }
 
 /** Build a changeset from `git show`, suppressing commit-message chrome so only the patch feeds the UI. */
 async function loadShowChangeset(
   input: ShowCommandInput,
-  agentContext: AgentContext | null,
   cwd = process.cwd(),
 ) {
   const repoRoot = resolveGitRepoRoot(input, { cwd });
@@ -1071,14 +1018,12 @@ async function loadShowChangeset(
     runGitText({ input, args: buildGitShowArgs(input), cwd }),
     input.ref ? `${repoName} show ${input.ref}` : `${repoName} show HEAD`,
     repoRoot,
-    agentContext,
   );
 }
 
 /** Build a changeset from one Jujutsu revset using Git-format patch output. */
 async function loadJjShowChangeset(
   input: ShowCommandInput,
-  agentContext: AgentContext | null,
   cwd = process.cwd(),
 ) {
   const repoRoot = resolveJjRepoRoot(input, { cwd });
@@ -1089,14 +1034,12 @@ async function loadJjShowChangeset(
     runJjText({ input, args: buildJjShowArgs(input), cwd }),
     `${repoName} show ${revset}`,
     repoRoot,
-    agentContext,
   );
 }
 
 /** Build a changeset from `git stash show -p`, which naturally maps to one reviewable patch. */
 async function loadStashShowChangeset(
   input: StashShowCommandInput,
-  agentContext: AgentContext | null,
   cwd = process.cwd(),
 ) {
   if (input.options.vcs === "jj") {
@@ -1112,14 +1055,12 @@ async function loadStashShowChangeset(
     runGitText({ input, args: buildGitStashShowArgs(input), cwd }),
     input.ref ? `${repoName} stash ${input.ref}` : `${repoName} stash`,
     repoRoot,
-    agentContext,
   );
 }
 
 /** Build a changeset from patch text supplied by file or stdin. */
 async function loadPatchChangeset(
   input: PatchCommandInput,
-  agentContext: AgentContext | null,
   cwd = process.cwd(),
 ) {
   const patchText =
@@ -1133,7 +1074,6 @@ async function loadPatchChangeset(
     patchText,
     `Patch review: ${basename(label)}`,
     label,
-    agentContext,
   );
 }
 
@@ -1142,40 +1082,38 @@ export async function loadAppBootstrap(
   input: CliInput,
   { cwd = process.cwd() }: LoadAppBootstrapOptions = {},
 ): Promise<AppBootstrap> {
-  const agentContext = await loadAgentContext(input.options.agentContext, { cwd });
-
   let changeset: Changeset;
 
   switch (input.kind) {
     case "vcs":
       changeset =
         input.options.vcs === "jj"
-          ? await loadJjDiffChangeset(input, agentContext, cwd)
-          : await loadGitChangeset(input, agentContext, cwd);
+          ? await loadJjDiffChangeset(input, cwd)
+          : await loadGitChangeset(input, cwd);
       break;
     case "show":
       changeset =
         input.options.vcs === "jj"
-          ? await loadJjShowChangeset(input, agentContext, cwd)
-          : await loadShowChangeset(input, agentContext, cwd);
+          ? await loadJjShowChangeset(input, cwd)
+          : await loadShowChangeset(input, cwd);
       break;
     case "stash-show":
-      changeset = await loadStashShowChangeset(input, agentContext, cwd);
+      changeset = await loadStashShowChangeset(input, cwd);
       break;
     case "diff":
-      changeset = await loadFileDiffChangeset(input, agentContext, cwd);
+      changeset = await loadFileDiffChangeset(input, cwd);
       break;
     case "patch":
-      changeset = await loadPatchChangeset(input, agentContext, cwd);
+      changeset = await loadPatchChangeset(input, cwd);
       break;
     case "difftool":
-      changeset = await loadFileDiffChangeset(input, agentContext, cwd);
+      changeset = await loadFileDiffChangeset(input, cwd);
       break;
   }
 
   changeset = {
     ...changeset,
-    files: orderDiffFiles(changeset.files, agentContext),
+    files: orderDiffFiles(changeset.files),
   };
 
   const merged = mergeUserComments(changeset, cwd);

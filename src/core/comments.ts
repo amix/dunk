@@ -2,7 +2,7 @@
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join, resolve as resolvePath } from "node:path";
-import type { AgentAnnotation, Changeset, DiffFile, DriftReason } from "./types";
+import type { Annotation, Changeset, DiffFile, DriftReason } from "./types";
 
 const SCHEMA_VERSION = 1;
 const COMMENTS_DIR = ".dunk";
@@ -195,7 +195,7 @@ export function resolveComments(
 }
 
 /** Map an anchored comment to the agent-annotation shape used by the renderer. */
-export function commentToAnnotation(comment: AnchoredComment): AgentAnnotation {
+export function commentToAnnotation(comment: AnchoredComment): Annotation {
   return {
     id: `dunk-comment:${comment.id}`,
     summary: comment.body,
@@ -247,10 +247,9 @@ function mergeFileAnnotations(
   const annotations = anchored.map(commentToAnnotation);
   return {
     ...file,
-    agent: {
+    annotations: {
       path: file.path,
-      summary: file.agent?.summary,
-      annotations: [...(file.agent?.annotations ?? []), ...annotations],
+      annotations: [...(file.annotations?.annotations ?? []), ...annotations],
     },
   };
 }

@@ -33,7 +33,7 @@ function toInternalDiffFile(diff: HunkDiffFile): DiffFile {
   const path = normalizeDiffPath(diff.path) ?? metadata.name;
 
   return {
-    agent: null,
+    annotations: null,
     id: diff.id,
     isBinary: patchLooksBinary(patch),
     language: diff.language,

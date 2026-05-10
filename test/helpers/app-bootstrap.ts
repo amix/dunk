@@ -1,7 +1,6 @@
 import type { AppBootstrap, DiffFile, VcsCommandInput, LayoutMode } from "../../src/core/types";
 
 export function createTestVcsAppBootstrap({
-  agentSummary,
   changesetId = "changeset:test",
   files,
   vcsOptions = {},
@@ -17,7 +16,6 @@ export function createTestVcsAppBootstrap({
   summary,
   title = "repo working tree",
 }: {
-  agentSummary?: string;
   changesetId?: string;
   files: DiffFile[];
   vcsOptions?: Partial<VcsCommandInput["options"]>;
@@ -44,7 +42,6 @@ export function createTestVcsAppBootstrap({
       },
     },
     changeset: {
-      agentSummary,
       files,
       id: changesetId,
       sourceLabel,

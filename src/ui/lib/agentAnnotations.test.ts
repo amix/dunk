@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { createTestDiffFile, lines } from "../../../test/helpers/diff-helpers";
-import type { AgentAnnotation } from "../../core/types";
+import type { Annotation } from "../../core/types";
 import { getAnnotatedHunkIndices, getSelectedAnnotations } from "./agentAnnotations";
 
 function createContextHeavyHunkFile() {
@@ -22,7 +22,7 @@ describe("agent annotations", () => {
     const file = createContextHeavyHunkFile();
     const hunk = file.metadata.hunks[0]!;
 
-    const annotation: AgentAnnotation = {
+    const annotation: Annotation = {
       summary: "Explain inserted line",
       rationale: "Anchor a note at the added row inside a context-heavy hunk.",
       newRange: [13, 13],
@@ -30,7 +30,7 @@ describe("agent annotations", () => {
 
     const annotatedFile = {
       ...file,
-      agent: {
+      annotations: {
         path: file.path,
         annotations: [annotation],
       },

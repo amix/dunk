@@ -30,7 +30,7 @@ function createTestDiffFile(
 ): DiffFile {
   return buildTestDiffFile({
     after,
-    agent: withAgent
+    annotations: withAgent
       ? {
           annotations: [
             {
@@ -42,7 +42,6 @@ function createTestDiffFile(
             },
           ],
           path,
-          summary: `${path} note`,
         }
       : null,
     before,
@@ -263,7 +262,6 @@ async function waitForFrame(
 
 function createBootstrap(): AppBootstrap {
   return createTestVcsAppBootstrap({
-    agentSummary: "Changeset summary",
     changesetId: "changeset:ui",
     files: [
       createTestDiffFile(
@@ -314,7 +312,7 @@ function createEmptyDiffFile(type: "change" | "rename-pure" | "new" | "deleted")
       hunks: [],
       type,
     } as never,
-    agent: null,
+    annotations: null,
   };
 }
 
@@ -783,9 +781,8 @@ describe("UI components", () => {
   test("DiffPane keeps bottom scroll stable when offscreen agent notes are windowed out", async () => {
     const theme = resolveTheme("midnight", null);
     const firstFile = createTallDiffFile("first", "first.ts", 18);
-    firstFile.agent = {
+    firstFile.annotations = {
       path: firstFile.path,
-      summary: "first.ts note",
       annotations: [
         {
           newRange: [2, 2],
@@ -1014,9 +1011,8 @@ describe("UI components", () => {
   test("DiffPane keeps a selected hunk with inline notes fully visible when it fits", async () => {
     const theme = resolveTheme("midnight", null);
     const file = createViewportSizedBottomHunkDiffFile("target", "target.ts");
-    file.agent = {
+    file.annotations = {
       path: file.path,
-      summary: "target note",
       annotations: [
         {
           newRange: [14, 16],
@@ -1082,9 +1078,8 @@ describe("UI components", () => {
       lines(...beforeLines),
       lines(...afterLines),
     );
-    file.agent = {
+    file.annotations = {
       path: file.path,
-      summary: "file note",
       annotations: [
         {
           newRange: [63, 63],
@@ -1211,9 +1206,8 @@ describe("UI components", () => {
 
   test("DiffPane renders all visible hunk notes across the review stream", async () => {
     const bootstrap = createBootstrap();
-    bootstrap.changeset.files[1]!.agent = {
+    bootstrap.changeset.files[1]!.annotations = {
       path: "beta.ts",
-      summary: "beta.ts note",
       annotations: [
         {
           newRange: [1, 1],
@@ -1310,17 +1304,15 @@ describe("UI components", () => {
     const bootstrap = createBootstrap();
     const theme = resolveTheme("midnight", null);
     const file = bootstrap.changeset.files[0]!;
-    file.agent = {
-      ...file.agent!,
+    file.annotations = {
+      ...file.annotations!,
       annotations: [
         {
           newRange: [2, 2],
-          summary: "First note",
           rationale: "First rationale.",
         },
         {
           newRange: [2, 2],
-          summary: "Second note",
           rationale: "Second rationale.",
         },
       ],
@@ -1353,9 +1345,7 @@ describe("UI components", () => {
 
     expect(frame).toContain("AI note 1/2");
     expect(frame).toContain("AI note 2/2");
-    expect(frame).toContain("First note");
     expect(frame).toContain("First rationale.");
-    expect(frame).toContain("Second note");
     expect(frame).toContain("Second rationale.");
   });
 
@@ -1787,7 +1777,6 @@ describe("UI components", () => {
           {
             id: "note:ungrounded",
             annotation: {
-              summary: "Ungrounded note",
               rationale: "Falls back to the first visible row.",
             },
           },
@@ -1801,7 +1790,6 @@ describe("UI components", () => {
 
     expect(frame).not.toContain("@@ -1,1 +1,2 @@");
     expect(frame).toContain("AI note · hunk");
-    expect(frame).toContain("Ungrounded note");
     expect(frame).toContain("Falls back to the first visible");
     expect(frame).toContain("row.");
     expect(frame.indexOf("AI note · hunk")).toBeLessThan(

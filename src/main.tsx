@@ -7,7 +7,6 @@ import { pagePlainText } from "./core/pager";
 import { shutdownSession } from "./core/shutdown";
 import { prepareStartupPlan } from "./core/startup";
 import { shouldUseMouseForApp } from "./core/terminal";
-import { resolveStartupUpdateNotice } from "./core/updateNotice";
 import { AppHost } from "./ui/AppHost";
 
 async function main() {
@@ -55,13 +54,7 @@ async function main() {
   }
 
   // The app owns the full alternate screen session from this point on.
-  root.render(
-    <AppHost
-      bootstrap={bootstrap}
-      onQuit={shutdown}
-      startupNoticeResolver={resolveStartupUpdateNotice}
-    />,
-  );
+  root.render(<AppHost bootstrap={bootstrap} onQuit={shutdown} />);
 }
 
 await main().catch((error) => {

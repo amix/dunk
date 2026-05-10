@@ -138,83 +138,6 @@ afterEach(() => {
 });
 
 describe("loadAppBootstrap", () => {
-  test("loads file-pair diffs and agent context", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "hunk-diff-"));
-    tempDirs.push(dir);
-
-    const left = join(dir, "before.ts");
-    const right = join(dir, "after.ts");
-    const agent = join(dir, "agent.json");
-
-    writeFileSync(left, "export const answer = 41;\n");
-    writeFileSync(right, "export const answer = 42;\nexport const bonus = true;\n");
-    writeFileSync(
-      agent,
-      JSON.stringify({
-        version: 1,
-        summary: "Agent added the bonus export.",
-        files: [
-          {
-            path: "after.ts",
-            annotations: [{ newRange: [2, 2], summary: "Introduces the bonus flag." }],
-          },
-        ],
-      }),
-    );
-
-    const bootstrap = await loadAppBootstrap({
-      kind: "diff",
-      left,
-      right,
-      options: {
-        mode: "auto",
-        agentContext: agent,
-      },
-    });
-
-    expect(bootstrap.changeset.files).toHaveLength(1);
-    expect(bootstrap.changeset.agentSummary).toBe("Agent added the bonus export.");
-    expect(bootstrap.changeset.files[0]?.stats.additions).toBeGreaterThan(0);
-    expect(bootstrap.changeset.files[0]?.agent?.annotations).toHaveLength(1);
-  });
-
-  test("loads git changes and relative agent context from an explicit cwd override", async () => {
-    const dir = createTempRepo("hunk-git-cwd-");
-    const nested = join(dir, "nested");
-    writeFileSync(join(dir, "example.ts"), "export const value = 1;\n");
-    git(dir, "add", "example.ts");
-    git(dir, "commit", "-m", "initial");
-
-    writeFileSync(join(dir, "example.ts"), "export const value = 2;\n");
-    mkdirSync(nested, { recursive: true });
-    writeFileSync(
-      join(nested, "agent.json"),
-      JSON.stringify({
-        files: [{ path: "example.ts", annotations: [{ newRange: [1, 1], summary: "updated" }] }],
-      }),
-    );
-
-    const bootstrap = await runFromProcessCwd(dir, () =>
-      loadAppBootstrap(
-        {
-          kind: "vcs",
-          staged: false,
-          options: {
-            mode: "auto",
-            agentContext: "agent.json",
-          },
-        },
-        { cwd: nested },
-      ),
-    );
-
-    expect(normalizeComparablePath(bootstrap.changeset.sourceLabel)).toBe(
-      normalizeComparablePath(dir),
-    );
-    expect(bootstrap.changeset.files[0]?.path).toBe("example.ts");
-    expect(bootstrap.changeset.files[0]?.agent?.annotations).toHaveLength(1);
-  });
-
   test("skips binary file-pair diffs instead of reading their contents", async () => {
     const dir = mkdtempSync(join(tmpdir(), "hunk-binary-diff-"));
     tempDirs.push(dir);
@@ -542,29 +465,6 @@ describe("loadAppBootstrap", () => {
     expect(bootstrap.changeset.files[0]?.patch).toContain("new file mode");
   });
 
-  test("still shows an untracked agent sidecar when it lives inside the repo", async () => {
-    const dir = createTempRepo("hunk-git-agent-sidecar-");
-
-    writeFileSync(join(dir, "example.ts"), "export const value = 1;\n");
-    git(dir, "add", "example.ts");
-    git(dir, "commit", "-m", "initial");
-
-    writeFileSync(join(dir, "example.ts"), "export const value = 2;\n");
-    const agent = join(dir, "agent.json");
-    writeFileSync(agent, JSON.stringify({ version: 1, files: [] }));
-
-    const bootstrap = await loadFromRepo(dir, {
-      kind: "vcs",
-      staged: false,
-      options: { mode: "auto", agentContext: agent },
-    });
-
-    expect(bootstrap.changeset.files.map((file) => file.path)).toEqual([
-      "example.ts",
-      "agent.json",
-    ]);
-  });
-
   test("includes repo-wide untracked files even when launched from a subdirectory", async () => {
     const dir = createTempRepo("hunk-git-subdir-untracked-");
 
@@ -659,52 +559,6 @@ describe("loadAppBootstrap", () => {
         options: { mode: "auto" },
       }),
     ).rejects.toThrow("`hunk diff HEAD~999` could not resolve Git revision or range `HEAD~999`.");
-  });
-
-  test("uses agent sidecar file order for the review stream", async () => {
-    const dir = createTempRepo("hunk-git-");
-
-    writeFileSync(join(dir, "alpha.ts"), "export const alpha = 1;\n");
-    writeFileSync(join(dir, "beta.ts"), "export const beta = 1;\n");
-    git(dir, "add", "alpha.ts", "beta.ts");
-    git(dir, "commit", "-m", "initial");
-
-    writeFileSync(join(dir, "alpha.ts"), "export const alpha = 2;\n");
-    writeFileSync(join(dir, "beta.ts"), "export const beta = 2;\n");
-
-    const agentDir = mkdtempSync(join(tmpdir(), "hunk-agent-"));
-    tempDirs.push(agentDir);
-    const agent = join(agentDir, "agent.json");
-    writeFileSync(
-      agent,
-      JSON.stringify({
-        version: 1,
-        summary: "Tell the story in beta-first order.",
-        files: [
-          {
-            path: "beta.ts",
-            summary: "Explains the behavioral change first.",
-            annotations: [{ newRange: [1, 1], summary: "Updates beta." }],
-          },
-          {
-            path: "alpha.ts",
-            summary: "Covers the supporting change second.",
-            annotations: [{ newRange: [1, 1], summary: "Updates alpha." }],
-          },
-        ],
-      }),
-    );
-
-    const bootstrap = await loadFromRepo(dir, {
-      kind: "vcs",
-      staged: false,
-      options: {
-        mode: "auto",
-        agentContext: agent,
-      },
-    });
-
-    expect(bootstrap.changeset.files.map((file) => file.path)).toEqual(["beta.ts", "alpha.ts"]);
   });
 
   test("loads staged-only git diffs from the full UI command path", async () => {

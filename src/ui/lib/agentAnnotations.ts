@@ -1,11 +1,11 @@
 import type { Hunk } from "@pierre/diffs";
-import type { AgentAnnotation, DiffFile } from "../../core/types";
+import type { Annotation, DiffFile } from "../../core/types";
 import { hunkLineRange } from "../../core/hunkRange";
 import { fileLabel } from "./files";
 
 export interface VisibleAgentNote {
   id: string;
-  annotation: AgentAnnotation;
+  annotation: Annotation;
 }
 
 export interface AnnotationAnchor {
@@ -19,7 +19,7 @@ function overlap(rangeA: [number, number], rangeB: [number, number]) {
 }
 
 /** Check whether an annotation belongs to the visible span of a hunk. */
-function annotationOverlapsHunk(annotation: AgentAnnotation, hunk: Hunk) {
+function annotationOverlapsHunk(annotation: Annotation, hunk: Hunk) {
   const hunkRange = hunkLineRange(hunk);
 
   if (annotation.newRange && overlap(annotation.newRange, hunkRange.newRange)) {
@@ -35,22 +35,22 @@ function annotationOverlapsHunk(annotation: AgentAnnotation, hunk: Hunk) {
 
 /** Return the annotations relevant to the currently selected hunk. */
 export function getSelectedAnnotations(file: DiffFile | undefined, hunk: Hunk | undefined) {
-  if (!file?.agent || !hunk) {
+  if (!file?.annotations || !hunk) {
     return [];
   }
 
-  return file.agent.annotations.filter((annotation) => annotationOverlapsHunk(annotation, hunk));
+  return file.annotations.annotations.filter((annotation) => annotationOverlapsHunk(annotation, hunk));
 }
 
 /** Mark which hunks in a file have any agent annotations attached. */
 export function getAnnotatedHunkIndices(file: DiffFile | undefined) {
   const annotated = new Set<number>();
-  if (!file?.agent) {
+  if (!file?.annotations) {
     return annotated;
   }
 
   file.metadata.hunks.forEach((hunk, index) => {
-    if (file.agent?.annotations.some((annotation) => annotationOverlapsHunk(annotation, hunk))) {
+    if (file.annotations?.annotations.some((annotation) => annotationOverlapsHunk(annotation, hunk))) {
       annotated.add(index);
     }
   });
@@ -64,7 +64,7 @@ function formatRange(range: [number, number]) {
 }
 
 /** Resolve the primary visual anchor for an annotation. */
-export function annotationAnchor(annotation: AgentAnnotation): AnnotationAnchor | null {
+export function annotationAnchor(annotation: Annotation): AnnotationAnchor | null {
   if (annotation.newRange) {
     return {
       side: "new",
@@ -83,7 +83,7 @@ export function annotationAnchor(annotation: AgentAnnotation): AnnotationAnchor 
 }
 
 /** Build a concise side-aware range label for inline note rows. */
-export function annotationRangeLabel(annotation: AgentAnnotation) {
+export function annotationRangeLabel(annotation: Annotation) {
   const locationParts: string[] = [];
 
   if (annotation.oldRange) {
@@ -98,7 +98,7 @@ export function annotationRangeLabel(annotation: AgentAnnotation) {
 }
 
 /** Build the compact file-and-lines label shown on a framed agent note card. */
-export function annotationLocationLabel(file: DiffFile, annotation: AgentAnnotation) {
+export function annotationLocationLabel(file: DiffFile, annotation: Annotation) {
   const locationParts: string[] = [];
 
   if (annotation.oldRange) {

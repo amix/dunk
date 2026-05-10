@@ -16,10 +16,6 @@ const COMMENTS_RELATIVE_PATH = join(".dunk", "comments.json");
 
 /** Return whether the current input can be rebuilt from files or VCS state without rereading stdin. */
 export function canReloadInput(input: CliInput) {
-  if (input.options.agentContext === "-") {
-    return false;
-  }
-
   return input.kind !== "patch" || Boolean(input.file && input.file !== "-");
 }
 
@@ -92,11 +88,7 @@ export function computeWatchSignature(input: CliInput) {
       break;
   }
 
-  if (input.options.agentContext && input.options.agentContext !== "-") {
-    parts.push(`agent:${statSignature(input.options.agentContext)}`);
-  }
-
-  // Tracking the comments file too lets watch mode pick up agent edits to
+  // Tracking the comments file too lets watch mode pick up external edits to
   // `.dunk/comments.json` without an extra fs.watch hookup.
   const repoRoot = findRepoRoot();
   if (repoRoot) {

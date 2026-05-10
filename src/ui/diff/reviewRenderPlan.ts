@@ -1,4 +1,4 @@
-import type { AgentAnnotation } from "../../core/types";
+import type { Annotation } from "../../core/types";
 import { annotationAnchor, type VisibleAgentNote } from "../lib/agentAnnotations";
 import { diffHunkId } from "../lib/ids";
 import type { DiffRow } from "./pierre";
@@ -38,7 +38,7 @@ export type PlannedReviewRow =
       fileId: string;
       hunkIndex: number;
       annotationId: string;
-      annotation: AgentAnnotation;
+      annotation: Annotation;
       anchorSide?: "old" | "new";
       noteCount: number;
       noteIndex: number;
@@ -171,7 +171,7 @@ function diffRowStableKeyForSide(row: DiffRow, side: "old" | "new") {
 }
 
 /** Check whether a rendered diff row visually covers the note anchor line. */
-function rowMatchesNote(row: DiffLineRow, annotation: AgentAnnotation) {
+function rowMatchesNote(row: DiffLineRow, annotation: Annotation) {
   const anchor = annotationAnchor(annotation);
   if (!anchor) {
     return false;
@@ -189,7 +189,7 @@ function rowMatchesNote(row: DiffLineRow, annotation: AgentAnnotation) {
 }
 
 /** Check whether one rendered diff row falls inside the annotation range on either side. */
-function rowOverlapsAnnotation(row: DiffLineRow, annotation: AgentAnnotation) {
+function rowOverlapsAnnotation(row: DiffLineRow, annotation: Annotation) {
   const matchesOld =
     annotation.oldRange &&
     (row.type === "split-line"
@@ -221,7 +221,7 @@ function rowOverlapsAnnotation(row: DiffLineRow, annotation: AgentAnnotation) {
  * Range-less notes intentionally anchor beside the first code row in the file,
  * not above hunk header metadata.
  */
-function findInlineNoteAnchorRow(rows: DiffRow[], annotation: AgentAnnotation) {
+function findInlineNoteAnchorRow(rows: DiffRow[], annotation: Annotation) {
   const fileLineRows = lineRows(rows);
   const headerRow = rows.find((row) => row.type === "hunk-header");
 

@@ -9,12 +9,12 @@ const { AppHost } = await import("./AppHost");
 
 function createBootstrap(initialMode: LayoutMode = "auto", pager = false): AppBootstrap {
   return createTestVcsAppBootstrap({
-    agentSummary: "Changeset summary",
+    
     changesetId: "changeset:responsive",
     files: [
       createTestDiffFile({
         after: "export const alpha = 2;\nexport const add = true;\n",
-        agent: true,
+        annotations: true,
         before: "export const alpha = 1;\n",
         context: 3,
         id: "alpha",

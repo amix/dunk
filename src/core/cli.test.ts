@@ -77,8 +77,6 @@ describe("parseCli", () => {
       "split",
       "--theme",
       "paper",
-      "--agent-context",
-      "notes.json",
       "--no-line-numbers",
       "--wrap",
       "--no-hunk-headers",
@@ -93,7 +91,6 @@ describe("parseCli", () => {
       options: {
         mode: "split",
         theme: "paper",
-        agentContext: "notes.json",
         watch: true,
         lineNumbers: false,
         wrapLines: true,

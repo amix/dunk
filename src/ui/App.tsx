@@ -87,12 +87,10 @@ function withCurrentViewOptions(
 /** Orchestrate global app state, layout, navigation, and pane coordination. */
 export function App({
   bootstrap,
-  noticeText,
   onQuit = () => process.exit(0),
   onReloadSession,
 }: {
   bootstrap: AppBootstrap;
-  noticeText?: string | null;
   onQuit?: () => void;
   onReloadSession: (
     nextInput: CliInput,
@@ -885,7 +883,7 @@ export function App({
         <StatusBar
           filter={review.filter}
           filterFocused={focusArea === "filter"}
-          noticeText={transientStatus ?? noticeText ?? undefined}
+          noticeText={transientStatus ?? undefined}
           terminalWidth={terminal.width}
           theme={activeTheme}
           onFilterInput={review.setFilter}

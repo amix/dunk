@@ -1,4 +1,4 @@
-import type { AgentAnnotation, LayoutMode } from "../../../core/types";
+import type { Annotation, LayoutMode } from "../../../core/types";
 import { wrapText } from "../../lib/agentPopover";
 import { annotationRangeLabel } from "../../lib/agentAnnotations";
 import { fitText, padText } from "../../lib/text";
@@ -32,7 +32,7 @@ export function measureAgentInlineNoteHeight({
   layout,
   width,
 }: {
-  annotation: AgentAnnotation;
+  annotation: Annotation;
   anchorSide?: "old" | "new";
   layout: Exclude<LayoutMode, "auto">;
   width: number;
@@ -49,7 +49,10 @@ export function measureAgentInlineNoteHeight({
   const innerWidth = Math.max(1, boxWidth - 2);
   const bodyWidth = innerWidth;
   const lines: AgentInlineNoteLine[] = [
-    ...wrapText(annotation.summary, bodyWidth).map((text) => ({ kind: "summary" as const, text })),
+    ...wrapText(annotation.summary ?? "", bodyWidth).map((text) => ({
+      kind: "summary" as const,
+      text,
+    })),
     ...(annotation.rationale
       ? wrapText(annotation.rationale, bodyWidth).map((text) => ({
           kind: "rationale" as const,
@@ -73,7 +76,7 @@ export function AgentInlineNote({
   theme,
   width,
 }: {
-  annotation: AgentAnnotation;
+  annotation: Annotation;
   anchorSide?: "old" | "new";
   layout: Exclude<LayoutMode, "auto">;
   noteCount?: number;
@@ -102,7 +105,10 @@ export function AgentInlineNote({
   const titleWidth = Math.max(1, innerWidth - (closeText ? closeText.length + 1 : 0));
   const bodyWidth = innerWidth;
   const lines: AgentInlineNoteLine[] = [
-    ...wrapText(annotation.summary, bodyWidth).map((text) => ({ kind: "summary" as const, text })),
+    ...wrapText(annotation.summary ?? "", bodyWidth).map((text) => ({
+      kind: "summary" as const,
+      text,
+    })),
     ...(annotation.rationale
       ? wrapText(annotation.rationale, bodyWidth).map((text) => ({
           kind: "rationale" as const,

@@ -3,26 +3,18 @@ import { resolveConfiguredCliInput } from "../core/config";
 import { loadAppBootstrap } from "../core/loaders";
 import { resolveRuntimeCliInput } from "../core/terminal";
 import type { AppBootstrap, CliInput } from "../core/types";
-import type { UpdateNotice } from "../core/updateNotice";
 import { App } from "./App";
-import { useStartupUpdateNotice } from "./hooks/useStartupUpdateNotice";
 
 /** Keep one live dunk app mounted while supporting fs-driven reloads. */
 export function AppHost({
   bootstrap,
   onQuit = () => process.exit(0),
-  startupNoticeResolver,
 }: {
   bootstrap: AppBootstrap;
   onQuit?: () => void;
-  startupNoticeResolver?: () => Promise<UpdateNotice | null>;
 }) {
   const [activeBootstrap, setActiveBootstrap] = useState(bootstrap);
   const [appVersion, setAppVersion] = useState(0);
-  const startupNoticeText = useStartupUpdateNotice({
-    enabled: !bootstrap.input.options.pager,
-    resolver: startupNoticeResolver,
-  });
 
   const reloadSession = useCallback(
     async (nextInput: CliInput, options?: { resetApp?: boolean; sourcePath?: string }) => {
@@ -50,7 +42,6 @@ export function AppHost({
     <App
       key={appVersion}
       bootstrap={activeBootstrap}
-      noticeText={startupNoticeText}
       onQuit={onQuit}
       onReloadSession={reloadSession}
     />
