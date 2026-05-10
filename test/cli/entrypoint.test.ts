@@ -3,6 +3,8 @@ import { copyFileSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+const bunExecutable = process.execPath;
+
 function git(cwd: string, ...args: string[]) {
   const proc = Bun.spawnSync(["git", ...args], {
     cwd,
@@ -20,7 +22,7 @@ function git(cwd: string, ...args: string[]) {
 
 describe("CLI entrypoint contracts", () => {
   test("bare hunk prints standard help without terminal takeover sequences", () => {
-    const proc = Bun.spawnSync(["bun", "run", "src/main.tsx"], {
+    const proc = Bun.spawnSync([bunExecutable, "run", "src/main.tsx"], {
       cwd: process.cwd(),
       stdin: "ignore",
       stdout: "pipe",
@@ -55,7 +57,7 @@ describe("CLI entrypoint contracts", () => {
   });
 
   test("prints daemon help without terminal takeover sequences", () => {
-    const proc = Bun.spawnSync(["bun", "run", "src/main.tsx", "daemon", "--help"], {
+    const proc = Bun.spawnSync([bunExecutable, "run", "src/main.tsx", "daemon", "--help"], {
       cwd: process.cwd(),
       stdin: "ignore",
       stdout: "pipe",
@@ -73,7 +75,7 @@ describe("CLI entrypoint contracts", () => {
   });
 
   test("prints session help with the review command without terminal takeover sequences", () => {
-    const proc = Bun.spawnSync(["bun", "run", "src/main.tsx", "session", "--help"], {
+    const proc = Bun.spawnSync([bunExecutable, "run", "src/main.tsx", "session", "--help"], {
       cwd: process.cwd(),
       stdin: "ignore",
       stdout: "pipe",
@@ -94,12 +96,15 @@ describe("CLI entrypoint contracts", () => {
   });
 
   test("prints session reload help without terminal takeover sequences", () => {
-    const proc = Bun.spawnSync(["bun", "run", "src/main.tsx", "session", "reload", "--help"], {
-      cwd: process.cwd(),
-      stdin: "ignore",
-      stdout: "pipe",
-      stderr: "pipe",
-    });
+    const proc = Bun.spawnSync(
+      [bunExecutable, "run", "src/main.tsx", "session", "reload", "--help"],
+      {
+        cwd: process.cwd(),
+        stdin: "ignore",
+        stdout: "pipe",
+        stderr: "pipe",
+      },
+    );
 
     const stdout = Buffer.from(proc.stdout).toString("utf8");
     const stderr = Buffer.from(proc.stderr).toString("utf8");
@@ -113,7 +118,7 @@ describe("CLI entrypoint contracts", () => {
 
   test("prints the package version for --version without terminal takeover sequences", () => {
     const expectedVersion = require("../../package.json").version;
-    const proc = Bun.spawnSync(["bun", "run", "src/main.tsx", "--version"], {
+    const proc = Bun.spawnSync([bunExecutable, "run", "src/main.tsx", "--version"], {
       cwd: process.cwd(),
       stdin: "ignore",
       stdout: "pipe",
@@ -130,7 +135,7 @@ describe("CLI entrypoint contracts", () => {
   });
 
   test("prints the bundled skill path for hunk skill path without terminal takeover sequences", () => {
-    const proc = Bun.spawnSync(["bun", "run", "src/main.tsx", "skill", "path"], {
+    const proc = Bun.spawnSync([bunExecutable, "run", "src/main.tsx", "skill", "path"], {
       cwd: process.cwd(),
       stdin: "ignore",
       stdout: "pipe",
@@ -197,7 +202,7 @@ describe("CLI entrypoint contracts", () => {
   });
 
   test("general pager mode falls back to plain text for non-diff stdin", () => {
-    const proc = Bun.spawnSync(["bun", "run", "src/main.tsx", "pager"], {
+    const proc = Bun.spawnSync([bunExecutable, "run", "src/main.tsx", "pager"], {
       cwd: process.cwd(),
       stdin: Buffer.from("* main\n  feature/demo\n"),
       stdout: "pipe",
@@ -221,7 +226,7 @@ describe("CLI entrypoint contracts", () => {
     const sourceEntrypoint = join(process.cwd(), "src/main.tsx");
 
     try {
-      const proc = Bun.spawnSync(["bun", "run", sourceEntrypoint, "diff"], {
+      const proc = Bun.spawnSync([bunExecutable, "run", sourceEntrypoint, "diff"], {
         cwd: nonRepoDir,
         stdin: "ignore",
         stdout: "pipe",
@@ -256,7 +261,7 @@ describe("CLI entrypoint contracts", () => {
       git(repoDir, "add", "alpha.ts");
       git(repoDir, "commit", "-m", "initial");
 
-      const proc = Bun.spawnSync(["bun", "run", sourceEntrypoint, "show", "HEAD~999"], {
+      const proc = Bun.spawnSync([bunExecutable, "run", sourceEntrypoint, "show", "HEAD~999"], {
         cwd: repoDir,
         stdin: "ignore",
         stdout: "pipe",

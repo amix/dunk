@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { buildJjDiffArgs, runJjText } from "./jj";
 
 const tempDirs: string[] = [];
+const realJjTest = Bun.which("jj") ? test : test.skip;
 
 function cleanupTempDirs() {
   while (tempDirs.length > 0) {
@@ -97,7 +98,7 @@ describe("jj command helpers", () => {
     );
   });
 
-  test("reports a friendly error outside a jj repository", () => {
+  realJjTest("reports a friendly error outside a jj repository", () => {
     const dir = createTempDir("hunk-jj-nonrepo-");
 
     expect(() =>
@@ -113,7 +114,7 @@ describe("jj command helpers", () => {
     ).toThrow('`hunk diff` must be run inside a Jujutsu repository when `vcs = "jj"`.');
   });
 
-  test("reports a friendly error for invalid revsets", () => {
+  realJjTest("reports a friendly error for invalid revsets", () => {
     const dir = createTempJjRepo("hunk-jj-invalid-revset-");
     const input = {
       kind: "vcs" as const,
@@ -131,7 +132,7 @@ describe("jj command helpers", () => {
     ).toThrow("`hunk diff missing_revision` could not resolve Jujutsu revset `missing_revision`.");
   });
 
-  test("reports a friendly error for ambiguous change id prefixes", () => {
+  realJjTest("reports a friendly error for ambiguous change id prefixes", () => {
     const dir = createTempJjRepo("hunk-jj-ambiguous-prefix-");
     let prefix: string | undefined;
 

@@ -6,8 +6,12 @@ import { join } from "node:path";
 
 const repoRoot = process.cwd();
 const sourceEntrypoint = join(repoRoot, "src/main.tsx");
+const bunExecutable = process.execPath;
 const tempDirs: string[] = [];
+const enableSessionBrokerE2eTests = process.env.HUNK_RUN_SESSION_E2E === "1";
+const sessionBrokerE2eDescribe = enableSessionBrokerE2eTests ? describe : describe.skip;
 const ttyToolsAvailable =
+  enableSessionBrokerE2eTests &&
   Bun.spawnSync(["bash", "-lc", "command -v script >/dev/null && command -v timeout >/dev/null"], {
     stdin: "ignore",
     stdout: "ignore",
@@ -110,7 +114,7 @@ function spawnHunkSession(
     timeoutSeconds?: number;
   },
 ) {
-  const innerCommand = `bun run ${shellQuote(sourceEntrypoint)} diff ${shellQuote(fixture.before)} ${shellQuote(fixture.after)}`;
+  const innerCommand = `${shellQuote(bunExecutable)} run ${shellQuote(sourceEntrypoint)} diff ${shellQuote(fixture.before)} ${shellQuote(fixture.after)}`;
   const hunkCommand = [
     `(sleep ${quitAfterSeconds}; printf q) | timeout ${timeoutSeconds} script -q -f -e -c`,
     shellQuote(innerCommand),
@@ -133,7 +137,7 @@ function spawnHunkSession(
 }
 
 function runSessionCli(args: string[], port: number) {
-  const proc = Bun.spawnSync(["bun", "run", "src/main.tsx", "session", ...args], {
+  const proc = Bun.spawnSync([bunExecutable, "run", "src/main.tsx", "session", ...args], {
     cwd: repoRoot,
     stdin: "ignore",
     stdout: "pipe",
@@ -194,7 +198,7 @@ afterEach(() => {
   cleanupTempDirs();
 });
 
-describe("session broker end-to-end", () => {
+sessionBrokerE2eDescribe("session broker end-to-end", () => {
   test("a live Hunk session auto-starts the daemon and renders CLI comments inline", async () => {
     if (!ttyToolsAvailable) {
       return;

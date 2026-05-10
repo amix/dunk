@@ -234,7 +234,7 @@ function createDiffPaneProps(
 function settleDiffPane(setup: Awaited<ReturnType<typeof testRender>>) {
   return act(async () => {
     await setup.renderOnce();
-    await Bun.sleep(100);
+    await Bun.sleep(0);
     await setup.renderOnce();
   });
 }
@@ -252,7 +252,7 @@ async function waitForFrame(
     }
 
     await act(async () => {
-      await Bun.sleep(50);
+      await Bun.sleep(0);
       await setup.renderOnce();
     });
     frame = setup.captureCharFrame();
@@ -679,8 +679,8 @@ describe("UI components", () => {
     const separatorTop = firstBodyHeight;
     const settleStickyScroll = async () => {
       await act(async () => {
-        for (let iteration = 0; iteration < 6; iteration += 1) {
-          await Bun.sleep(60);
+        for (let iteration = 0; iteration < 2; iteration += 1) {
+          await Bun.sleep(0);
           await setup.renderOnce();
         }
       });

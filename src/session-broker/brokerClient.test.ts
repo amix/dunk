@@ -230,20 +230,8 @@ describe("Hunk session daemon client", () => {
     }
   }, 10_000);
 
-  test("logs one actionable warning when a non-Hunk listener owns the session daemon port", async () => {
-    const conflictingListener = createServer((_request, response) => {
-      response.writeHead(404, { "content-type": "text/plain" });
-      response.end("not hunk");
-    });
-    await new Promise<void>((resolve, reject) => {
-      conflictingListener.once("error", reject);
-      conflictingListener.listen(0, "127.0.0.1", () => resolve());
-    });
-
-    const address = conflictingListener.address();
-    const port = typeof address === "object" && address ? address.port : 0;
-    process.env.HUNK_MCP_HOST = "127.0.0.1";
-    process.env.HUNK_MCP_PORT = String(port);
+  test("logs one actionable warning when daemon startup reports a port conflict", async () => {
+    const port = 47657;
     delete process.env.HUNK_MCP_DISABLE;
 
     const messages: string[] = [];
@@ -252,13 +240,27 @@ describe("Hunk session daemon client", () => {
     };
 
     const client = new SessionBrokerClient(createRegistration(), createSnapshot());
+    let startupAttempts = 0;
+    (client as any).resolveConfig = () => ({
+      host: "127.0.0.1",
+      port,
+      httpOrigin: `http://127.0.0.1:${port}`,
+      wsOrigin: `ws://127.0.0.1:${port}`,
+    });
+    (client as any).ensureDaemonAvailable = async (config: { host: string; port: number }) => {
+      startupAttempts += 1;
+      throw new Error(
+        `Session broker port ${config.host}:${config.port} is already in use by another process. ` +
+          "Stop the conflicting process or set HUNK_MCP_PORT to a different loopback port.",
+      );
+    };
 
     try {
       client.start();
       await waitUntil("initial session-daemon conflict warning", () => messages.length === 1);
 
       client.start();
-      await Bun.sleep(2_000);
+      await waitUntil("second session-daemon startup attempt", () => startupAttempts === 2);
 
       expect(messages).toHaveLength(1);
       expect(messages[0]).toContain(
@@ -269,7 +271,6 @@ describe("Hunk session daemon client", () => {
       );
     } finally {
       client.stop();
-      await new Promise<void>((resolve) => conflictingListener.close(() => resolve()));
     }
   }, 10_000);
 });

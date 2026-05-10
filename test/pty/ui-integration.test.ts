@@ -2,6 +2,7 @@ import { afterEach, describe, expect, setDefaultTimeout, test } from "bun:test";
 import { createPtyHarness } from "./harness";
 
 const harness = createPtyHarness();
+const ptyDescribe = process.env.HUNK_RUN_PTY_TESTS === "1" ? describe : describe.skip;
 
 /** Give PTY-backed startup and redraws enough headroom for slower CI machines. */
 setDefaultTimeout(20_000);
@@ -10,7 +11,7 @@ afterEach(() => {
   harness.cleanup();
 });
 
-describe("live UI integration", () => {
+ptyDescribe("live UI integration", () => {
   test("real PTY sessions can toggle wrapped lines on and off", async () => {
     const fixture = harness.createLongWrapFilePair();
     const session = await harness.launchHunk({

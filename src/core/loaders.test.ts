@@ -6,6 +6,7 @@ import { loadAppBootstrap } from "./loaders";
 import type { CliInput } from "./types";
 
 const tempDirs: string[] = [];
+const realJjTest = Bun.which("jj") ? test : test.skip;
 
 function cleanupTempDirs() {
   while (tempDirs.length > 0) {
@@ -770,7 +771,7 @@ describe("loadAppBootstrap", () => {
     expect(bootstrap.changeset.files.map((file) => file.path)).toEqual(["beta.ts"]);
   });
 
-  test("loads jj diff output for a configured revset", async () => {
+  realJjTest("loads jj diff output for a configured revset", async () => {
     const home = createTempDir("hunk-jj-home-");
 
     await runWithHome(home, async () => {
@@ -795,7 +796,7 @@ describe("loadAppBootstrap", () => {
     });
   });
 
-  test("loads jj show output for a configured revset", async () => {
+  realJjTest("loads jj show output for a configured revset", async () => {
     const home = createTempDir("hunk-jj-home-");
 
     await runWithHome(home, async () => {

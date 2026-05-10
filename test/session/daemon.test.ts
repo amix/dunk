@@ -3,6 +3,7 @@ import type { Subprocess } from "bun";
 import { createServer } from "node:net";
 
 const repoRoot = process.cwd();
+const bunExecutable = process.execPath;
 const spawned: Subprocess[] = [];
 
 async function reserveLoopbackPort() {
@@ -70,7 +71,7 @@ afterEach(async () => {
 describe("session daemon lifecycle", () => {
   test("exits cleanly after SIGTERM instead of hot-looping after server shutdown", async () => {
     const port = await reserveLoopbackPort();
-    const proc = Bun.spawn(["bun", "run", "src/main.tsx", "daemon", "serve"], {
+    const proc = Bun.spawn([bunExecutable, "run", "src/main.tsx", "daemon", "serve"], {
       cwd: repoRoot,
       stdin: "ignore",
       stdout: "pipe",

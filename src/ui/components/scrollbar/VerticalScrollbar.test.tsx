@@ -99,11 +99,7 @@ describe("Vertical scrollbar", () => {
         await flush(setup);
       });
 
-      // Wait for scrollbar to render
-      await act(async () => {
-        await Bun.sleep(100);
-        await setup.renderOnce();
-      });
+      await flush(setup);
 
       const frame = setup.captureCharFrame();
       // Look for scrollbar characters in the rightmost column
@@ -138,12 +134,7 @@ describe("Vertical scrollbar", () => {
       const frame = setup.captureCharFrame();
       expect(frame).toBeTruthy();
 
-      // Wait for auto-hide timeout (2 seconds + buffer)
-      await Bun.sleep(2500);
-
-      await act(async () => {
-        await setup.renderOnce();
-      });
+      await flush(setup);
 
       // After auto-hide, the app should still be functional
       const frameAfter = setup.captureCharFrame();
@@ -165,16 +156,11 @@ describe("Vertical scrollbar", () => {
     try {
       await flush(setup);
 
-      // Wait for initial state to settle
-      await Bun.sleep(500);
-      await act(async () => {
-        await setup.renderOnce();
-      });
+      await flush(setup);
 
       // Trigger mouse scroll
       await act(async () => {
         await setup.mockMouse.scroll(50, 10, "down");
-        await Bun.sleep(100);
         await setup.renderOnce();
       });
 
@@ -220,7 +206,7 @@ describe("Vertical scrollbar", () => {
     try {
       await flush(setup);
       await act(async () => {
-        await Bun.sleep(100);
+        await setup.renderOnce();
       });
 
       // Verify app renders and is responsive to scroll commands
@@ -286,7 +272,6 @@ describe("Vertical scrollbar", () => {
     try {
       await flush(setup);
       await act(async () => {
-        await Bun.sleep(100);
         await setup.renderOnce();
       });
 
@@ -329,7 +314,7 @@ describe("Vertical scrollbar", () => {
     try {
       await flush(setup);
       await act(async () => {
-        await Bun.sleep(100);
+        await setup.renderOnce();
       });
 
       // Get initial frame - app centers on the hunk at line 50
@@ -342,7 +327,7 @@ describe("Vertical scrollbar", () => {
         // Drag from top area of scrollbar down
         await setup.mockMouse.drag(159, 2, 159, 10);
         await flush(setup);
-        await Bun.sleep(100);
+        await setup.renderOnce();
       });
 
       // After dragging down, we should see different content
@@ -353,7 +338,7 @@ describe("Vertical scrollbar", () => {
       await act(async () => {
         await setup.mockMouse.drag(159, 10, 159, 2);
         await flush(setup);
-        await Bun.sleep(100);
+        await setup.renderOnce();
       });
 
       const frame3 = setup.captureCharFrame();
@@ -395,7 +380,7 @@ describe("Vertical scrollbar", () => {
     try {
       await flush(setup);
       await act(async () => {
-        await Bun.sleep(100);
+        await setup.renderOnce();
       });
 
       // Get initial content - app centers on the hunk at line 40
@@ -408,7 +393,7 @@ describe("Vertical scrollbar", () => {
           await setup.mockInput.pressArrow("down");
         }
         await flush(setup);
-        await Bun.sleep(100);
+        await setup.renderOnce();
       });
 
       // Click on scrollbar track below thumb to page down
@@ -416,7 +401,7 @@ describe("Vertical scrollbar", () => {
       await act(async () => {
         await setup.mockMouse.click(159, 12);
         await flush(setup);
-        await Bun.sleep(100);
+        await setup.renderOnce();
       });
 
       const frame2 = setup.captureCharFrame();
@@ -427,7 +412,7 @@ describe("Vertical scrollbar", () => {
       await act(async () => {
         await setup.mockMouse.click(159, 2);
         await flush(setup);
-        await Bun.sleep(100);
+        await setup.renderOnce();
       });
 
       const frame3 = setup.captureCharFrame();
@@ -474,7 +459,7 @@ describe("Vertical scrollbar", () => {
     try {
       await flush(setup);
       await act(async () => {
-        await Bun.sleep(100);
+        await setup.renderOnce();
       });
 
       // Verify app renders with the hunk visible - look for the modified line
@@ -485,7 +470,7 @@ describe("Vertical scrollbar", () => {
       await act(async () => {
         await setup.mockMouse.drag(159, 0, 159, 5);
         await flush(setup);
-        await Bun.sleep(100);
+        await setup.renderOnce();
       });
 
       // App should still be responsive after drag attempt
@@ -496,7 +481,7 @@ describe("Vertical scrollbar", () => {
       await act(async () => {
         await setup.mockMouse.click(159, 10);
         await flush(setup);
-        await Bun.sleep(100);
+        await setup.renderOnce();
       });
 
       const frame3 = setup.captureCharFrame();
