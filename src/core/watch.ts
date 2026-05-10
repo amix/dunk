@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import { join } from "node:path";
 import { findRepoRoot } from "./config";
+import { DUNK_COMMENTS_RELATIVE_PATH } from "./dunkPaths";
 import {
   buildGitDiffArgs,
   buildGitShowArgs,
@@ -11,8 +12,6 @@ import {
 } from "./git";
 import { buildJjDiffArgs, buildJjShowArgs, runJjText } from "./jj";
 import type { CliInput } from "./types";
-
-const COMMENTS_RELATIVE_PATH = join(".dunk", "comments.json");
 
 /** Return whether the current input can be rebuilt from files or VCS state without rereading stdin. */
 export function canReloadInput(input: CliInput) {
@@ -92,7 +91,7 @@ export function computeWatchSignature(input: CliInput) {
   // `.dunk/comments.json` without an extra fs.watch hookup.
   const repoRoot = findRepoRoot();
   if (repoRoot) {
-    parts.push(`comments:${statSignature(join(repoRoot, COMMENTS_RELATIVE_PATH))}`);
+    parts.push(`comments:${statSignature(join(repoRoot, DUNK_COMMENTS_RELATIVE_PATH))}`);
   }
 
   return parts.join("\n---\n");

@@ -112,7 +112,7 @@ export function createPtyHarness() {
   }
 
   function createLongWrapFilePair() {
-    const dir = makeTempDir("hunk-tuistory-wrap-");
+    const dir = makeTempDir("dunk-tuistory-wrap-");
     const before = join(dir, "before.ts");
     const after = join(dir, "after.ts");
 
@@ -126,7 +126,7 @@ export function createPtyHarness() {
   }
 
   function createAgentFilePair() {
-    const dir = makeTempDir("hunk-tuistory-agent-");
+    const dir = makeTempDir("dunk-tuistory-agent-");
     const before = join(dir, "before.ts");
     const after = join(dir, "after.ts");
     const agentContext = join(dir, "agent.json");
@@ -156,7 +156,7 @@ export function createPtyHarness() {
   }
 
   function createMultiHunkFilePair() {
-    const dir = makeTempDir("hunk-tuistory-hunks-");
+    const dir = makeTempDir("dunk-tuistory-hunks-");
     const before = join(dir, "before.ts");
     const after = join(dir, "after.ts");
 
@@ -180,7 +180,7 @@ export function createPtyHarness() {
   }
 
   function createScrollableFilePair() {
-    const dir = makeTempDir("hunk-tuistory-scroll-");
+    const dir = makeTempDir("dunk-tuistory-scroll-");
     const before = join(dir, "before.ts");
     const after = join(dir, "after.ts");
 
@@ -202,7 +202,7 @@ export function createPtyHarness() {
   }
 
   function createGitRepoFixture(files: ChangedFileSpec[]) {
-    const dir = makeTempDir("hunk-tuistory-repo-");
+    const dir = makeTempDir("dunk-tuistory-repo-");
 
     runGit(["init"], dir);
     runGit(["config", "user.name", "Pi"], dir);
@@ -373,7 +373,7 @@ export function createPtyHarness() {
   }
 
   function createPagerPatchFixture(lines = 40) {
-    const dir = makeTempDir("hunk-tuistory-pager-");
+    const dir = makeTempDir("dunk-tuistory-pager-");
     const beforeDir = join(dir, "before");
     const afterDir = join(dir, "after");
     const patchFile = join(dir, "input.patch");

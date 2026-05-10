@@ -42,7 +42,7 @@ function stripTerminalControl(text: string) {
 }
 
 function createFixtureFiles(lines = 1) {
-  const dir = mkdtempSync(join(tmpdir(), "hunk-tty-smoke-"));
+  const dir = mkdtempSync(join(tmpdir(), "dunk-tty-smoke-"));
   tempDirs.push(dir);
 
   const before = join(dir, "before.ts");
@@ -121,7 +121,7 @@ function createFixtureFiles(lines = 1) {
 }
 
 function createLongWrapFixtureFiles() {
-  const dir = mkdtempSync(join(tmpdir(), "hunk-tty-smoke-"));
+  const dir = mkdtempSync(join(tmpdir(), "dunk-tty-smoke-"));
   tempDirs.push(dir);
 
   const before = join(dir, "before.ts");

@@ -2,11 +2,10 @@
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join, resolve as resolvePath } from "node:path";
+import { DUNK_COMMENTS_FILENAME, DUNK_DIR } from "./dunkPaths";
 import type { Annotation, Changeset, DiffFile, DriftReason } from "./types";
 
 const SCHEMA_VERSION = 1;
-const COMMENTS_DIR = ".dunk";
-const COMMENTS_FILE = "comments.json";
 const ANCHOR_HEX_LEN = 16;
 
 /** A persisted comment as it appears on disk. */
@@ -79,7 +78,7 @@ export function computeAnchorForFile(
 
 /** Read `.dunk/comments.json` from the repo root, returning [] if missing. */
 export function readCommentsFile(repoRoot: string): CommentsFile {
-  const path = join(repoRoot, COMMENTS_DIR, COMMENTS_FILE);
+  const path = join(repoRoot, DUNK_DIR, DUNK_COMMENTS_FILENAME);
   if (!existsSync(path)) {
     return { schema: SCHEMA_VERSION, comments: [] };
   }
@@ -100,10 +99,10 @@ export function readCommentsFile(repoRoot: string): CommentsFile {
 
 /** Atomically write the comments file using a temp + rename. */
 export function writeCommentsFile(repoRoot: string, file: CommentsFile): void {
-  const dir = join(repoRoot, COMMENTS_DIR);
+  const dir = join(repoRoot, DUNK_DIR);
   mkdirSync(dir, { recursive: true });
-  const finalPath = join(dir, COMMENTS_FILE);
-  const tempPath = join(dir, `.${COMMENTS_FILE}.tmp`);
+  const finalPath = join(dir, DUNK_COMMENTS_FILENAME);
+  const tempPath = join(dir, `.${DUNK_COMMENTS_FILENAME}.tmp`);
   const sorted: CommentsFile = {
     schema: SCHEMA_VERSION,
     comments: [...file.comments].sort((a, b) => a.id - b.id),

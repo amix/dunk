@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import { DUNK_CONFIG_RELATIVE_PATH } from "./dunkPaths";
 import { resolveGlobalConfigPath } from "./paths";
 import type {
   CliInput,
@@ -150,7 +151,7 @@ export function resolveConfiguredCliInput(
   { cwd = process.cwd(), env = process.env }: ConfigResolutionOptions = {},
 ): DunkConfigResolution {
   const repoRoot = findRepoRoot(cwd);
-  const repoConfigPath = repoRoot ? join(repoRoot, ".dunk", "config.toml") : undefined;
+  const repoConfigPath = repoRoot ? join(repoRoot, DUNK_CONFIG_RELATIVE_PATH) : undefined;
   const userConfigPath = resolveGlobalConfigPath(env);
 
   let resolvedOptions: CommonOptions = {

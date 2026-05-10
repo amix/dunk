@@ -769,11 +769,6 @@ function buildUntrackedDiffFile(
   );
 }
 
-/** File ordering matches the parsed diff order; no agent-sidecar reordering anymore. */
-export function orderDiffFiles(files: DiffFile[]) {
-  return files;
-}
-
 /** Parse raw patch text into the shared changeset model used by the app. */
 function normalizePatchChangeset(
   patchText: string,
@@ -1110,11 +1105,6 @@ export async function loadAppBootstrap(
       changeset = await loadFileDiffChangeset(input, cwd);
       break;
   }
-
-  changeset = {
-    ...changeset,
-    files: orderDiffFiles(changeset.files),
-  };
 
   const merged = mergeUserComments(changeset, cwd);
   changeset = merged.changeset;
