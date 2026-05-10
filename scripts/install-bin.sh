@@ -2,8 +2,8 @@
 set -Eeuo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-install_dir="${TUNK_INSTALL_DIR:-${HOME}/.local/bin}"
-install_path="${install_dir}/tunk"
+install_dir="${DUNK_INSTALL_DIR:-${HOME}/.local/bin}"
+install_path="${install_dir}/dunk"
 entrypoint="${repo_root}/src/main.tsx"
 
 if ! command -v bun >/dev/null 2>&1; then

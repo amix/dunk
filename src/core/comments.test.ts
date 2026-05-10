@@ -14,7 +14,7 @@ import {
 } from "./comments";
 
 function withTempRepo<T>(run: (repoRoot: string) => T): T {
-  const repoRoot = mkdtempSync(join(tmpdir(), "tunk-comments-"));
+  const repoRoot = mkdtempSync(join(tmpdir(), "dunk-comments-"));
   mkdirSync(join(repoRoot, ".git"), { recursive: true });
   try {
     return run(repoRoot);
@@ -23,7 +23,7 @@ function withTempRepo<T>(run: (repoRoot: string) => T): T {
   }
 }
 
-describe("tunk comments", () => {
+describe("dunk comments", () => {
   test("computes a deterministic 16-hex anchor for a line plus its neighbours", () => {
     const lines = ["alpha", "beta", "gamma"];
     const anchor = computeAnchor(lines, 2);
@@ -55,7 +55,7 @@ describe("tunk comments", () => {
       expect(reloaded.comments).toHaveLength(1);
       expect(reloaded.comments[0]).toMatchObject({ id: 1, file: "src/a.ts", line: 3 });
 
-      const tempPath = join(repoRoot, ".tunk", ".comments.json.tmp");
+      const tempPath = join(repoRoot, ".dunk", ".comments.json.tmp");
       expect(existsSync(tempPath)).toBe(false);
     });
   });
@@ -135,7 +135,7 @@ describe("tunk comments", () => {
         ],
       });
 
-      const raw = readFileSync(join(repoRoot, ".tunk", "comments.json"), "utf8");
+      const raw = readFileSync(join(repoRoot, ".dunk", "comments.json"), "utf8");
       expect(raw.endsWith("\n")).toBe(true);
       const parsed = JSON.parse(raw) as { comments: { id: number }[] };
       expect(parsed.comments.map((c) => c.id)).toEqual([1, 3]);
@@ -144,13 +144,13 @@ describe("tunk comments", () => {
 
   test("readCommentsFile rejects a future schema version", () => {
     withTempRepo((repoRoot) => {
-      mkdirSync(join(repoRoot, ".tunk"), { recursive: true });
+      mkdirSync(join(repoRoot, ".dunk"), { recursive: true });
       writeFileSync(
-        join(repoRoot, ".tunk", "comments.json"),
+        join(repoRoot, ".dunk", "comments.json"),
         JSON.stringify({ schema: 99, comments: [] }),
       );
 
-      expect(() => readCommentsFile(repoRoot)).toThrow(/Unsupported tunk comments schema/);
+      expect(() => readCommentsFile(repoRoot)).toThrow(/Unsupported dunk comments schema/);
     });
   });
 });

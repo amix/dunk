@@ -67,9 +67,9 @@ describe("config resolution", () => {
       ].join("\n"),
     );
 
-    mkdirSync(join(repo, ".tunk"), { recursive: true });
+    mkdirSync(join(repo, ".dunk"), { recursive: true });
     writeFileSync(
-      join(repo, ".tunk", "config.toml"),
+      join(repo, ".dunk", "config.toml"),
       ['theme = "paper"', "wrap_lines = true", "", "[pager]", "hunk_headers = false"].join("\n"),
     );
 
@@ -78,7 +78,7 @@ describe("config resolution", () => {
       env: { HOME: home },
     });
 
-    expect(resolved.repoConfigPath).toBe(join(repo, ".tunk", "config.toml"));
+    expect(resolved.repoConfigPath).toBe(join(repo, ".dunk", "config.toml"));
     expect(resolved.input.options).toMatchObject({
       pager: true,
       mode: "stack",
@@ -226,8 +226,8 @@ describe("config resolution", () => {
     const repo = createTempDir("hunk-config-jj-repo-");
     createJjRepo(repo);
 
-    mkdirSync(join(repo, ".tunk"), { recursive: true });
-    writeFileSync(join(repo, ".tunk", "config.toml"), 'vcs = "git"\n');
+    mkdirSync(join(repo, ".dunk"), { recursive: true });
+    writeFileSync(join(repo, ".dunk", "config.toml"), 'vcs = "git"\n');
 
     const resolved = resolveConfiguredCliInput(
       {

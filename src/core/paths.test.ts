@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import {
-  resolveBundledTunkReviewSkillPath,
+  resolveBundledDunkReviewSkillPath,
   resolveGlobalConfigPath,
   resolveHunkStatePath,
 } from "./paths";
@@ -30,9 +30,9 @@ describe("paths", () => {
   });
 
   test("locates the bundled Hunk review skill from source", () => {
-    const resolvedPath = resolveBundledTunkReviewSkillPath([import.meta.dir]);
+    const resolvedPath = resolveBundledDunkReviewSkillPath([import.meta.dir]);
 
-    expect(resolvedPath).toEndWith(join("skills", "tunk-review", "SKILL.md"));
+    expect(resolvedPath).toEndWith(join("skills", "dunk-review", "SKILL.md"));
   });
 
   test("locates the bundled Hunk review skill through a nested hunkdiff package", () => {
@@ -40,7 +40,7 @@ describe("paths", () => {
 
     try {
       const nestedPackageRoot = join(tempRoot, "node_modules", "hunkdiff");
-      const skillPath = join(nestedPackageRoot, "skills", "tunk-review", "SKILL.md");
+      const skillPath = join(nestedPackageRoot, "skills", "dunk-review", "SKILL.md");
       const fakeBinary = join(tempRoot, "node_modules", "hunkdiff-linux-x64", "bin", "hunk");
 
       mkdirSync(dirname(skillPath), { recursive: true });
@@ -48,7 +48,7 @@ describe("paths", () => {
       writeFileSync(skillPath, "# skill\n");
       writeFileSync(fakeBinary, "binary\n");
 
-      expect(resolveBundledTunkReviewSkillPath([fakeBinary])).toBe(skillPath);
+      expect(resolveBundledDunkReviewSkillPath([fakeBinary])).toBe(skillPath);
     } finally {
       rmSync(tempRoot, { recursive: true, force: true });
     }

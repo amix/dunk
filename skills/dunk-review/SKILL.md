@@ -1,18 +1,18 @@
 ---
-name: tunk-review
-description: Read user-authored review comments from `.tunk/comments.json` for the active repo and address each one. The TUI is for humans; agents only touch the on-disk file and the source tree.
+name: dunk-review
+description: Read user-authored review comments from `.dunk/comments.json` for the active repo and address each one. The TUI is for humans; agents only touch the on-disk file and the source tree.
 ---
 
-# Tunk review
+# Dunk review
 
-Tunk is an interactive terminal diff viewer. The TUI is for the user — never run `tunk diff`, `tunk show`, or other interactive commands directly. Comments live on disk in `.tunk/comments.json` (one committed file per repo). Read it, fix what's flagged, and remove the comment by editing the file.
+Dunk is an interactive terminal diff viewer. The TUI is for the user — never run `dunk diff`, `dunk show`, or other interactive commands directly. Comments live on disk in `.dunk/comments.json` (one committed file per repo). Read it, fix what's flagged, and remove the comment by editing the file.
 
-If `.tunk/comments.json` is missing or empty, the user has nothing pending; ask before doing speculative work.
+If `.dunk/comments.json` is missing or empty, the user has nothing pending; ask before doing speculative work.
 
 ## Workflow
 
 ```text
-1. cat .tunk/comments.json                # list every pending comment
+1. cat .dunk/comments.json                # list every pending comment
 2. for each comment:                      #
    - open `file` at `line` to address it  # use Read / Edit, not the TUI
    - fix the underlying issue             #
@@ -46,4 +46,4 @@ If `.tunk/comments.json` is missing or empty, the user has nothing pending; ask 
 
 ## Refresh behaviour
 
-The user's TUI watches `.tunk/comments.json` and the diff source files. After you remove a comment or edit a tracked file, the active tunk session reloads on its own when the user has `--watch` on, or when they hit `r`. No daemon, no extra step.
+The user's TUI watches `.dunk/comments.json` and the diff source files. After you remove a comment or edit a tracked file, the active dunk session reloads on its own when the user has `--watch` on, or when they hit `r`. No daemon, no extra step.

@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 dist_dir="${repo_root}/dist"
-outfile="${dist_dir}/tunk"
+outfile="${dist_dir}/dunk"
 
 mkdir -p "${dist_dir}"
 

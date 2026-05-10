@@ -1,9 +1,9 @@
-# `.tunk/comments.json` (draft)
+# `.dunk/comments.json` (draft)
 
 Status: **draft**, not yet implemented.
 
 A single JSON file holds every comment for the repo. It lives at
-`.tunk/comments.json` and is meant to be **committed**, so notes ride
+`.dunk/comments.json` and is meant to be **committed**, so notes ride
 through normal git workflows.
 
 ## Why one file
@@ -18,7 +18,7 @@ through normal git workflows.
 ## Layout
 
 ```
-.tunk/
+.dunk/
   comments.json     # committed, the source of truth for review comments
   config.toml       # gitignored, local view config (carried over from upstream)
   latest.json       # gitignored, local cache
@@ -80,8 +80,8 @@ review chatter after a refactor is just "focus the drifted stack, hit `D`."
 
 ## Atomic write
 
-Write to `.tunk/.comments.json.tmp`, then `rename(2)` over
-`.tunk/comments.json`. Same filesystem, so the rename is atomic and
+Write to `.dunk/.comments.json.tmp`, then `rename(2)` over
+`.dunk/comments.json`. Same filesystem, so the rename is atomic and
 readers never see a half-written file.
 
 ## Conflicts

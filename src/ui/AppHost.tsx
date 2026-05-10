@@ -7,7 +7,7 @@ import type { UpdateNotice } from "../core/updateNotice";
 import { App } from "./App";
 import { useStartupUpdateNotice } from "./hooks/useStartupUpdateNotice";
 
-/** Keep one live tunk app mounted while supporting fs-driven reloads. */
+/** Keep one live dunk app mounted while supporting fs-driven reloads. */
 export function AppHost({
   bootstrap,
   onQuit = () => process.exit(0),

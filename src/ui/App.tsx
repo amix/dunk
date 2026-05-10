@@ -460,7 +460,7 @@ export function App({
           return next ?? current;
         });
       } catch (error) {
-        console.error("Failed to mutate tunk comments.", error);
+        console.error("Failed to mutate dunk comments.", error);
         return;
       }
 

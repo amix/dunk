@@ -103,7 +103,7 @@ export async function runEditorLaunch(
 
     const child = spawn(program!, args, spawnOptions);
     if (!plan.needsTty) {
-      // Detach GUI editors so killing tunk does not also kill the editor.
+      // Detach GUI editors so killing dunk does not also kill the editor.
       child.unref();
       resolveExit({ exitCode: 0 });
       return;

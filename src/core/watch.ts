@@ -12,7 +12,7 @@ import {
 import { buildJjDiffArgs, buildJjShowArgs, runJjText } from "./jj";
 import type { CliInput } from "./types";
 
-const COMMENTS_RELATIVE_PATH = join(".tunk", "comments.json");
+const COMMENTS_RELATIVE_PATH = join(".dunk", "comments.json");
 
 /** Return whether the current input can be rebuilt from files or VCS state without rereading stdin. */
 export function canReloadInput(input: CliInput) {
@@ -97,7 +97,7 @@ export function computeWatchSignature(input: CliInput) {
   }
 
   // Tracking the comments file too lets watch mode pick up agent edits to
-  // `.tunk/comments.json` without an extra fs.watch hookup.
+  // `.dunk/comments.json` without an extra fs.watch hookup.
   const repoRoot = findRepoRoot();
   if (repoRoot) {
     parts.push(`comments:${statSignature(join(repoRoot, COMMENTS_RELATIVE_PATH))}`);

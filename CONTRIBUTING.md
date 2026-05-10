@@ -126,7 +126,7 @@ Key rules:
 
 - Keep scope tight and explain user-visible behavior changes clearly.
 - Update docs and examples when behavior or workflows change.
-- If you want temporary local review notes, you can use `.tunk/latest.json`, but do not commit it.
+- If you want temporary local review notes, you can use `.dunk/latest.json`, but do not commit it.
 - `hunk diff` includes untracked working-tree files by default. Use `--exclude-untracked` if you want to review tracked changes only.
 
 ## Release notes

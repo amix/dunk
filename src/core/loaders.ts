@@ -1198,7 +1198,7 @@ export async function loadAppBootstrap(
 }
 
 /**
- * Read `.tunk/comments.json` for the active repo, anchor comments against the
+ * Read `.dunk/comments.json` for the active repo, anchor comments against the
  * current post-image, and fold the anchored ones into the changeset's per-file
  * annotations. Drifted comments are returned separately. Any failure (missing
  * repo, unreadable file) yields the original changeset and an empty drift

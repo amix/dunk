@@ -1,11 +1,11 @@
-/** `.tunk/comments.json` reader/writer and drift detection. */
+/** `.dunk/comments.json` reader/writer and drift detection. */
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join, resolve as resolvePath } from "node:path";
 import type { AgentAnnotation, Changeset, DiffFile, DriftReason } from "./types";
 
 const SCHEMA_VERSION = 1;
-const COMMENTS_DIR = ".tunk";
+const COMMENTS_DIR = ".dunk";
 const COMMENTS_FILE = "comments.json";
 const ANCHOR_HEX_LEN = 16;
 
@@ -18,7 +18,7 @@ export interface PersistedComment {
   body: string;
 }
 
-/** Top-level shape of `.tunk/comments.json`. */
+/** Top-level shape of `.dunk/comments.json`. */
 export interface CommentsFile {
   schema: number;
   comments: PersistedComment[];
@@ -77,7 +77,7 @@ export function computeAnchorForFile(
   return anchor || null;
 }
 
-/** Read `.tunk/comments.json` from the repo root, returning [] if missing. */
+/** Read `.dunk/comments.json` from the repo root, returning [] if missing. */
 export function readCommentsFile(repoRoot: string): CommentsFile {
   const path = join(repoRoot, COMMENTS_DIR, COMMENTS_FILE);
   if (!existsSync(path)) {
@@ -88,7 +88,7 @@ export function readCommentsFile(repoRoot: string): CommentsFile {
   const parsed = JSON.parse(raw) as Partial<CommentsFile>;
   if (parsed.schema !== SCHEMA_VERSION) {
     throw new Error(
-      `Unsupported tunk comments schema ${parsed.schema} at ${path} (expected ${SCHEMA_VERSION}).`,
+      `Unsupported dunk comments schema ${parsed.schema} at ${path} (expected ${SCHEMA_VERSION}).`,
     );
   }
 
@@ -134,7 +134,7 @@ export function withAddedComment(
 export function withRemovedComment(file: CommentsFile, id: number): CommentsFile {
   const next = file.comments.filter((comment) => comment.id !== id);
   if (next.length === file.comments.length) {
-    throw new Error(`No tunk comment with id ${id}.`);
+    throw new Error(`No dunk comment with id ${id}.`);
   }
 
   return { ...file, comments: next };
@@ -197,10 +197,10 @@ export function resolveComments(
 /** Map an anchored comment to the agent-annotation shape used by the renderer. */
 export function commentToAnnotation(comment: AnchoredComment): AgentAnnotation {
   return {
-    id: `tunk-comment:${comment.id}`,
+    id: `dunk-comment:${comment.id}`,
     summary: comment.body,
     newRange: [comment.line, comment.line],
-    source: "tunk",
+    source: "dunk",
   };
 }
 
@@ -275,7 +275,7 @@ export function mutateCommentsFile(
   const current = readCommentsFile(repoRoot);
   const next = mutate(current);
   // Skip the write when the mutation was a no-op so we don't materialize an
-  // empty .tunk/comments.json on disk just because the user pressed a delete
+  // empty .dunk/comments.json on disk just because the user pressed a delete
   // key on a hunk that has no comments.
   if (next === current) {
     return current;
