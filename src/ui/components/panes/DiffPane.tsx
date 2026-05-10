@@ -139,7 +139,7 @@ export function DiffPane({
   scrollToNote = false,
   separatorWidth,
   pagerMode = false,
-  showAgentNotes,
+  showComments,
   showLineNumbers,
   showHunkHeaders,
   wrapLines,
@@ -166,7 +166,7 @@ export function DiffPane({
   scrollToNote?: boolean;
   separatorWidth: number;
   pagerMode?: boolean;
-  showAgentNotes: boolean;
+  showComments: boolean;
   showLineNumbers: boolean;
   showHunkHeaders: boolean;
   wrapLines: boolean;
@@ -247,7 +247,7 @@ export function DiffPane({
   const allAgentNotesByFile = useMemo(() => {
     const next = new Map<string, VisibleAgentNote[]>();
 
-    if (!showAgentNotes) {
+    if (!showComments) {
       return next;
     }
 
@@ -267,7 +267,7 @@ export function DiffPane({
     });
 
     return next;
-  }, [files, showAgentNotes]);
+  }, [files, showComments]);
 
   // Keep exact row rendering for wrapped lines and the selected file's visible notes;
   // other files can still use placeholders and viewport windowing.
@@ -416,7 +416,7 @@ export function DiffPane({
   const visibleAgentNotesByFile = useMemo(() => {
     const next = new Map<string, VisibleAgentNote[]>();
 
-    if (!showAgentNotes) {
+    if (!showComments) {
       return EMPTY_VISIBLE_AGENT_NOTES_BY_FILE;
     }
 
@@ -435,7 +435,7 @@ export function DiffPane({
     }
 
     return next;
-  }, [allAgentNotesByFile, selectedFileId, showAgentNotes, visibleViewportFileIds]);
+  }, [allAgentNotesByFile, selectedFileId, showComments, visibleViewportFileIds]);
 
   // Measure with the *full* set of agent notes per file, not just the visible-viewport set.
   // The visible set is correct for rendering (skip painting cards on off-screen files), but

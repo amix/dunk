@@ -73,7 +73,7 @@ describe("config resolution", () => {
       ['theme = "paper"', "wrap_lines = true", "", "[pager]", "hunk_headers = false"].join("\n"),
     );
 
-    const resolved = resolveConfiguredCliInput(createPatchPagerInput({ agentNotes: true }), {
+    const resolved = resolveConfiguredCliInput(createPatchPagerInput({ comments: true }), {
       cwd: repo,
       env: { HOME: home },
     });
@@ -86,7 +86,7 @@ describe("config resolution", () => {
       lineNumbers: false,
       wrapLines: true,
       hunkHeaders: false,
-      agentNotes: true,
+      comments: true,
     });
   });
 
@@ -254,7 +254,7 @@ describe("config resolution", () => {
         "line_numbers = false",
         "wrap_lines = true",
         "hunk_headers = false",
-        "agent_notes = true",
+        "comments = true",
       ].join("\n"),
     );
 
@@ -279,7 +279,7 @@ describe("config resolution", () => {
     expect(bootstrap.initialShowLineNumbers).toBe(false);
     expect(bootstrap.initialWrapLines).toBe(true);
     expect(bootstrap.initialShowHunkHeaders).toBe(false);
-    expect(bootstrap.initialShowAgentNotes).toBe(true);
+    expect(bootstrap.initialShowComments).toBe(true);
   });
 
   test("loadAppBootstrap exposes graphite when no theme is configured", async () => {

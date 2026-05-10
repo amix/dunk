@@ -66,7 +66,7 @@ export interface CommonOptions {
   lineNumbers?: boolean;
   wrapLines?: boolean;
   hunkHeaders?: boolean;
-  agentNotes?: boolean;
+  comments?: boolean;
 }
 
 export interface PersistedViewPreferences {
@@ -75,7 +75,7 @@ export interface PersistedViewPreferences {
   showLineNumbers: boolean;
   wrapLines: boolean;
   showHunkHeaders: boolean;
-  showAgentNotes: boolean;
+  showComments: boolean;
 }
 
 export interface HelpCommandInput {
@@ -149,7 +149,7 @@ export interface AppBootstrap {
   initialShowLineNumbers?: boolean;
   initialWrapLines?: boolean;
   initialShowHunkHeaders?: boolean;
-  initialShowAgentNotes?: boolean;
+  initialShowComments?: boolean;
   /** User comments whose recorded anchor no longer matches the current diff. */
   driftedComments?: DriftedCommentSummary[];
 }

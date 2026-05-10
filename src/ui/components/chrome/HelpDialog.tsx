@@ -39,20 +39,20 @@ export function HelpDialog({
       ],
     },
     {
+      title: "Comments",
+      items: [
+        ["a", "add comment on this hunk"],
+        ["d / D", "delete one / all on this hunk"],
+        ["e", "open this file in $EDITOR at the hunk"],
+      ],
+    },
+    {
       title: "View",
       items: [
         ["1 / 2 / 0", "split / stack / auto"],
         ["s / t", "sidebar / theme"],
-        ["a", "toggle AI notes"],
+        ["c", "toggle comments"],
         ["l / w / m", "lines / wrap / metadata"],
-      ],
-    },
-    {
-      title: "Comments",
-      items: [
-        ["c", "add comment on this hunk"],
-        ["d / D", "delete one / all on this hunk"],
-        ["e", "open this file in $EDITOR at the hunk"],
       ],
     },
     {
@@ -70,9 +70,7 @@ export function HelpDialog({
   const keyWidth = Math.min(16, Math.max(12, Math.floor(bodyWidth * 0.28)));
   const descriptionWidth = Math.max(1, bodyWidth - keyWidth);
   const sectionSpacerRowCount = Math.max(0, sections.length - 1);
-  const contentRowCount =
-    sections.reduce((rowCount, section) => rowCount + 1 + section.items.length, 0) +
-    sectionSpacerRowCount;
+  const contentRowCount = sections.reduce((rowCount, section) => rowCount + 1 + section.items.length, 0) + sectionSpacerRowCount;
   // ModalFrame contributes the border rows, title row, padding, and one blank spacer row.
   const modalFrameChromeRowCount = 6;
   const requiredModalHeight = contentRowCount + modalFrameChromeRowCount;
@@ -86,10 +84,7 @@ export function HelpDialog({
             <text fg={theme.badgeNeutral}>{section.title}</text>
           </box>
           {section.items.map(([keys, description]) => (
-            <box
-              key={`${section.title}:${keys}`}
-              style={{ width: "100%", height: 1, flexDirection: "row" }}
-            >
+            <box key={`${section.title}:${keys}`} style={{ width: "100%", height: 1, flexDirection: "row" }}>
               <text fg={theme.accent}>{padText(fitText(keys, keyWidth), keyWidth)}</text>
               <text fg={theme.muted}>{fitText(description, descriptionWidth)}</text>
             </box>

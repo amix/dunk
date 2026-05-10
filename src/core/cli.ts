@@ -68,7 +68,7 @@ function buildCommonOptions(
     lineNumbers: resolveBooleanFlag(argv, "--line-numbers", "--no-line-numbers"),
     wrapLines: resolveBooleanFlag(argv, "--wrap", "--no-wrap"),
     hunkHeaders: resolveBooleanFlag(argv, "--hunk-headers", "--no-hunk-headers"),
-    agentNotes: resolveBooleanFlag(argv, "--agent-notes", "--no-agent-notes"),
+    comments: resolveBooleanFlag(argv, "--comments", "--no-comments"),
   };
 }
 
@@ -85,8 +85,8 @@ function applyCommonOptions(command: Command) {
     .option("--no-wrap", "truncate long diff lines to one row")
     .option("--hunk-headers", "show hunk metadata rows")
     .option("--no-hunk-headers", "hide hunk metadata rows")
-    .option("--agent-notes", "show agent notes by default")
-    .option("--no-agent-notes", "hide agent notes by default");
+    .option("--comments", "show user comments by default")
+    .option("--no-comments", "hide user comments by default");
 }
 
 /** Attach auto-refresh support to review commands that can reopen their source input. */
@@ -145,7 +145,7 @@ function renderCliHelp() {
     "  --line-numbers / --no-line-numbers      show or hide line numbers",
     "  --wrap / --no-wrap                      wrap or truncate long diff lines",
     "  --hunk-headers / --no-hunk-headers      show or hide hunk metadata rows",
-    "  --agent-notes / --no-agent-notes        show or hide agent notes by default",
+    "  --comments / --no-comments              show or hide user comments by default",
     "  --theme <theme>                         named theme override",
     "",
     "Git diff options:",

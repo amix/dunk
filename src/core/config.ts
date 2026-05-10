@@ -11,10 +11,10 @@ import type {
 
 const DEFAULT_VIEW_PREFERENCES: PersistedViewPreferences = {
   mode: "auto",
-  showLineNumbers: true,
-  wrapLines: false,
+  showLineNumbers: false,
+  wrapLines: true,
   showHunkHeaders: true,
-  showAgentNotes: false,
+  showComments: true,
 };
 
 interface ConfigResolutionOptions {
@@ -62,7 +62,7 @@ function readConfigPreferences(source: Record<string, unknown>): CommonOptions {
     lineNumbers: normalizeBoolean(source.line_numbers),
     wrapLines: normalizeBoolean(source.wrap_lines),
     hunkHeaders: normalizeBoolean(source.hunk_headers),
-    agentNotes: normalizeBoolean(source.agent_notes),
+    comments: normalizeBoolean(source.comments),
   };
 }
 
@@ -80,7 +80,7 @@ function mergeOptions(base: CommonOptions, overrides: CommonOptions): CommonOpti
     lineNumbers: overrides.lineNumbers ?? base.lineNumbers,
     wrapLines: overrides.wrapLines ?? base.wrapLines,
     hunkHeaders: overrides.hunkHeaders ?? base.hunkHeaders,
-    agentNotes: overrides.agentNotes ?? base.agentNotes,
+    comments: overrides.comments ?? base.comments,
   };
 }
 
@@ -164,7 +164,7 @@ export function resolveConfiguredCliInput(
     lineNumbers: DEFAULT_VIEW_PREFERENCES.showLineNumbers,
     wrapLines: DEFAULT_VIEW_PREFERENCES.wrapLines,
     hunkHeaders: DEFAULT_VIEW_PREFERENCES.showHunkHeaders,
-    agentNotes: DEFAULT_VIEW_PREFERENCES.showAgentNotes,
+    comments: DEFAULT_VIEW_PREFERENCES.showComments,
   };
 
   if (userConfigPath) {
@@ -193,7 +193,7 @@ export function resolveConfiguredCliInput(
     lineNumbers: resolvedOptions.lineNumbers ?? DEFAULT_VIEW_PREFERENCES.showLineNumbers,
     wrapLines: resolvedOptions.wrapLines ?? DEFAULT_VIEW_PREFERENCES.wrapLines,
     hunkHeaders: resolvedOptions.hunkHeaders ?? DEFAULT_VIEW_PREFERENCES.showHunkHeaders,
-    agentNotes: resolvedOptions.agentNotes ?? DEFAULT_VIEW_PREFERENCES.showAgentNotes,
+    comments: resolvedOptions.comments ?? DEFAULT_VIEW_PREFERENCES.showComments,
   };
 
   return {

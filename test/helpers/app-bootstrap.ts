@@ -6,7 +6,7 @@ export function createTestVcsAppBootstrap({
   files,
   vcsOptions = {},
   initialMode = "split",
-  initialShowAgentNotes,
+  initialShowComments = false,
   initialShowHunkHeaders,
   initialShowLineNumbers,
   initialTheme = "midnight",
@@ -22,7 +22,7 @@ export function createTestVcsAppBootstrap({
   files: DiffFile[];
   vcsOptions?: Partial<VcsCommandInput["options"]>;
   initialMode?: LayoutMode;
-  initialShowAgentNotes?: boolean;
+  initialShowComments?: boolean;
   initialShowHunkHeaders?: boolean;
   initialShowLineNumbers?: boolean;
   initialTheme?: string;
@@ -52,7 +52,7 @@ export function createTestVcsAppBootstrap({
       title,
     },
     initialMode,
-    initialShowAgentNotes,
+    initialShowComments,
     initialShowHunkHeaders,
     initialShowLineNumbers,
     initialTheme,

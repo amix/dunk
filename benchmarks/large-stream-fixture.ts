@@ -117,6 +117,6 @@ export function createLargeSplitStreamBootstrap({
     },
     initialMode: "split",
     initialTheme: "midnight",
-    initialShowAgentNotes: notesPerFile > 0,
+    initialShowComments: notesPerFile > 0,
   };
 }

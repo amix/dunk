@@ -26,9 +26,9 @@ export function CommentEditor({
   const [body, setBody] = useState("");
 
   const width = Math.min(72, Math.max(40, terminalWidth - 8));
-  // Title row + spacer + target row + spacer + input row + spacer + hint row +
-  // ModalFrame chrome (border + title + padding + spacer) = 6 chrome + 5 content rows.
-  const height = Math.min(11, Math.max(7, terminalHeight - 6));
+  // Title row + spacer + target row + spacer + input row + ModalFrame chrome
+  // (border + title + padding + spacer) = 6 chrome + 3 content rows.
+  const height = Math.min(9, Math.max(7, terminalHeight - 6));
   const inputWidth = Math.max(8, width - 4);
   const target = `${filePath}:${line}`;
 
@@ -69,8 +69,6 @@ export function CommentEditor({
           onCancel();
         }}
       />
-      <box style={{ width: "100%", height: 1 }} />
-      <text fg={theme.muted}>{fitText("Enter to save · Esc to cancel", inputWidth)}</text>
     </ModalFrame>
   );
 }

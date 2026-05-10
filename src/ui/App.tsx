@@ -57,7 +57,7 @@ function withCurrentViewOptions(
   view: {
     layoutMode: LayoutMode;
     themeId: string;
-    showAgentNotes: boolean;
+    showComments: boolean;
     showHunkHeaders: boolean;
     showLineNumbers: boolean;
     wrapLines: boolean;
@@ -69,7 +69,7 @@ function withCurrentViewOptions(
       ...input.options,
       mode: view.layoutMode,
       theme: view.themeId,
-      agentNotes: view.showAgentNotes,
+      comments: view.showComments,
       hunkHeaders: view.showHunkHeaders,
       lineNumbers: view.showLineNumbers,
       wrapLines: view.wrapLines,
@@ -113,7 +113,7 @@ export function App({
   const [themeId, setThemeId] = useState(
     () => resolveTheme(bootstrap.initialTheme, renderer.themeMode).id,
   );
-  const [showAgentNotes, setShowAgentNotes] = useState(bootstrap.initialShowAgentNotes ?? false);
+  const [showComments, setShowComments] = useState(bootstrap.initialShowComments ?? true);
   const [showLineNumbers, setShowLineNumbers] = useState(bootstrap.initialShowLineNumbers ?? true);
   const [wrapLines, setWrapLines] = useState(bootstrap.initialWrapLines ?? false);
   const [codeHorizontalOffset, setCodeHorizontalOffset] = useState(0);
@@ -275,8 +275,8 @@ export function App({
   }, []);
 
   /** Toggle the global agent note layer on or off. */
-  const toggleAgentNotes = () => {
-    setShowAgentNotes((current) => !current);
+  const toggleComments = () => {
+    setShowComments((current) => !current);
   };
 
   /** Toggle line-number gutters without changing the diff content itself. */
@@ -337,7 +337,7 @@ export function App({
     const nextInput = withCurrentViewOptions(bootstrap.input, {
       layoutMode,
       themeId,
-      showAgentNotes,
+      showComments,
       showHunkHeaders,
       showLineNumbers,
       wrapLines,
@@ -358,7 +358,7 @@ export function App({
     canRefreshCurrentInput,
     layoutMode,
     onReloadSession,
-    showAgentNotes,
+    showComments,
     showHunkHeaders,
     showLineNumbers,
     themeId,
@@ -607,7 +607,7 @@ export function App({
     scrollDiff,
     selectLayoutMode,
     showHelp,
-    toggleAgentNotes,
+    toggleComments,
     toggleFocusArea,
     toggleHelp,
     toggleHunkHeaders,
@@ -740,7 +740,7 @@ export function App({
           selectedHunkIndex={selectedHunkIndex}
           scrollToNote={review.scrollToNote}
           separatorWidth={diffSeparatorWidth}
-          showAgentNotes={showAgentNotes}
+          showComments={showComments}
           showLineNumbers={showLineNumbers}
           showHunkHeaders={showHunkHeaders}
           wrapLines={wrapLines}

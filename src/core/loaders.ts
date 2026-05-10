@@ -1189,7 +1189,7 @@ export async function loadAppBootstrap(
     initialShowLineNumbers: input.options.lineNumbers ?? true,
     initialWrapLines: input.options.wrapLines ?? false,
     initialShowHunkHeaders: input.options.hunkHeaders ?? true,
-    initialShowAgentNotes: input.options.agentNotes ?? false,
+    initialShowComments: input.options.comments ?? true,
     driftedComments: merged.drifted,
   };
 }

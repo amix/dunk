@@ -218,7 +218,7 @@ function createDiffPaneProps(
     selectedFileId: files[0]?.id,
     selectedHunkIndex: 0,
     separatorWidth: 68,
-    showAgentNotes: false,
+    showComments: false,
     showLineNumbers: true,
     showHunkHeaders: true,
     wrapLines: false,
@@ -476,7 +476,7 @@ describe("UI components", () => {
         selectedFileId="alpha"
         selectedHunkIndex={0}
         separatorWidth={68}
-        showAgentNotes={false}
+        showComments={false}
         showLineNumbers={true}
         showHunkHeaders={true}
         wrapLines={false}
@@ -804,7 +804,7 @@ describe("UI components", () => {
       scrollRef,
       selectedFileId: undefined,
       separatorWidth: 84,
-      showAgentNotes: true,
+      showComments: true,
       width: 92,
     });
     const setup = await testRender(<DiffPane {...props} />, {
@@ -1030,7 +1030,7 @@ describe("UI components", () => {
       selectedFileId: "target",
       selectedHunkIndex: 1,
       separatorWidth: 92,
-      showAgentNotes: true,
+      showComments: true,
       showHunkHeaders: false,
       width: 100,
     });
@@ -1101,7 +1101,7 @@ describe("UI components", () => {
       selectedFileId: "deep-note",
       selectedHunkIndex: 1,
       separatorWidth: 92,
-      showAgentNotes: true,
+      showComments: true,
       showHunkHeaders: true,
       width: 100,
     });
@@ -1132,7 +1132,7 @@ describe("UI components", () => {
       selectedHunkIndex: 1,
       scrollToNote: true,
       separatorWidth: 92,
-      showAgentNotes: true,
+      showComments: true,
       showHunkHeaders: true,
       width: 100,
     });
@@ -1237,7 +1237,7 @@ describe("UI components", () => {
         selectedFileId="alpha"
         selectedHunkIndex={0}
         separatorWidth={84}
-        showAgentNotes={true}
+        showComments={true}
         showLineNumbers={true}
         showHunkHeaders={true}
         wrapLines={false}
@@ -1279,7 +1279,7 @@ describe("UI components", () => {
         selectedFileId="alpha"
         selectedHunkIndex={0}
         separatorWidth={84}
-        showAgentNotes={true}
+        showComments={true}
         showLineNumbers={true}
         showHunkHeaders={true}
         wrapLines={false}
@@ -1337,7 +1337,7 @@ describe("UI components", () => {
         selectedFileId="alpha"
         selectedHunkIndex={0}
         separatorWidth={84}
-        showAgentNotes={true}
+        showComments={true}
         showLineNumbers={true}
         showHunkHeaders={true}
         wrapLines={false}
@@ -1471,10 +1471,10 @@ describe("UI components", () => {
       "View",
       "1 / 2 / 0       split / stack / auto",
       "s / t           sidebar / theme",
-      "a               toggle AI notes",
+      "c               toggle comments",
       "l / w / m       lines / wrap / metadata",
       "Comments",
-      "c               add comment on this hunk",
+      "a               add comment on this hunk",
       "d / D           delete one / all on this hunk",
       "e               open this file in $EDITOR at the hunk",
       "Review",
@@ -1538,7 +1538,7 @@ describe("UI components", () => {
         selectedFileId={undefined}
         selectedHunkIndex={0}
         separatorWidth={68}
-        showAgentNotes={false}
+        showComments={false}
         showLineNumbers={true}
         showHunkHeaders={true}
         wrapLines={false}
@@ -1569,7 +1569,7 @@ describe("UI components", () => {
         selectedFileId="alpha"
         selectedHunkIndex={0}
         separatorWidth={68}
-        showAgentNotes={false}
+        showComments={false}
         showLineNumbers={false}
         showHunkHeaders={true}
         wrapLines={false}
@@ -1603,7 +1603,7 @@ describe("UI components", () => {
         selectedFileId="wrap"
         selectedHunkIndex={0}
         separatorWidth={44}
-        showAgentNotes={false}
+        showComments={false}
         showLineNumbers={true}
         showHunkHeaders={true}
         wrapLines={true}
@@ -1637,7 +1637,7 @@ describe("UI components", () => {
         selectedFileId="alpha"
         selectedHunkIndex={0}
         separatorWidth={68}
-        showAgentNotes={false}
+        showComments={false}
         showLineNumbers={true}
         showHunkHeaders={false}
         wrapLines={false}

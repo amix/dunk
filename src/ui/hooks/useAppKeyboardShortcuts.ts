@@ -37,7 +37,7 @@ export interface UseAppKeyboardShortcutsOptions {
   scrollDiff: (delta: number, unit: ScrollUnit) => void;
   selectLayoutMode: (mode: LayoutMode) => void;
   showHelp: boolean;
-  toggleAgentNotes: () => void;
+  toggleComments: () => void;
   toggleFocusArea: () => void;
   toggleHelp: () => void;
   toggleHunkHeaders: () => void;
@@ -67,7 +67,7 @@ export function useAppKeyboardShortcuts({
   scrollDiff,
   selectLayoutMode,
   showHelp,
-  toggleAgentNotes,
+  toggleComments,
   toggleFocusArea,
   toggleHelp,
   toggleHunkHeaders,
@@ -282,7 +282,12 @@ export function useAppKeyboardShortcuts({
     }
 
     if (key.name === "a") {
-      toggleAgentNotes();
+      openCommentEditor();
+      return;
+    }
+
+    if (key.sequence === "c") {
+      toggleComments();
       return;
     }
 
@@ -318,11 +323,6 @@ export function useAppKeyboardShortcuts({
 
     if (key.sequence === "d") {
       deleteFocusedComment();
-      return;
-    }
-
-    if (key.sequence === "c") {
-      openCommentEditor();
       return;
     }
 

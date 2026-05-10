@@ -224,9 +224,9 @@ function createRapidViewportLoopBootstrap(): AppBootstrap {
   return createTestVcsAppBootstrap({
     changesetId: "changeset:rapid-viewport",
     files,
-    vcsOptions: { mode: "stack", agentNotes: true },
+    vcsOptions: { mode: "stack", comments: true },
     initialMode: "stack",
-    initialShowAgentNotes: true,
+    initialShowComments: true,
   });
 }
 
@@ -386,8 +386,12 @@ describe("App interactions", () => {
     }
   }, 20_000);
 
-  test("keyboard shortcuts toggle notes, line numbers, and hunk metadata", async () => {
-    const setup = await testRender(<AppHost bootstrap={createSingleFileBootstrap()} />, {
+  test("keyboard shortcuts toggle comments, line numbers, and hunk metadata", async () => {
+    const bootstrap = createSingleFileBootstrap();
+    bootstrap.initialShowComments = true;
+    bootstrap.initialShowLineNumbers = true;
+
+    const setup = await testRender(<AppHost bootstrap={bootstrap} />, {
       width: 240,
       height: 24,
     });
@@ -395,17 +399,13 @@ describe("App interactions", () => {
     try {
       await flush(setup);
 
-      await act(async () => {
-        await setup.mockInput.typeText("a");
-      });
-      await flush(setup);
-
+      // Comments are visible by default; pressing `c` hides them.
       let frame = setup.captureCharFrame();
       expect(frame).toContain("Annotation for alpha.ts");
       expect(frame).toContain("Why alpha.ts changed");
 
       await act(async () => {
-        await setup.mockInput.typeText("a");
+        await setup.mockInput.typeText("c");
       });
       await flush(setup);
 
@@ -831,7 +831,7 @@ describe("App interactions", () => {
           initialShowLineNumbers: false,
           initialWrapLines: true,
           initialShowHunkHeaders: false,
-          initialShowAgentNotes: true,
+          initialShowComments: true,
         }}
       />,
       { width: 140, height: 20 },
@@ -961,8 +961,9 @@ describe("App interactions", () => {
     }
   });
 
-  test("a shows notes that are visible in the current review viewport", async () => {
+  test("comments are visible by default across every visible review file", async () => {
     const bootstrap = createBootstrap();
+    bootstrap.initialShowComments = true;
     bootstrap.changeset.files[1]!.agent = {
       path: "beta.ts",
       summary: "beta.ts note",
@@ -978,11 +979,6 @@ describe("App interactions", () => {
     const setup = await testRender(<AppHost bootstrap={bootstrap} />, { width: 240, height: 32 });
 
     try {
-      await flush(setup);
-
-      await act(async () => {
-        await setup.mockInput.typeText("a");
-      });
       await flush(setup);
 
       const frame = setup.captureCharFrame();

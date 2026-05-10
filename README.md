@@ -17,7 +17,7 @@ Hunk is a review-first terminal diff viewer for agent-authored changesets, built
    <td width="60%" align="center">
      <img width="794" alt="image" src="https://github.com/user-attachments/assets/f6ffd9c4-67f5-483c-88f1-cbe88c19f52f" />
      <br />
-     <sub>Split view with sidebar and inline AI notes</sub>
+     <sub>Split view with sidebar and inline comments</sub>
    </td>
    <td width="40%" align="center">
      <img width="508" alt="image" src="https://github.com/user-attachments/assets/44c542a2-0a09-41cd-b264-fbd942e92f06" />
@@ -115,9 +115,9 @@ theme = "graphite"   # graphite, midnight, paper, ember
 mode = "auto"        # auto, split, stack
 vcs = "git"          # git, jj
 exclude_untracked = false
-line_numbers = true
-wrap_lines = false
-agent_notes = false
+line_numbers = false
+wrap_lines = true
+comments = false
 ```
 
 `exclude_untracked` affects Git working-tree `hunk diff` sessions only.

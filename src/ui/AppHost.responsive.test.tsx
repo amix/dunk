@@ -29,6 +29,7 @@ function createBootstrap(initialMode: LayoutMode = "auto", pager = false): AppBo
       }),
     ],
     initialMode,
+    initialShowComments: false,
     pager,
     summary: "Patch summary",
   });
