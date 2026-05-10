@@ -21,6 +21,7 @@ const FAST_CODE_HORIZONTAL_SCROLL_COLUMNS = 8;
 export interface UseAppKeyboardShortcutsOptions {
   canRefreshCurrentInput: boolean;
   closeHelp: () => void;
+  commentEditorActive: boolean;
   cycleTheme: () => void;
   deleteAllFocusedComments: () => void;
   deleteFocusedComment: () => void;
@@ -28,6 +29,7 @@ export interface UseAppKeyboardShortcutsOptions {
   focusFilter: () => void;
   moveToAnnotatedHunk: (delta: number) => void;
   moveToHunk: (delta: number) => void;
+  openCommentEditor: () => void;
   pagerMode: boolean;
   requestQuit: () => void;
   scrollCodeHorizontally: (delta: number) => void;
@@ -48,6 +50,7 @@ export interface UseAppKeyboardShortcutsOptions {
 export function useAppKeyboardShortcuts({
   canRefreshCurrentInput,
   closeHelp,
+  commentEditorActive,
   cycleTheme,
   deleteAllFocusedComments,
   deleteFocusedComment,
@@ -55,6 +58,7 @@ export function useAppKeyboardShortcuts({
   focusFilter,
   moveToAnnotatedHunk,
   moveToHunk,
+  openCommentEditor,
   pagerMode,
   requestQuit,
   scrollCodeHorizontally,
@@ -73,10 +77,12 @@ export function useAppKeyboardShortcuts({
   const focusAreaRef = useRef(focusArea);
   const pagerModeRef = useRef(pagerMode);
   const showHelpRef = useRef(showHelp);
+  const commentEditorActiveRef = useRef(commentEditorActive);
 
   focusAreaRef.current = focusArea;
   pagerModeRef.current = pagerMode;
   showHelpRef.current = showHelp;
+  commentEditorActiveRef.current = commentEditorActive;
 
   const handlePagerShortcut = (key: KeyEvent) => {
     if (key.name === "q" || isEscapeKey(key)) {
@@ -313,6 +319,11 @@ export function useAppKeyboardShortcuts({
       return;
     }
 
+    if (key.sequence === "c") {
+      openCommentEditor();
+      return;
+    }
+
     if (key.sequence === "{") {
       moveToAnnotatedHunk(-1);
       return;
@@ -324,6 +335,12 @@ export function useAppKeyboardShortcuts({
   };
 
   useKeyboard((key: KeyEvent) => {
+    if (commentEditorActiveRef.current) {
+      // The comment editor's focused <input> owns the keyboard while it is open.
+      // Don't let `q`, `?`, `s`, etc. fire as global shortcuts mid-typing.
+      return;
+    }
+
     if (pagerModeRef.current) {
       handlePagerShortcut(key);
       return;

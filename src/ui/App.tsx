@@ -5,9 +5,13 @@ import {
 } from "@opentui/core";
 import { useRenderer, useTerminalDimensions } from "@opentui/react";
 import { Suspense, lazy, useCallback, useEffect, useMemo, useState, useRef } from "react";
+import { readFileSync } from "node:fs";
+import { resolve as resolvePath } from "node:path";
 import {
   commentsForHunkRange,
+  computeAnchor,
   mutateCommentsFile,
+  withAddedComment,
   withRemovedComment,
   withRemovedComments,
 } from "../core/comments";
@@ -37,6 +41,9 @@ const FAST_CODE_HORIZONTAL_SCROLL_COLUMNS = 8;
 
 const LazyHelpDialog = lazy(async () => ({
   default: (await import("./components/chrome/HelpDialog")).HelpDialog,
+}));
+const LazyCommentEditor = lazy(async () => ({
+  default: (await import("./components/chrome/CommentEditor")).CommentEditor,
 }));
 
 /** Clamp a value into an inclusive range. */
@@ -111,6 +118,12 @@ export function App({
   const [sidebarVisible, setSidebarVisible] = useState(() => !pagerMode);
   const [forceSidebarOpen, setForceSidebarOpen] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [commentEditorTarget, setCommentEditorTarget] = useState<{
+    repoRoot: string;
+    filePath: string;
+    line: number;
+    anchor: string;
+  } | null>(null);
   const [focusArea, setFocusArea] = useState<FocusArea>("files");
   const [sidebarWidth, setSidebarWidth] = useState(34);
   const [resizeDragOriginX, setResizeDragOriginX] = useState<number | null>(null);
@@ -428,6 +441,69 @@ export function App({
     triggerRefreshCurrentInput();
   }, [focusedHunkComments, triggerRefreshCurrentInput]);
 
+  /** Open the comment-authoring modal for the bottom line of the focused hunk. */
+  const openCommentEditor = useCallback(() => {
+    const selected = review.selectedFile;
+    const hunk = review.selectedHunk;
+    if (!selected || !hunk) {
+      return;
+    }
+
+    const repoRoot = findRepoRoot();
+    if (!repoRoot) {
+      return;
+    }
+
+    const range = hunkLineRange(hunk).newRange;
+    const line = range[1];
+    let content: string;
+    try {
+      content = readFileSync(resolvePath(repoRoot, selected.path), "utf8");
+    } catch (error) {
+      // Comments anchor against on-disk content; skip files we cannot read (binary,
+      // missing post-image, patch-from-stdin) rather than failing loudly.
+      console.error(`Skipping comment for ${selected.path}: ${(error as Error).message}`);
+      return;
+    }
+
+    const lines = content.split("\n").map((row) => row.replace(/\s+$/, ""));
+    const anchor = computeAnchor(lines, line);
+    if (!anchor) {
+      return;
+    }
+
+    setCommentEditorTarget({ repoRoot, filePath: selected.path, line, anchor });
+  }, [review.selectedFile, review.selectedHunk]);
+
+  /** Close the editor without saving. */
+  const closeCommentEditor = useCallback(() => {
+    setCommentEditorTarget(null);
+  }, []);
+
+  /** Persist the entered body and reload so the new comment shows up inline. */
+  const saveComment = useCallback(
+    (body: string) => {
+      if (!commentEditorTarget) {
+        return;
+      }
+
+      const { repoRoot, filePath, line, anchor } = commentEditorTarget;
+      try {
+        mutateCommentsFile(repoRoot, (current) => {
+          return withAddedComment(current, { file: filePath, line, anchor, body }).file;
+        });
+      } catch (error) {
+        console.error("Failed to save comment.", error);
+        setCommentEditorTarget(null);
+        return;
+      }
+
+      setCommentEditorTarget(null);
+      triggerRefreshCurrentInput();
+    },
+    [commentEditorTarget, triggerRefreshCurrentInput],
+  );
+
   useEffect(() => {
     if (!watchEnabled) {
       return;
@@ -519,6 +595,7 @@ export function App({
   useAppKeyboardShortcuts({
     canRefreshCurrentInput,
     closeHelp,
+    commentEditorActive: Boolean(commentEditorTarget),
     cycleTheme,
     deleteAllFocusedComments,
     deleteFocusedComment,
@@ -526,6 +603,7 @@ export function App({
     focusFilter,
     moveToAnnotatedHunk,
     moveToHunk: review.moveToHunk,
+    openCommentEditor,
     pagerMode,
     requestQuit,
     scrollCodeHorizontally,
@@ -689,6 +767,20 @@ export function App({
           onFilterInput={review.setFilter}
           onFilterSubmit={focusFiles}
         />
+      ) : null}
+
+      {!pagerMode && commentEditorTarget ? (
+        <Suspense fallback={null}>
+          <LazyCommentEditor
+            filePath={commentEditorTarget.filePath}
+            line={commentEditorTarget.line}
+            terminalHeight={terminal.height}
+            terminalWidth={terminal.width}
+            theme={activeTheme}
+            onCancel={closeCommentEditor}
+            onSubmit={saveComment}
+          />
+        </Suspense>
       ) : null}
 
       {!pagerMode && showHelp ? (

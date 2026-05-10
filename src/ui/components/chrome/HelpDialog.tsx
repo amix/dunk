@@ -50,6 +50,7 @@ export function HelpDialog({
     {
       title: "Comments",
       items: [
+        ["c", "add comment on this hunk"],
         ["d / D", "delete one / all on this hunk"],
       ],
     },
