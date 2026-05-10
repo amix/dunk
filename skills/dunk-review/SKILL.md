@@ -26,14 +26,22 @@ If `.dunk/comments.json` is missing or empty, the user has nothing pending; ask 
 {
   "schema": 1,
   "comments": [
-    { "id": 1, "file": "src/ui/App.tsx", "line": 142, "anchor": "7b8d4a9c2e1f3a06", "body": "Why redeclare the theme here?" }
+    {
+      "id": 1,
+      "file": "src/ui/App.tsx",
+      "line": 142,
+      "range": [136, 142],
+      "anchor": "7b8d4a9c2e1f3a06",
+      "body": "Why redeclare the theme here?"
+    }
   ]
 }
 ```
 
 - `file` is repo-relative (POSIX).
-- `line` is 1-based against the post-image content at the time the comment was written. The user's edit since then may have moved the target — re-read the file and use the surrounding code to locate the right place rather than blindly jumping to that line.
-- `anchor` is a 16-hex SHA-256 prefix of `line ± 1` context, normalized (right-trimmed). The TUI uses it to decide whether the comment is still anchored or has drifted; agents can ignore it and instead navigate by content.
+- `range` is the inclusive 1-based `[start, end]` post-image line range of the *hunk* the comment is attached to. **dunk only supports hunk-level comments**, so the comment is about every line in this range, not just a single line. Read the whole range before deciding what to fix.
+- `line` is the row used internally for drift detection — opaque, do not navigate by it.
+- `anchor` is a 16-hex SHA-256 prefix of context around `line`. The TUI uses it to decide whether the comment is still anchored or has drifted; agents can ignore it and navigate by `range` and content.
 - `body` is the comment text. Treat it as the user's instruction.
 
 ## Operating principles

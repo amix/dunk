@@ -47,7 +47,7 @@ describe("dunk comments", () => {
       writeCommentsFile(repoRoot, {
         schema: 1,
         comments: [
-          { id: 1, file: "src/a.ts", line: 3, anchor: "deadbeefcafef00d", body: "hello" },
+          { id: 1, file: "src/a.ts", line: 3, range: [3, 3], anchor: "deadbeefcafef00d", body: "hello" },
         ],
       });
 
@@ -65,12 +65,14 @@ describe("dunk comments", () => {
     file = withAddedComment(file, {
       file: "x.ts",
       line: 1,
+      range: [1, 1],
       anchor: "0000000000000000",
       body: "first",
     }).file;
     file = withAddedComment(file, {
       file: "x.ts",
       line: 2,
+      range: [2, 2],
       anchor: "1111111111111111",
       body: "second",
     }).file;
@@ -84,7 +86,7 @@ describe("dunk comments", () => {
     const anchor = computeAnchor(lines, 2);
 
     const resolved = resolveComments(
-      [{ id: 1, file: "x.ts", line: 2, anchor, body: "beta is suspicious" }],
+      [{ id: 1, file: "x.ts", line: 2, range: [2, 2], anchor, body: "beta is suspicious" }],
       new Map([["x.ts", content]]),
     );
 
@@ -95,7 +97,7 @@ describe("dunk comments", () => {
   test("resolveComments flags drift when the anchor stops matching", () => {
     const content = "alpha\nbeta-changed\ngamma\n";
     const resolved = resolveComments(
-      [{ id: 1, file: "x.ts", line: 2, anchor: "deadbeefcafef00d", body: "beta" }],
+      [{ id: 1, file: "x.ts", line: 2, range: [2, 2], anchor: "deadbeefcafef00d", body: "beta" }],
       new Map([["x.ts", content]]),
     );
 
@@ -105,8 +107,8 @@ describe("dunk comments", () => {
   test("resolveComments flags drift when the file is missing or the line is out of range", () => {
     const resolved = resolveComments(
       [
-        { id: 1, file: "missing.ts", line: 1, anchor: "abcd1234efabcd12", body: "" },
-        { id: 2, file: "x.ts", line: 99, anchor: "abcd1234efabcd12", body: "" },
+        { id: 1, file: "missing.ts", line: 1, range: [1, 1], anchor: "abcd1234efabcd12", body: "" },
+        { id: 2, file: "x.ts", line: 99, range: [99, 99], anchor: "abcd1234efabcd12", body: "" },
       ],
       new Map<string, string>([["x.ts", "only one line\n"]]),
     );
@@ -117,9 +119,9 @@ describe("dunk comments", () => {
 
   test("withRemovedComments deletes only the requested ids", () => {
     let file: import("./comments").CommentsFile = { schema: 1, comments: [] };
-    file = withAddedComment(file, { file: "x", line: 1, anchor: "a", body: "1" }).file;
-    file = withAddedComment(file, { file: "x", line: 2, anchor: "b", body: "2" }).file;
-    file = withAddedComment(file, { file: "x", line: 3, anchor: "c", body: "3" }).file;
+    file = withAddedComment(file, { file: "x", line: 1, range: [1, 1], anchor: "a", body: "1" }).file;
+    file = withAddedComment(file, { file: "x", line: 2, range: [2, 2], anchor: "b", body: "2" }).file;
+    file = withAddedComment(file, { file: "x", line: 3, range: [3, 3], anchor: "c", body: "3" }).file;
 
     const trimmed = withRemovedComments(file, [1, 3]);
     expect(trimmed.comments.map((c) => c.id)).toEqual([2]);
@@ -130,8 +132,8 @@ describe("dunk comments", () => {
       writeCommentsFile(repoRoot, {
         schema: 1,
         comments: [
-          { id: 3, file: "z.ts", line: 1, anchor: "ccccccccccccccc1", body: "third" },
-          { id: 1, file: "x.ts", line: 1, anchor: "aaaaaaaaaaaaaaa1", body: "first" },
+          { id: 3, file: "z.ts", line: 1, range: [1, 1], anchor: "ccccccccccccccc1", body: "third" },
+          { id: 1, file: "x.ts", line: 1, range: [1, 1], anchor: "aaaaaaaaaaaaaaa1", body: "first" },
         ],
       });
 

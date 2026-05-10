@@ -8,11 +8,24 @@ import type { Annotation, Changeset, DiffFile, DriftReason } from "./types";
 const SCHEMA_VERSION = 1;
 const ANCHOR_HEX_LEN = 16;
 
-/** A persisted comment as it appears on disk. */
+/**
+ * A persisted comment as it appears on disk.
+ *
+ * `range` is the inclusive 1-based [start, end] post-image line range of the
+ * hunk the comment is attached to. `dunk` only lets you comment at the hunk
+ * level, so the range communicates "this comment is about these lines", not
+ * just one line. Agents addressing comments should consider the full range
+ * when deciding what to fix.
+ *
+ * `line` is the row used for drift detection (the anchor hash is computed
+ * from its surrounding context). It's typically the hunk's last post-image
+ * line, but the value is opaque to agents.
+ */
 export interface PersistedComment {
   id: number;
   file: string;
   line: number;
+  range: [number, number];
   anchor: string;
   body: string;
 }

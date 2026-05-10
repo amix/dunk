@@ -34,6 +34,7 @@ through normal git workflows.
       "id": 1,
       "file": "src/ui/App.tsx",
       "line": 142,
+      "range": [136, 142],
       "anchor": "7b8d4a9c2e1f3a06",
       "body": "Why redeclare the theme here? See PaneDivider."
     }
@@ -48,8 +49,11 @@ through normal git workflows.
 - `id`: integer, unique within the file. Next id = `max(existing) + 1`.
   Stable across edits so deleting one comment doesn't renumber the rest.
 - `file`: repo-relative POSIX path (post-image at write time).
-- `line`: 1-based line number in the post-image at write time. The line the
-  comment is anchored to — usually the bottom line of the targeted hunk.
+- `line`: 1-based line number in the post-image at write time. Drift-detection
+  anchor — typically the hunk's last post-image row.
+- `range`: inclusive `[start, end]` 1-based post-image line range of the hunk
+  the comment is attached to. dunk only supports hunk-level comments; this
+  range tells agents which lines the user was actually pointing at.
 - `anchor`: lowercase hex, **16 chars** (truncated SHA-256). Hashed input is
   the line at `line`, prefixed by the line above and suffixed by the line
   below if they exist. Each line is right-trimmed; lines are joined with

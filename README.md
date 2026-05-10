@@ -55,7 +55,7 @@ git diff --no-color | dunk patch - # review a patch from stdin
 
 2. Move to a hunk and press `a` to add a comment.
 
-   Comments are hunk-scoped, not line-scoped — pick a hunk with `[`/`]`, then drop a comment on it. `dunk` saves it to `.dunk/comments.json` with the file path, the hunk's anchor line, the comment body, and a context hash so the comment survives small edits to nearby code.
+   Comments are hunk-scoped, not line-scoped — pick a hunk with `J`/`K`, then drop a comment on it. `dunk` saves it to `.dunk/comments.json` with the file path, the hunk's anchor line, the comment body, and a context hash so the comment survives small edits to nearby code.
 
    `.dunk/comments.json` is intentionally a local file — keep `.dunk/` in your `.gitignore` so review chatter doesn't leak into commits.
 

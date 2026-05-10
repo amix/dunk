@@ -130,6 +130,7 @@ export function App({
     repoRoot: string;
     filePath: string;
     line: number;
+    range: [number, number];
     anchor: string;
   } | null>(null);
   const [confirmPrompt, setConfirmPrompt] = useState<{
@@ -558,7 +559,13 @@ export function App({
       return;
     }
 
-    setCommentEditorTarget({ repoRoot: target.repoRoot, filePath: target.filePath, line, anchor });
+    setCommentEditorTarget({
+      repoRoot: target.repoRoot,
+      filePath: target.filePath,
+      line,
+      range: target.range,
+      anchor,
+    });
   }, [focusedHunkTarget]);
 
   const closeCommentEditor = useCallback(() => {
@@ -599,10 +606,16 @@ export function App({
         return;
       }
 
-      const { repoRoot, filePath, line, anchor } = commentEditorTarget;
+      const { repoRoot, filePath, line, range, anchor } = commentEditorTarget;
       try {
         mutateCommentsFile(repoRoot, (current) => {
-          return withAddedComment(current, { file: filePath, line, anchor, body }).file;
+          return withAddedComment(current, {
+            file: filePath,
+            line,
+            range,
+            anchor,
+            body,
+          }).file;
         });
       } catch (error) {
         console.error("Failed to save comment.", error);
