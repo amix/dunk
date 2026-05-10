@@ -8,23 +8,11 @@ import {
 } from "./codeColumns";
 import type { DiffRow, RenderSpan, SplitLineCell, StackLineCell } from "./pierre";
 import { blendHex } from "../lib/color";
+import { fitText } from "../lib/text";
 
-/** Clamp a label to one terminal row with an ellipsis. */
-export function fitText(text: string, width: number) {
-  if (width <= 0) {
-    return "";
-  }
-
-  if (text.length <= width) {
-    return text;
-  }
-
-  if (width === 1) {
-    return "…";
-  }
-
-  return `${text.slice(0, width - 1)}…`;
-}
+// Re-exported so legacy diff-row imports keep working; the shared implementation
+// lives in lib/text alongside padText, with `…` as the default marker.
+export { fitText };
 
 /** Slice styled spans to one visible window while preserving color runs. */
 function sliceSpansWindow(spans: RenderSpan[], offset: number, width: number) {

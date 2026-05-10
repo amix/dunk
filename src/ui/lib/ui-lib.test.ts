@@ -91,12 +91,17 @@ describe("ui helpers", () => {
     expect(isShiftSpacePageUpKey(createKeyEvent({ name: "space", shift: false }))).toBe(false);
   });
 
-  test("fitText and padText clamp using the terminal fallback marker", () => {
+  test("fitText and padText clamp with the default ellipsis marker", () => {
     expect(fitText("hello", 0)).toBe("");
-    expect(fitText("hello", 1)).toBe(".");
-    expect(fitText("hello", 4)).toBe("hel.");
-    expect(padText("hello", 4)).toBe("hel.");
+    expect(fitText("hello", 1)).toBe("…");
+    expect(fitText("hello", 4)).toBe("hel…");
+    expect(padText("hello", 4)).toBe("hel…");
     expect(padText("ok", 4)).toBe("ok  ");
+  });
+
+  test("fitText and padText accept a custom truncation marker", () => {
+    expect(fitText("hello", 1, ".")).toBe(".");
+    expect(padText("hello", 4, ".")).toBe("hel.");
   });
 
   test("agent popover helpers wrap text and right-align the card within the viewport", () => {

@@ -170,50 +170,55 @@ function diffRowStableKeyForSide(row: DiffRow, side: "old" | "new") {
   return diffRowStableKeys(row)[0];
 }
 
-/** Check whether a rendered diff row visually covers the note anchor line. */
-function rowMatchesNote(row: DiffLineRow, annotation: Annotation) {
-  const anchor = annotationAnchor(annotation);
-  if (!anchor) {
-    return false;
-  }
-
-  if (row.type === "split-line") {
-    return anchor.side === "new"
-      ? row.right.lineNumber === anchor.lineNumber
-      : row.left.lineNumber === anchor.lineNumber;
-  }
-
-  return anchor.side === "new"
-    ? row.cell.newLineNumber === anchor.lineNumber
-    : row.cell.oldLineNumber === anchor.lineNumber;
+/** Read the old-side line number from a rendered diff row, or null if absent. */
+function rowOldLineNumber(row: DiffLineRow) {
+  const value = row.type === "split-line" ? row.left.lineNumber : row.cell.oldLineNumber;
+  return value ?? null;
 }
 
-/** Check whether one rendered diff row falls inside the annotation range on either side. */
-function rowOverlapsAnnotation(row: DiffLineRow, annotation: Annotation) {
-  const matchesOld =
-    annotation.oldRange &&
-    (row.type === "split-line"
-      ? row.left.lineNumber !== undefined &&
-        row.left.lineNumber >= annotation.oldRange[0] &&
-        row.left.lineNumber <= annotation.oldRange[1]
-      : row.cell.oldLineNumber !== undefined &&
-        row.cell.oldLineNumber >= annotation.oldRange[0] &&
-        row.cell.oldLineNumber <= annotation.oldRange[1]);
+/** Read the new-side line number from a rendered diff row, or null if absent. */
+function rowNewLineNumber(row: DiffLineRow) {
+  const value = row.type === "split-line" ? row.right.lineNumber : row.cell.newLineNumber;
+  return value ?? null;
+}
 
-  if (matchesOld) {
-    return true;
-  }
+/** Index of file line rows keyed by side and line number for O(1) annotation lookup. */
+interface LineRowIndex {
+  rows: DiffLineRow[];
+  byOldLine: Map<number, DiffLineRow>;
+  byNewLine: Map<number, DiffLineRow>;
+  // Render-order position per row identity so covered-row collections can sort
+  // without an O(n) indexOf on every comparison.
+  positionByKey: Map<string, number>;
+  firstHeaderRow: DiffRow | undefined;
+}
 
-  return Boolean(
-    annotation.newRange &&
-    (row.type === "split-line"
-      ? row.right.lineNumber !== undefined &&
-        row.right.lineNumber >= annotation.newRange[0] &&
-        row.right.lineNumber <= annotation.newRange[1]
-      : row.cell.newLineNumber !== undefined &&
-        row.cell.newLineNumber >= annotation.newRange[0] &&
-        row.cell.newLineNumber <= annotation.newRange[1]),
-  );
+/** Pre-index file line rows once so per-note anchor + overlap lookups don't rescan. */
+function buildLineRowIndex(rows: DiffRow[]): LineRowIndex {
+  const lineRowsList = lineRows(rows);
+  const byOldLine = new Map<number, DiffLineRow>();
+  const byNewLine = new Map<number, DiffLineRow>();
+  const positionByKey = new Map<string, number>();
+
+  lineRowsList.forEach((row, position) => {
+    positionByKey.set(row.key, position);
+    const oldLine = rowOldLineNumber(row);
+    if (oldLine !== null && !byOldLine.has(oldLine)) {
+      byOldLine.set(oldLine, row);
+    }
+    const newLine = rowNewLineNumber(row);
+    if (newLine !== null && !byNewLine.has(newLine)) {
+      byNewLine.set(newLine, row);
+    }
+  });
+
+  return {
+    rows: lineRowsList,
+    byOldLine,
+    byNewLine,
+    positionByKey,
+    firstHeaderRow: rows.find((row) => row.type === "hunk-header"),
+  };
 }
 
 /**
@@ -221,27 +226,59 @@ function rowOverlapsAnnotation(row: DiffLineRow, annotation: Annotation) {
  * Range-less notes intentionally anchor beside the first code row in the file,
  * not above hunk header metadata.
  */
-function findInlineNoteAnchorRow(rows: DiffRow[], annotation: Annotation) {
-  const fileLineRows = lineRows(rows);
-  const headerRow = rows.find((row) => row.type === "hunk-header");
+function findInlineNoteAnchorRow(index: LineRowIndex, annotation: Annotation) {
+  const anchor = annotationAnchor(annotation);
+  if (anchor) {
+    const map = anchor.side === "new" ? index.byNewLine : index.byOldLine;
+    const hit = map.get(anchor.lineNumber);
+    if (hit) {
+      return hit;
+    }
+  }
 
-  return (
-    fileLineRows.find((row) => rowMatchesNote(row, annotation)) ?? fileLineRows[0] ?? headerRow
+  return index.rows[0] ?? index.firstHeaderRow;
+}
+
+/** Collect every line row whose old- or new-side number falls inside the annotation's range. */
+function collectCoveredRows(index: LineRowIndex, annotation: Annotation) {
+  const covered: DiffLineRow[] = [];
+  const seen = new Set<string>();
+
+  const addRange = (range: [number, number], map: Map<number, DiffLineRow>) => {
+    for (let line = range[0]; line <= range[1]; line += 1) {
+      const row = map.get(line);
+      if (row && !seen.has(row.key)) {
+        seen.add(row.key);
+        covered.push(row);
+      }
+    }
+  };
+
+  if (annotation.oldRange) {
+    addRange(annotation.oldRange, index.byOldLine);
+  }
+  if (annotation.newRange) {
+    addRange(annotation.newRange, index.byNewLine);
+  }
+
+  // Preserve render-order so the trailing guide cap lands on the right row.
+  return covered.sort(
+    (a, b) => (index.positionByKey.get(a.key) ?? 0) - (index.positionByKey.get(b.key) ?? 0),
   );
 }
 
 function buildInlineVisibleNotePlacements(rows: DiffRow[], visibleAgentNotes: VisibleAgentNote[]) {
-  const fileLineRows = lineRows(rows);
+  const index = buildLineRowIndex(rows);
   const placementsByAnchor = new Map<string, InlineVisibleNotePlacement[]>();
 
   for (const note of visibleAgentNotes) {
-    const anchorRow = findInlineNoteAnchorRow(rows, note.annotation);
+    const anchorRow = findInlineNoteAnchorRow(index, note.annotation);
     if (!anchorRow) {
       continue;
     }
 
     const anchorSide = annotationAnchor(note.annotation)?.side;
-    const coveredRows = fileLineRows.filter((row) => rowOverlapsAnnotation(row, note.annotation));
+    const coveredRows = collectCoveredRows(index, note.annotation);
     const fallbackGuideRow = anchorSide ? anchorRow : undefined;
     const guideRows =
       coveredRows.length > 0 ? coveredRows : fallbackGuideRow ? [fallbackGuideRow] : [];
