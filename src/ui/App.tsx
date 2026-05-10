@@ -8,7 +8,6 @@ import { Suspense, lazy, useCallback, useEffect, useMemo, useState, useRef } fro
 import type { AppBootstrap, CliInput, LayoutMode } from "../core/types";
 import { canReloadInput, computeWatchSignature } from "../core/watch";
 import type { HunkSessionBrokerClient, ReloadedSessionResult } from "../hunk-session/types";
-import { MenuBar } from "./components/chrome/MenuBar";
 import { StatusBar } from "./components/chrome/StatusBar";
 import { DiffPane } from "./components/panes/DiffPane";
 import { SidebarPane } from "./components/panes/SidebarPane";
@@ -20,9 +19,7 @@ import {
 } from "./diff/codeColumns";
 import { useAppKeyboardShortcuts } from "./hooks/useAppKeyboardShortcuts";
 import { useHunkSessionBridge } from "./hooks/useHunkSessionBridge";
-import { useMenuController } from "./hooks/useMenuController";
 import { useReviewController } from "./hooks/useReviewController";
-import { buildAppMenus } from "./lib/appMenus";
 import { fileRowId } from "./lib/ids";
 import { resolveResponsiveLayout } from "./lib/responsive";
 import { resizeSidebarWidth } from "./lib/sidebar";
@@ -34,9 +31,6 @@ const FAST_CODE_HORIZONTAL_SCROLL_COLUMNS = 8;
 
 const LazyHelpDialog = lazy(async () => ({
   default: (await import("./components/chrome/HelpDialog")).HelpDialog,
-}));
-const LazyMenuDropdown = lazy(async () => ({
-  default: (await import("./components/chrome/MenuDropdown")).MenuDropdown,
 }));
 
 /** Clamp a value into an inclusive range. */
@@ -123,7 +117,6 @@ export function App({
   const filteredFiles = review.visibleFiles;
   const selectedFile = review.selectedFile;
   const selectedHunkIndex = review.selectedHunkIndex;
-  const moveToAnnotatedFile = review.moveToAnnotatedFile;
   const moveToAnnotatedHunk = review.moveToAnnotatedHunk;
 
   const jumpToFile = useCallback(
@@ -467,97 +460,20 @@ export function App({
     setThemeId(THEMES[nextIndex]!.id);
   }, [activeTheme.id]);
 
-  const menus = useMemo(
-    () =>
-      buildAppMenus({
-        activeThemeId: activeTheme.id,
-        canRefreshCurrentInput,
-        focusFilter,
-        layoutMode,
-        moveToAnnotatedFile,
-        moveToAnnotatedHunk,
-        moveToHunk: review.moveToHunk,
-        refreshCurrentInput: triggerRefreshCurrentInput,
-        requestQuit,
-        selectLayoutMode,
-        selectThemeId: setThemeId,
-        showAgentNotes,
-        showHelp,
-        showHunkHeaders,
-        showLineNumbers,
-        renderSidebar,
-        toggleAgentNotes,
-        toggleFocusArea,
-        toggleHelp,
-        toggleHunkHeaders,
-        toggleLineNumbers,
-        toggleLineWrap,
-        toggleSidebar,
-        wrapLines,
-      }),
-    [
-      activeTheme.id,
-      canRefreshCurrentInput,
-      focusFilter,
-      layoutMode,
-      moveToAnnotatedFile,
-      moveToAnnotatedHunk,
-      requestQuit,
-      review.moveToHunk,
-      selectLayoutMode,
-      triggerRefreshCurrentInput,
-      showAgentNotes,
-      showHelp,
-      showHunkHeaders,
-      showLineNumbers,
-      renderSidebar,
-      toggleAgentNotes,
-      toggleFocusArea,
-      toggleHelp,
-      toggleHunkHeaders,
-      toggleLineNumbers,
-      toggleLineWrap,
-      toggleSidebar,
-      wrapLines,
-    ],
-  );
-
-  const {
-    activeMenuEntries,
-    activeMenuId,
-    activeMenuItemIndex,
-    activeMenuSpec,
-    activeMenuWidth,
-    activateCurrentMenuItem,
-    closeMenu,
-    menuSpecs,
-    moveMenuItem,
-    openMenu,
-    setActiveMenuItemIndex,
-    switchMenu,
-    toggleMenu,
-  } = useMenuController(menus);
-
   useAppKeyboardShortcuts({
-    activeMenuId,
-    activateCurrentMenuItem,
     canRefreshCurrentInput,
     closeHelp,
-    closeMenu,
     cycleTheme,
     focusArea,
     focusFilter,
     moveToAnnotatedHunk,
     moveToHunk: review.moveToHunk,
-    moveMenuItem,
-    openMenu,
     pagerMode,
     requestQuit,
     scrollCodeHorizontally,
     scrollDiff,
     selectLayoutMode,
     showHelp,
-    switchMenu,
     toggleAgentNotes,
     toggleFocusArea,
     toggleHelp,
@@ -574,7 +490,6 @@ export function App({
       return;
     }
 
-    closeMenu();
     setResizeDragOriginX(event.x);
     setResizeStartWidth(clampedSidebarWidth);
     event.preventDefault();
@@ -612,15 +527,6 @@ export function App({
     event?.stopPropagation();
   };
 
-  const totalAdditions = bootstrap.changeset.files.reduce(
-    (sum, file) => sum + file.stats.additions,
-    0,
-  );
-  const totalDeletions = bootstrap.changeset.files.reduce(
-    (sum, file) => sum + file.stats.deletions,
-    0,
-  );
-  const topTitle = `${bootstrap.changeset.title}  +${totalAdditions}  -${totalDeletions}`;
   const sidebarTextWidth = Math.max(8, clampedSidebarWidth - 2);
   const diffHeaderStatsWidth = Math.min(24, Math.max(16, Math.floor(diffContentWidth / 3)));
   const diffHeaderLabelWidth = Math.max(8, diffContentWidth - diffHeaderStatsWidth - 1);
@@ -635,22 +541,6 @@ export function App({
         backgroundColor: activeTheme.background,
       }}
     >
-      {!pagerMode ? (
-        <MenuBar
-          activeMenuId={activeMenuId}
-          menuSpecs={menuSpecs}
-          terminalWidth={terminal.width}
-          theme={activeTheme}
-          topTitle={topTitle}
-          onHoverMenu={(menuId) => {
-            if (activeMenuId) {
-              openMenu(menuId);
-            }
-          }}
-          onToggleMenu={toggleMenu}
-        />
-      ) : null}
-
       <box
         style={{
           flexGrow: 1,
@@ -666,7 +556,6 @@ export function App({
         onMouseDragEnd={endSidebarResize}
         onMouseUp={(event) => {
           endSidebarResize(event);
-          closeMenu();
         }}
       >
         {renderSidebar ? (
@@ -739,29 +628,9 @@ export function App({
           noticeText={noticeText ?? undefined}
           terminalWidth={terminal.width}
           theme={activeTheme}
-          onCloseMenu={closeMenu}
           onFilterInput={review.setFilter}
           onFilterSubmit={focusFiles}
         />
-      ) : null}
-
-      {!pagerMode && activeMenuId && activeMenuSpec ? (
-        <Suspense fallback={null}>
-          <LazyMenuDropdown
-            activeMenuId={activeMenuId}
-            activeMenuEntries={activeMenuEntries}
-            activeMenuItemIndex={activeMenuItemIndex}
-            activeMenuSpec={activeMenuSpec}
-            activeMenuWidth={activeMenuWidth}
-            terminalWidth={terminal.width}
-            theme={activeTheme}
-            onHoverItem={setActiveMenuItemIndex}
-            onSelectItem={(entry) => {
-              entry.action();
-              closeMenu();
-            }}
-          />
-        </Suspense>
       ) : null}
 
       {!pagerMode && showHelp ? (

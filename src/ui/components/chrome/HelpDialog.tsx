@@ -52,7 +52,6 @@ export function HelpDialog({
       items: [
         ["/", "focus file filter"],
         ["Tab", "toggle files/filter focus"],
-        ["F10", "open menus"],
         [canRefresh ? "r / q" : "q", canRefresh ? "reload / quit" : "quit"],
       ],
     },

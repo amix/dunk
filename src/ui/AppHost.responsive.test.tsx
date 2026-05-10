@@ -108,43 +108,6 @@ describe("responsive app", () => {
     expect(tight).not.toMatch(/▌.*▌/);
   });
 
-  test("View menu sidebar checkmark follows actual medium-viewport visibility", async () => {
-    const setup = await testRender(<AppHost bootstrap={createBootstrap("auto")} />, {
-      width: 180,
-      height: 24,
-    });
-
-    try {
-      await act(async () => {
-        await setup.renderOnce();
-      });
-
-      const initialFrame = setup.captureCharFrame();
-      expect((initialFrame.match(/alpha\.ts/g) ?? []).length).toBe(1);
-
-      await act(async () => {
-        await setup.mockInput.pressKey("F10");
-      });
-      await act(async () => {
-        await setup.renderOnce();
-      });
-      await act(async () => {
-        await setup.mockInput.pressArrow("right");
-      });
-      await act(async () => {
-        await setup.renderOnce();
-      });
-
-      const menuFrame = setup.captureCharFrame();
-      expect(menuFrame).toContain("[ ] Sidebar");
-      expect(menuFrame).not.toContain("[x] Sidebar");
-    } finally {
-      await act(async () => {
-        setup.renderer.destroy();
-      });
-    }
-  });
-
   test("sidebar shortcut opens the hidden sidebar on medium viewport", async () => {
     const setup = await testRender(<AppHost bootstrap={createBootstrap("auto")} />, {
       width: 180,
@@ -192,13 +155,9 @@ describe("responsive app", () => {
     const wide = await captureFrameForBootstrap(createBootstrap("auto", true), 220);
     const narrow = await captureFrameForBootstrap(createBootstrap("auto", true), 150);
 
-    expect(wide).not.toContain("File  View  Navigate  Theme  Agent  Help");
-    expect(wide).not.toContain("F10 menu");
     expect((wide.match(/alpha\.ts/g) ?? []).length).toBe(1);
     expect(wide).toMatch(/▌.*▌/);
 
-    expect(narrow).not.toContain("File  View  Navigate  Theme  Agent  Help");
-    expect(narrow).not.toContain("F10 menu");
     expect((narrow.match(/alpha\.ts/g) ?? []).length).toBe(1);
     expect(narrow).not.toMatch(/▌.*▌/);
   });

@@ -8,7 +8,6 @@ export function StatusBar({
   noticeText,
   terminalWidth,
   theme,
-  onCloseMenu,
   onFilterInput,
   onFilterSubmit,
 }: {
@@ -17,7 +16,6 @@ export function StatusBar({
   noticeText?: string;
   terminalWidth: number;
   theme: AppTheme;
-  onCloseMenu: () => void;
   onFilterInput: (value: string) => void;
   onFilterSubmit: () => void;
 }) {
@@ -31,7 +29,6 @@ export function StatusBar({
         alignItems: "center",
         flexDirection: "row",
       }}
-      onMouseUp={onCloseMenu}
     >
       {filterFocused ? (
         <>

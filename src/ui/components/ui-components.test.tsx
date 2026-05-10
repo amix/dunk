@@ -17,7 +17,6 @@ const { SidebarPane } = await import("./panes/SidebarPane");
 const { AgentCard } = await import("./panes/AgentCard");
 const { AgentInlineNote } = await import("./panes/AgentInlineNote");
 const { DiffPane } = await import("./panes/DiffPane");
-const { MenuDropdown } = await import("./chrome/MenuDropdown");
 const { StatusBar } = await import("./chrome/StatusBar");
 const { DiffSectionPlaceholder } = await import("./panes/DiffSectionPlaceholder");
 const { PierreDiffView } = await import("../diff/PierreDiffView");
@@ -1435,69 +1434,6 @@ describe("UI components", () => {
     expect(frame).toContain("Second rationale.");
   });
 
-  test("MenuDropdown renders checked items and key hints", async () => {
-    const theme = resolveTheme("midnight", null);
-    const frame = await captureFrame(
-      <MenuDropdown
-        activeMenuId="view"
-        activeMenuEntries={[
-          { kind: "item", label: "Split view", hint: "1", checked: true, action: () => {} },
-          { kind: "item", label: "Stacked view", hint: "2", checked: false, action: () => {} },
-          { kind: "item", label: "Line numbers", hint: "l", checked: true, action: () => {} },
-          { kind: "item", label: "Line wrapping", hint: "w", checked: false, action: () => {} },
-          { kind: "item", label: "Hunk metadata", hint: "m", checked: true, action: () => {} },
-        ]}
-        activeMenuItemIndex={0}
-        activeMenuSpec={{ id: "view", left: 2, width: 6, label: "View" }}
-        activeMenuWidth={24}
-        terminalWidth={30}
-        theme={theme}
-        onHoverItem={() => {}}
-        onSelectItem={() => {}}
-      />,
-      30,
-      8,
-    );
-
-    expect(frame).toContain("[x] Split view");
-    expect(frame).toContain("[ ] Stacked view");
-    expect(frame).toContain("[x] Line numbers");
-    expect(frame).toContain("[ ] Line wrapping");
-    expect(frame).toContain("[x] Hunk metadata");
-    expect(frame).toContain("1");
-    expect(frame).toContain("2");
-    expect(frame).toContain("l");
-    expect(frame).toContain("w");
-    expect(frame).toContain("m");
-  });
-
-  test("MenuDropdown repositions wide menus to stay inside the terminal", async () => {
-    const theme = resolveTheme("midnight", null);
-    const frame = await captureFrame(
-      <MenuDropdown
-        activeMenuId="agent"
-        activeMenuEntries={[
-          { kind: "item", label: "Next annotated file", action: () => {} },
-          { kind: "item", label: "Previous annotated file", action: () => {} },
-        ]}
-        activeMenuItemIndex={0}
-        activeMenuSpec={{ id: "agent", left: 22, width: 7, label: "Agent" }}
-        activeMenuWidth={30}
-        terminalWidth={34}
-        theme={theme}
-        onHoverItem={() => {}}
-        onSelectItem={() => {}}
-      />,
-      34,
-      6,
-    );
-
-    expect(frame).toContain("Next annotated file");
-    expect(frame).toContain("Previous annotated file");
-    expect(frame).toContain("┐");
-    expect(frame).toContain("┘");
-  });
-
   test("StatusBar renders filter mode affordance", async () => {
     const theme = resolveTheme("midnight", null);
     const frame = await captureFrame(
@@ -1506,7 +1442,6 @@ describe("UI components", () => {
         filterFocused={true}
         terminalWidth={60}
         theme={theme}
-        onCloseMenu={() => {}}
         onFilterInput={() => {}}
         onFilterSubmit={() => {}}
       />,
@@ -1527,7 +1462,6 @@ describe("UI components", () => {
         noticeText="Update available: 9.9.9 • npm i -g hunkdiff"
         terminalWidth={60}
         theme={theme}
-        onCloseMenu={() => {}}
         onFilterInput={() => {}}
         onFilterSubmit={() => {}}
       />,
@@ -1547,7 +1481,6 @@ describe("UI components", () => {
         noticeText="Update available: 9.9.9 • npm i -g hunkdiff"
         terminalWidth={60}
         theme={theme}
-        onCloseMenu={() => {}}
         onFilterInput={() => {}}
         onFilterSubmit={() => {}}
       />,
@@ -1569,7 +1502,6 @@ describe("UI components", () => {
         noticeText="Update available: 9.9.9 • npm i -g hunkdiff"
         terminalWidth={60}
         theme={theme}
-        onCloseMenu={() => {}}
         onFilterInput={() => {}}
         onFilterSubmit={() => {}}
       />,
@@ -1619,7 +1551,6 @@ describe("UI components", () => {
       "Review",
       "/               focus file filter",
       "Tab             toggle files/filter focus",
-      "F10             open menus",
       "r / q           reload / quit",
     ] as const;
 
@@ -2209,11 +2140,11 @@ describe("UI components", () => {
     }
   });
 
-  test("App renders the menu bar, multi-file stream, and AI badges", async () => {
+  test("App renders the multi-file stream and AI badges", async () => {
     const bootstrap = createBootstrap();
     const frame = await captureFrame(<AppHost bootstrap={bootstrap} />, 280, 24);
 
-    expect(frame).toContain("File  View  Navigate  Theme  Agent  Help");
+    expect(frame).not.toContain("File  View  Navigate  Theme  Agent  Help");
     expect(frame).toContain("alpha.ts");
     expect(frame).toContain("beta.ts");
     expect(frame).toContain("@@ -1,1 +1,2 @@");

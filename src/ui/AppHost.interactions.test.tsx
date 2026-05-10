@@ -1005,57 +1005,6 @@ describe("App interactions", () => {
     }
   });
 
-  test("menu navigation can switch layouts and activate view actions", async () => {
-    const setup = await testRender(<AppHost bootstrap={createBootstrap()} />, {
-      width: 220,
-      height: 24,
-    });
-
-    try {
-      await flush(setup);
-
-      await act(async () => {
-        await setup.mockInput.pressKey("F10");
-      });
-      let frame = await waitForFrame(setup, (currentFrame) =>
-        currentFrame.includes("Toggle files/filter focus"),
-      );
-      if (!frame.includes("Toggle files/filter focus")) {
-        await act(async () => {
-          await setup.mockInput.pressKey("F10");
-        });
-        frame = await waitForFrame(setup, (currentFrame) =>
-          currentFrame.includes("Toggle files/filter focus"),
-        );
-      }
-
-      expect(frame).toContain("Toggle files/filter focus");
-      expect(frame).toContain("Reload");
-      expect(frame).toContain("Quit");
-
-      await act(async () => {
-        await setup.mockInput.pressArrow("right");
-      });
-      await flush(setup);
-      await act(async () => {
-        await setup.mockInput.pressArrow("down");
-      });
-      await flush(setup);
-      await act(async () => {
-        await setup.mockInput.pressEnter();
-      });
-      await flush(setup);
-
-      frame = setup.captureCharFrame();
-      expect(frame).not.toContain("Split view");
-      expect(frame).toContain("1   -  export const alpha = 1;");
-    } finally {
-      await act(async () => {
-        setup.renderer.destroy();
-      });
-    }
-  });
-
   test("reload shortcut reloads the current file diff from disk", async () => {
     const dir = mkdtempSync(join(tmpdir(), "hunk-reload-"));
     const left = join(dir, "before.ts");
@@ -1841,48 +1790,6 @@ describe("App interactions", () => {
         currentFrame.includes("Note anchored on second hunk."),
       );
       expect(frame).toContain("Note anchored on second hunk.");
-    } finally {
-      await act(async () => {
-        setup.renderer.destroy();
-      });
-    }
-  });
-
-  test("menu navigation wraps across the first and last top-level menus", async () => {
-    const setup = await testRender(<AppHost bootstrap={createBootstrap()} />, {
-      width: 220,
-      height: 24,
-    });
-
-    try {
-      await flush(setup);
-
-      await act(async () => {
-        await setup.mockInput.pressKey("F10");
-      });
-      await flush(setup);
-
-      let frame = setup.captureCharFrame();
-      expect(frame).toContain("Toggle files/filter focus");
-      expect(frame).not.toContain("Controls help");
-
-      await act(async () => {
-        await setup.mockInput.pressArrow("left");
-      });
-      await flush(setup);
-
-      frame = setup.captureCharFrame();
-      expect(frame).toContain("Controls help");
-      expect(frame).not.toContain("Toggle files/filter focus");
-
-      await act(async () => {
-        await setup.mockInput.pressArrow("right");
-      });
-      await flush(setup);
-
-      frame = setup.captureCharFrame();
-      expect(frame).toContain("Toggle files/filter focus");
-      expect(frame).not.toContain("Controls help");
     } finally {
       await act(async () => {
         setup.renderer.destroy();

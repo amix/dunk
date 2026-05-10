@@ -2,15 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { parseDiffFromFile } from "@pierre/diffs";
 import type { KeyEvent } from "@opentui/core";
 import type { DiffFile } from "../../core/types";
-import {
-  buildMenuSpecs,
-  menuBoxHeight,
-  menuWidth,
-  nextMenuItemIndex,
-  type MenuEntry,
-} from "../components/chrome/menu";
 import { buildAgentPopoverContent, resolveAgentPopoverPlacement, wrapText } from "./agentPopover";
-import { buildAppMenus } from "./appMenus";
 import {
   isEscapeKey,
   isHalfPageDownKey,
@@ -73,110 +65,6 @@ function createDiffFile(
 }
 
 describe("ui helpers", () => {
-  test("buildMenuSpecs lays out the fixed top-level order", () => {
-    const specs = buildMenuSpecs();
-
-    expect(specs.map((spec) => spec.id)).toEqual([
-      "file",
-      "view",
-      "navigate",
-      "theme",
-      "agent",
-      "help",
-    ]);
-    expect(specs).toMatchObject([
-      { id: "file", left: 1, width: 6, label: "File" },
-      { id: "view", left: 7, width: 6, label: "View" },
-      { id: "navigate", left: 13, width: 10, label: "Navigate" },
-      { id: "theme", left: 23, width: 7, label: "Theme" },
-      { id: "agent", left: 30, width: 7, label: "Agent" },
-      { id: "help", left: 37, width: 6, label: "Help" },
-    ]);
-  });
-
-  test("nextMenuItemIndex skips separators in both directions", () => {
-    const entries: MenuEntry[] = [
-      { kind: "separator" },
-      { kind: "item", label: "One", action: () => {} },
-      { kind: "separator" },
-      { kind: "item", label: "Two", action: () => {} },
-    ];
-
-    expect(nextMenuItemIndex(entries, -1, 1)).toBe(1);
-    expect(nextMenuItemIndex(entries, 1, 1)).toBe(3);
-    expect(nextMenuItemIndex(entries, 1, -1)).toBe(3);
-    expect(nextMenuItemIndex([], 0, 1)).toBe(0);
-  });
-
-  test("menuWidth and menuBoxHeight account for checks and hints", () => {
-    const entries: MenuEntry[] = [
-      { kind: "item", label: "Split view", hint: "1", checked: true, action: () => {} },
-      { kind: "separator" },
-      { kind: "item", label: "Line numbers", hint: "l", checked: false, action: () => {} },
-    ];
-
-    expect(menuWidth(entries)).toBeGreaterThanOrEqual(18);
-    expect(menuBoxHeight(entries)).toBe(5);
-  });
-
-  test("buildAppMenus creates checked entries from the current app state", () => {
-    const menus = buildAppMenus({
-      activeThemeId: "graphite",
-      canRefreshCurrentInput: true,
-      focusFilter: () => {},
-      layoutMode: "stack",
-      moveToAnnotatedFile: () => {},
-      moveToAnnotatedHunk: () => {},
-      moveToHunk: () => {},
-      refreshCurrentInput: () => {},
-      requestQuit: () => {},
-      selectLayoutMode: () => {},
-      selectThemeId: () => {},
-      showAgentNotes: true,
-      showHelp: false,
-      showHunkHeaders: false,
-      showLineNumbers: true,
-      renderSidebar: false,
-      toggleAgentNotes: () => {},
-      toggleFocusArea: () => {},
-      toggleHelp: () => {},
-      toggleHunkHeaders: () => {},
-      toggleLineNumbers: () => {},
-      toggleLineWrap: () => {},
-      toggleSidebar: () => {},
-      wrapLines: true,
-    });
-
-    expect(
-      menus.file
-        .filter((entry): entry is Extract<MenuEntry, { kind: "item" }> => entry.kind === "item")
-        .map((entry) => entry.label),
-    ).toEqual(["Toggle files/filter focus", "Focus filter", "Reload", "Quit"]);
-    expect(menus.file[0]).toMatchObject({
-      kind: "item",
-      label: "Toggle files/filter focus",
-      hint: "Tab",
-    });
-    expect(
-      menus.view
-        .filter(
-          (entry): entry is Extract<MenuEntry, { kind: "item" }> =>
-            entry.kind === "item" && Boolean(entry.checked),
-        )
-        .map((entry) => entry.label),
-    ).toEqual(["Stacked view", "Agent notes", "Line numbers", "Line wrapping"]);
-    expect(
-      menus.theme
-        .filter((entry): entry is Extract<MenuEntry, { kind: "item" }> => entry.kind === "item")
-        .map((entry) => entry.label),
-    ).toEqual(["Graphite", "Midnight", "Paper", "Ember"]);
-    expect(
-      menus.theme.some(
-        (entry) => entry.kind === "item" && entry.label === "Graphite" && entry.checked,
-      ),
-    ).toBe(true);
-  });
-
   test("keyboard alias helpers normalize the shared scroll shortcut keys", () => {
     expect(isEscapeKey(createKeyEvent({ name: "escape" }))).toBe(true);
     expect(isEscapeKey(createKeyEvent({ name: "esc" }))).toBe(true);
