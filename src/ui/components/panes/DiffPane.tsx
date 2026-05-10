@@ -415,6 +415,27 @@ export function DiffPane({
     return collectIntersectingFileSectionIds(baseFileSectionLayouts, minVisibleY, maxVisibleY);
   }, [baseFileSectionLayouts, scrollViewport.height, scrollViewport.top]);
 
+  // When the user scrolls all the way to the top of the diff stream, snap selection to the
+  // first file's first hunk so navigation has a clean starting point. Tracked via a ref so a
+  // transient 0 frame during reveal/reload doesn't keep refiring the selection.
+  const wasAtScrollTopRef = useRef(false);
+  useLayoutEffect(() => {
+    const atTop = scrollViewport.top <= 0;
+    const wasAtTop = wasAtScrollTopRef.current;
+    wasAtScrollTopRef.current = atTop;
+
+    if (!atTop || wasAtTop || !onSelectHunk || files.length === 0) {
+      return;
+    }
+
+    const firstFile = files[0]!;
+    if (selectedFileId === firstFile.id && selectedHunkIndex === 0) {
+      return;
+    }
+
+    onSelectHunk(firstFile.id, 0);
+  }, [files, onSelectHunk, scrollViewport.top, selectedFileId, selectedHunkIndex]);
+
   const visibleAgentNotesByFile = useMemo(() => {
     const next = new Map<string, VisibleAgentNote[]>();
 
