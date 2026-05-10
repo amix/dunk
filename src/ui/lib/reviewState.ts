@@ -7,44 +7,52 @@
  */
 import type { DiffFile } from "../../core/types";
 import { buildSidebarEntries, filterReviewFiles, type SidebarEntry } from "./files";
-import { buildAnnotatedHunkCursors, buildHunkCursors, type HunkCursor } from "./hunks";
+import {
+  buildAnnotatedHunkCursors,
+  buildHunkCursors,
+  indexHunkCursors,
+  type HunkCursor,
+} from "./hunks";
 
-export interface BuildReviewStateOptions {
+export interface BuildReviewStreamOptions {
   files: DiffFile[];
   filterQuery: string;
-  selectedFileId: string;
-  selectedHunkIndex: number;
 }
 
-export interface ReviewState {
+export interface ReviewStream {
   allFiles: DiffFile[];
   visibleFiles: DiffFile[];
   sidebarEntries: SidebarEntry[];
-  selectedFile: DiffFile | undefined;
-  selectedHunk: DiffFile["metadata"]["hunks"][number] | undefined;
   hunkCursors: HunkCursor[];
+  hunkCursorIndex: Map<string, number>;
   annotatedHunkCursors: HunkCursor[];
+  annotatedHunkCursorIndex: Map<string, number>;
 }
 
-/** Build the derived review stream state from files, filter text, and selection. */
-export function buildReviewState({
+/**
+ * Stream-only review derivations: filter, sidebar, and cursor lists.
+ *
+ * Selection (selectedFile / selectedHunk) is intentionally derived elsewhere
+ * so a hunk-navigation keypress does not invalidate the memo and rebuild this
+ * whole bundle.
+ */
+export function buildReviewStream({
   files,
   filterQuery,
-  selectedFileId,
-  selectedHunkIndex,
-}: BuildReviewStateOptions): ReviewState {
+}: BuildReviewStreamOptions): ReviewStream {
   const allFiles = files;
   const visibleFiles = filterReviewFiles(allFiles, filterQuery);
-  const selectedFile = resolveSelectedFile(allFiles, visibleFiles, selectedFileId);
+  const hunkCursors = buildHunkCursors(visibleFiles);
+  const annotatedHunkCursors = buildAnnotatedHunkCursors(visibleFiles);
 
   return {
     allFiles,
     visibleFiles,
     sidebarEntries: buildSidebarEntries(visibleFiles),
-    selectedFile,
-    selectedHunk: selectedFile?.metadata.hunks[selectedHunkIndex],
-    hunkCursors: buildHunkCursors(visibleFiles),
-    annotatedHunkCursors: buildAnnotatedHunkCursors(visibleFiles),
+    hunkCursors,
+    hunkCursorIndex: indexHunkCursors(hunkCursors),
+    annotatedHunkCursors,
+    annotatedHunkCursorIndex: indexHunkCursors(annotatedHunkCursors),
   };
 }
 
@@ -67,7 +75,7 @@ export function findNextAnnotatedFile(
   currentFileId: string | undefined,
   delta: number,
 ) {
-  const annotatedFiles = visibleFiles.filter((file) => file.annotations);
+  const annotatedFiles = visibleFiles.filter((file) => file.annotations.length > 0);
   if (annotatedFiles.length === 0) {
     return null;
   }

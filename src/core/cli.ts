@@ -235,7 +235,9 @@ async function parseDiffCommand(tokens: string[], argv: string[]): Promise<Parse
   await parseStandaloneCommand(command, commandTokens);
 
   const staged = Boolean(parsedOptions.staged) || Boolean(parsedOptions.cached);
-  const options = buildCommonOptions(parsedOptions, argv);
+  // Scan the command tokens (already stripped of post-`--` pathspecs) so a
+  // pathspec literally named e.g. `--no-wrap` does not flip a view option.
+  const options = buildCommonOptions(parsedOptions, commandTokens);
   const normalizedPathspecs = pathspecs.length > 0 ? pathspecs : undefined;
 
   if (parsedTargets.length === 0) {
@@ -306,7 +308,7 @@ async function parseShowCommand(tokens: string[], argv: string[]): Promise<Parse
     kind: "show",
     ref: parsedRef,
     pathspecs: pathspecs.length > 0 ? pathspecs : undefined,
-    options: buildCommonOptions(parsedOptions, argv),
+    options: buildCommonOptions(parsedOptions, commandTokens),
   };
 }
 

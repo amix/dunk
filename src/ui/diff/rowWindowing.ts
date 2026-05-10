@@ -44,29 +44,48 @@ export function resolveVisiblePlannedRowWindow({
     visibleBodyBounds.top + Math.max(0, visibleBodyBounds.height),
   );
 
-  let firstVisibleIndex = -1;
-  let lastVisibleIndex = -1;
+  // rowBounds are laid out top-to-bottom in row order, so the predicates
+  // `top + height > minVisibleTop` (first visible) and `top < maxVisibleBottom`
+  // (last visible) are monotonic in index. Binary search both, then step past
+  // any zero-height rows the predicates would otherwise include without extent.
+  const rowBounds = sectionGeometry.rowBounds;
 
-  for (let index = 0; index < sectionGeometry.rowBounds.length; index += 1) {
-    const rowBounds = sectionGeometry.rowBounds[index]!;
-    if (rowBounds.height <= 0) {
-      continue;
+  let lo = 0;
+  let hi = rowBounds.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >>> 1;
+    const row = rowBounds[mid]!;
+    if (row.top + row.height > minVisibleTop) {
+      hi = mid;
+    } else {
+      lo = mid + 1;
     }
-
-    const rowBottom = rowBounds.top + rowBounds.height;
-    // Treat each row as the half-open interval [row.top, row.bottom). If that interval does not
-    // overlap the visible file-body interval, the row can stay unmounted.
-    if (rowBottom <= minVisibleTop || rowBounds.top >= maxVisibleBottom) {
-      continue;
-    }
-
-    if (firstVisibleIndex < 0) {
-      firstVisibleIndex = index;
-    }
-    lastVisibleIndex = index;
+  }
+  let firstVisibleIndex = lo;
+  while (firstVisibleIndex < rowBounds.length && rowBounds[firstVisibleIndex]!.height === 0) {
+    firstVisibleIndex += 1;
   }
 
-  if (firstVisibleIndex < 0 || lastVisibleIndex < 0) {
+  lo = 0;
+  hi = rowBounds.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >>> 1;
+    if (rowBounds[mid]!.top < maxVisibleBottom) {
+      lo = mid + 1;
+    } else {
+      hi = mid;
+    }
+  }
+  let lastVisibleIndex = lo - 1;
+  while (lastVisibleIndex >= 0 && rowBounds[lastVisibleIndex]!.height === 0) {
+    lastVisibleIndex -= 1;
+  }
+
+  if (
+    firstVisibleIndex >= rowBounds.length ||
+    lastVisibleIndex < 0 ||
+    firstVisibleIndex > lastVisibleIndex
+  ) {
     const topSpacerHeight = Math.min(sectionGeometry.bodyHeight, minVisibleTop);
 
     return {

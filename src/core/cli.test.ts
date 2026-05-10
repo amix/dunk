@@ -185,6 +185,18 @@ describe("parseCli", () => {
     });
   });
 
+  test("treats post-`--` flag-shaped tokens as pathspecs, not view options", async () => {
+    const parsed = await parseCli(["bun", "dunk", "diff", "--", "--no-wrap"]);
+
+    expect(parsed).toMatchObject({
+      kind: "vcs",
+      pathspecs: ["--no-wrap"],
+    });
+    if (parsed.kind === "vcs") {
+      expect(parsed.options.wrapLines).toBeUndefined();
+    }
+  });
+
   test("parses general pager mode", async () => {
     const parsed = await parseCli(["bun", "dunk", "pager", "--theme", "paper"]);
 

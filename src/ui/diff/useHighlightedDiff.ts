@@ -58,16 +58,23 @@ function metadataFingerprint(file: DiffFile) {
   ].join(":");
 }
 
+/** Hash a string with FNV-1a so the resulting key changes for any byte edit,
+ *  unlike the prior sample-based scheme that could collide on same-length edits
+ *  outside the sampled regions and serve a stale highlight after reload. */
+function fnv1aFingerprint(text: string) {
+  let hash = 2166136261;
+  for (let index = 0; index < text.length; index += 1) {
+    hash ^= text.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `${text.length}:${(hash >>> 0).toString(36)}`;
+}
+
 /** Content fingerprint from the diff patch. Changes whenever the underlying diff
  *  changes, allowing per-file cache invalidation without a global flush. */
 function patchFingerprint(file: DiffFile) {
   const { patch } = file;
-  if (patch.length === 0) {
-    return metadataFingerprint(file);
-  }
-
-  const mid = Math.floor(patch.length / 2);
-  return `${patch.length}:${patch.slice(0, 64)}:${patch.slice(mid, mid + 64)}:${patch.slice(-64)}`;
+  return patch.length === 0 ? metadataFingerprint(file) : fnv1aFingerprint(patch);
 }
 
 /** Cache key that includes a content fingerprint so stale entries are never served

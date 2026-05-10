@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { parseDiffFromFile } from "@pierre/diffs";
 import type { DiffFile } from "../../core/types";
-import { buildAnnotatedHunkCursors, findNextHunkCursor, type HunkCursor } from "./hunks";
+import { buildAnnotatedHunkCursors, findNextHunkCursor, indexHunkCursors, type HunkCursor } from "./hunks";
 
 /** Build a minimal DiffFile with real Pierre-parsed hunks and optional annotations. */
 function createTestFile(
@@ -37,23 +37,23 @@ describe("hunk navigation", () => {
   ];
 
   test("moves forward across hunk and file boundaries", () => {
-    expect(findNextHunkCursor(cursors, "alpha", 0, 1)).toEqual({ fileId: "alpha", hunkIndex: 1 });
-    expect(findNextHunkCursor(cursors, "alpha", 1, 1)).toEqual({ fileId: "beta", hunkIndex: 0 });
+    expect(findNextHunkCursor(cursors, indexHunkCursors(cursors), "alpha", 0, 1)).toEqual({ fileId: "alpha", hunkIndex: 1 });
+    expect(findNextHunkCursor(cursors, indexHunkCursors(cursors), "alpha", 1, 1)).toEqual({ fileId: "beta", hunkIndex: 0 });
   });
 
   test("moves backward across file boundaries", () => {
-    expect(findNextHunkCursor(cursors, "beta", 0, -1)).toEqual({ fileId: "alpha", hunkIndex: 1 });
-    expect(findNextHunkCursor(cursors, "alpha", 1, -1)).toEqual({ fileId: "alpha", hunkIndex: 0 });
+    expect(findNextHunkCursor(cursors, indexHunkCursors(cursors), "beta", 0, -1)).toEqual({ fileId: "alpha", hunkIndex: 1 });
+    expect(findNextHunkCursor(cursors, indexHunkCursors(cursors), "alpha", 1, -1)).toEqual({ fileId: "alpha", hunkIndex: 0 });
   });
 
   test("clamps at the ends of the review stream", () => {
-    expect(findNextHunkCursor(cursors, "alpha", 0, -1)).toEqual({ fileId: "alpha", hunkIndex: 0 });
-    expect(findNextHunkCursor(cursors, "beta", 0, 1)).toEqual({ fileId: "beta", hunkIndex: 0 });
+    expect(findNextHunkCursor(cursors, indexHunkCursors(cursors), "alpha", 0, -1)).toEqual({ fileId: "alpha", hunkIndex: 0 });
+    expect(findNextHunkCursor(cursors, indexHunkCursors(cursors), "beta", 0, 1)).toEqual({ fileId: "beta", hunkIndex: 0 });
   });
 
   test("starts at the nearest stream edge when no current hunk is selected", () => {
-    expect(findNextHunkCursor(cursors, undefined, 0, 1)).toEqual({ fileId: "alpha", hunkIndex: 0 });
-    expect(findNextHunkCursor(cursors, undefined, 0, -1)).toEqual({ fileId: "beta", hunkIndex: 0 });
+    expect(findNextHunkCursor(cursors, indexHunkCursors(cursors), undefined, 0, 1)).toEqual({ fileId: "alpha", hunkIndex: 0 });
+    expect(findNextHunkCursor(cursors, indexHunkCursors(cursors), undefined, 0, -1)).toEqual({ fileId: "beta", hunkIndex: 0 });
   });
 });
 
@@ -110,23 +110,23 @@ describe("annotated hunk navigation", () => {
     const annotatedCursors = buildAnnotatedHunkCursors([fileA, fileB]);
 
     // Forward from alpha hunk 1 → beta hunk 0
-    expect(findNextHunkCursor(annotatedCursors, "alpha", 1, 1)).toEqual({
+    expect(findNextHunkCursor(annotatedCursors, indexHunkCursors(annotatedCursors), "alpha", 1, 1)).toEqual({
       fileId: "beta",
       hunkIndex: 0,
     });
 
     // Backward from beta hunk 0 → alpha hunk 1
-    expect(findNextHunkCursor(annotatedCursors, "beta", 0, -1)).toEqual({
+    expect(findNextHunkCursor(annotatedCursors, indexHunkCursors(annotatedCursors), "beta", 0, -1)).toEqual({
       fileId: "alpha",
       hunkIndex: 1,
     });
 
     // Clamps at ends
-    expect(findNextHunkCursor(annotatedCursors, "alpha", 1, -1)).toEqual({
+    expect(findNextHunkCursor(annotatedCursors, indexHunkCursors(annotatedCursors), "alpha", 1, -1)).toEqual({
       fileId: "alpha",
       hunkIndex: 1,
     });
-    expect(findNextHunkCursor(annotatedCursors, "beta", 0, 1)).toEqual({
+    expect(findNextHunkCursor(annotatedCursors, indexHunkCursors(annotatedCursors), "beta", 0, 1)).toEqual({
       fileId: "beta",
       hunkIndex: 0,
     });
@@ -140,13 +140,13 @@ describe("annotated hunk navigation", () => {
 
     // Current position is alpha hunk 0, which is not in the annotated list.
     // Forward should land on the first annotated cursor.
-    expect(findNextHunkCursor(annotatedCursors, "alpha", 0, 1)).toEqual({
+    expect(findNextHunkCursor(annotatedCursors, indexHunkCursors(annotatedCursors), "alpha", 0, 1)).toEqual({
       fileId: "alpha",
       hunkIndex: 1,
     });
 
     // Backward from an unknown position should land on the last annotated cursor.
-    expect(findNextHunkCursor(annotatedCursors, "alpha", 0, -1)).toEqual({
+    expect(findNextHunkCursor(annotatedCursors, indexHunkCursors(annotatedCursors), "alpha", 0, -1)).toEqual({
       fileId: "alpha",
       hunkIndex: 1,
     });

@@ -14,7 +14,12 @@ import {
 } from "react";
 import type { DiffFile } from "../../core/types";
 import { findNextHunkCursor } from "../lib/hunks";
-import { buildReviewState, findNextAnnotatedFile, type ReviewState } from "../lib/reviewState";
+import {
+  buildReviewStream,
+  findNextAnnotatedFile,
+  resolveSelectedFile,
+  type ReviewStream,
+} from "../lib/reviewState";
 
 /** Clamp one numeric index into an inclusive range. */
 function clamp(value: number, min: number, max: number) {
@@ -40,7 +45,7 @@ export interface ReviewController {
   selectedHunkRevealRequestId: number;
   selectedHunk: DiffFile["metadata"]["hunks"][number] | undefined;
   selectedHunkIndex: number;
-  sidebarEntries: ReviewState["sidebarEntries"];
+  sidebarEntries: ReviewStream["sidebarEntries"];
   visibleFiles: DiffFile[];
   clearFilter: () => void;
   selectFile: (fileId: string, nextHunkIndex?: number, options?: ReviewSelectionOptions) => void;
@@ -58,24 +63,27 @@ export function useReviewController({ files }: { files: DiffFile[] }): ReviewCon
   const [scrollToNote, setScrollToNote] = useState(false);
   const deferredFilter = useDeferredValue(filter);
 
+  // Stream-only memo. Hunk-navigation keypresses change selectedFileId /
+  // selectedHunkIndex, but the stream depends on neither, so J/K stops
+  // re-running filter, sidebar, and cursor builds on every keystroke.
   const {
     allFiles,
     visibleFiles,
     sidebarEntries,
-    selectedFile,
-    selectedHunk,
     hunkCursors,
+    hunkCursorIndex,
     annotatedHunkCursors,
+    annotatedHunkCursorIndex,
   } = useMemo(
-    () =>
-      buildReviewState({
-        files,
-        filterQuery: deferredFilter,
-        selectedFileId,
-        selectedHunkIndex,
-      }),
-    [deferredFilter, files, selectedFileId, selectedHunkIndex],
+    () => buildReviewStream({ files, filterQuery: deferredFilter }),
+    [deferredFilter, files],
   );
+
+  const selectedFile = useMemo(
+    () => resolveSelectedFile(allFiles, visibleFiles, selectedFileId),
+    [allFiles, selectedFileId, visibleFiles],
+  );
+  const selectedHunk = selectedFile?.metadata.hunks[selectedHunkIndex];
 
   /** Update the selection and reveal intent together so diff scrolling stays explicit. */
   const selectHunk = useCallback(
@@ -151,6 +159,7 @@ export function useReviewController({ files }: { files: DiffFile[] }): ReviewCon
     (delta: number) => {
       const nextCursor = findNextHunkCursor(
         hunkCursors,
+        hunkCursorIndex,
         selectedFile?.id,
         selectedHunkIndex,
         delta,
@@ -168,14 +177,15 @@ export function useReviewController({ files }: { files: DiffFile[] }): ReviewCon
         alignFileHeaderTop: crossingFileBoundary && delta > 0,
       });
     },
-    [hunkCursors, selectHunk, selectedFile?.id, selectedHunkIndex],
+    [hunkCursorIndex, hunkCursors, selectHunk, selectedFile?.id, selectedHunkIndex],
   );
 
-  /** Move through only hunks that currently have agent notes. */
+  /** Move through only hunks that currently have inline comments. */
   const moveToAnnotatedHunk = useCallback(
     (delta: number) => {
       const nextCursor = findNextHunkCursor(
         annotatedHunkCursors,
+        annotatedHunkCursorIndex,
         selectedFile?.id,
         selectedHunkIndex,
         delta,
@@ -186,7 +196,13 @@ export function useReviewController({ files }: { files: DiffFile[] }): ReviewCon
 
       selectHunk(nextCursor.fileId, nextCursor.hunkIndex, { scrollToNote: true });
     },
-    [annotatedHunkCursors, selectHunk, selectedFile?.id, selectedHunkIndex],
+    [
+      annotatedHunkCursorIndex,
+      annotatedHunkCursors,
+      selectHunk,
+      selectedFile?.id,
+      selectedHunkIndex,
+    ],
   );
 
   /** Cycle through only the currently visible files that carry annotations. */
