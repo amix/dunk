@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { findRepoRoot } from "./config";
 import { DUNK_COMMENTS_RELATIVE_PATH } from "./dunkPaths";
 import {
-  buildGitDiffNumstatArgs,
+  buildGitDiffRawArgs,
   listGitUntrackedFiles,
   resolveGitRepoRoot,
   runGitText,
@@ -16,14 +16,20 @@ export function canReloadInput(input: CliInput) {
   return input.kind !== "patch" || Boolean(input.file && input.file !== "-");
 }
 
-/** Format one file stat into a stable signature fragment, or mark the path missing. */
+/** Format one file stat into a stable signature fragment, or mark the path missing.
+ *
+ * Includes mode + ctime in addition to size/mtime/ino so chmod-only changes and
+ * same-size in-place rewrites that don't bump mtime still register as a change.
+ * Uses lstat so symlink target changes show up via the link's own stat fields.
+ */
 function statSignature(path: string) {
-  if (!fs.existsSync(path)) {
+  let stat: fs.Stats;
+  try {
+    stat = fs.lstatSync(path);
+  } catch {
     return `${path}:missing`;
   }
-
-  const stat = fs.statSync(path);
-  return `${path}:${stat.size}:${stat.mtimeMs}:${stat.ino}`;
+  return `${path}:${stat.mode}:${stat.size}:${stat.mtimeMs}:${stat.ctimeMs}:${stat.ino}`;
 }
 
 /**
@@ -33,20 +39,26 @@ function statSignature(path: string) {
  * tick, allocating a complete patch string four times per second. That's
  * expensive on medium-to-large repos and scales with patch size instead of
  * with actual filesystem activity. We swap in cheap commands that only
- * report *that* something changed: `git diff --numstat` for tracked work,
- * `git rev-parse` for ref-backed reviews, `jj log -T commit_id` for jj.
+ * report *that* something changed: `git diff --raw` (content-addressed via
+ * per-file blob hashes) for tracked work, `git rev-parse` for ref-backed
+ * reviews, `jj log -T commit_id` for jj.
+ *
+ * `--raw` rather than `--numstat`: numstat reports only counts, so two
+ * same-shape edits (foo→bar then bar→baz, each "1\t1\tpath") would share a
+ * signature and watch mode would silently keep stale output. `--raw` includes
+ * post-image blob hashes that change on any content edit.
  *
  * The full patch still runs once during the reload, which is when we
  * actually need the bytes.
  */
 function gitWorkingTreeWatchSignature(input: Extract<CliInput, { kind: "vcs" }>) {
-  const numstat = runGitText({ input, args: buildGitDiffNumstatArgs(input) });
+  const raw = runGitText({ input, args: buildGitDiffRawArgs(input) });
   const repoRoot = resolveGitRepoRoot(input);
   const untrackedSignatures = listGitUntrackedFiles(input, { repoRoot }).map(
     (filePath) => `untracked:${statSignature(join(repoRoot, filePath))}`,
   );
 
-  return [numstat, ...untrackedSignatures].join("\n---\n");
+  return [raw, ...untrackedSignatures].join("\n---\n");
 }
 
 function gitVcsSignature(input: Extract<CliInput, { kind: "vcs" | "show" | "stash-show" }>) {

@@ -89,6 +89,28 @@ export function buildGitDiffNumstatArgs(input: VcsCommandInput) {
   return withNormalizedDiffPrefixes(args);
 }
 
+/**
+ * Build a content-addressed change-detection query for tracked files.
+ *
+ * Unlike `--numstat` (counts only), `--raw` emits per-file mode + blob hash
+ * tuples, so any content edit changes the signature even if the per-file
+ * additions/deletions stay the same shape.
+ */
+export function buildGitDiffRawArgs(input: VcsCommandInput) {
+  const args = ["diff", "--no-ext-diff", "--find-renames", "--no-color", "--raw", "-z"];
+
+  if (input.staged) {
+    args.push("--staged");
+  }
+
+  if (input.range) {
+    args.push(input.range);
+  }
+
+  appendGitPathspecs(args, input.pathspecs);
+  return withNormalizedDiffPrefixes(args);
+}
+
 /** Build the porcelain status query used to discover untracked files for working-tree review. */
 function buildGitStatusArgs(input: VcsCommandInput) {
   const args = ["status", "--porcelain=v1", "-z", "--untracked-files=all"];

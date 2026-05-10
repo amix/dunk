@@ -19,23 +19,28 @@ function enforceCacheLimit() {
   }
 }
 
+/** FNV-1a 32-bit. Cheap content hash for cache-key fingerprints. */
+function fnv1aHash(text: string, seed = 2166136261) {
+  let hash = seed;
+  for (let index = 0; index < text.length; index += 1) {
+    hash ^= text.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash;
+}
+
 /** Summarize rendered diff lines without serializing whole arrays into the cache key. */
 function lineSetFingerprint(lines: string[] | undefined) {
   let totalChars = 0;
   let hash = 2166136261;
-
   for (const line of lines ?? []) {
     totalChars += line.length;
-
-    for (let index = 0; index < line.length; index += 1) {
-      hash ^= line.charCodeAt(index);
-      hash = Math.imul(hash, 16777619);
-    }
-
+    // Roll in the line content, then mix a synthetic newline so adjacent lines
+    // with the same content can't merge into one undifferentiable run.
+    hash = fnv1aHash(line, hash);
     hash ^= 10;
     hash = Math.imul(hash, 16777619);
   }
-
   return `${lines?.length ?? 0}:${totalChars}:${(hash >>> 0).toString(36)}`;
 }
 
@@ -58,23 +63,28 @@ function metadataFingerprint(file: DiffFile) {
   ].join(":");
 }
 
-/** Hash a string with FNV-1a so the resulting key changes for any byte edit,
- *  unlike the prior sample-based scheme that could collide on same-length edits
- *  outside the sampled regions and serve a stale highlight after reload. */
+/** Format an FNV-1a content hash with the text length for cache-key fingerprints. */
 function fnv1aFingerprint(text: string) {
-  let hash = 2166136261;
-  for (let index = 0; index < text.length; index += 1) {
-    hash ^= text.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  return `${text.length}:${(hash >>> 0).toString(36)}`;
+  return `${text.length}:${(fnv1aHash(text) >>> 0).toString(36)}`;
 }
+
+// Cache per-file patch fingerprints by DiffFile identity. The patch string
+// never changes for a given DiffFile object, so hashing it once per object
+// (instead of per render) keeps highlight lookups O(1) on large diffs.
+const PATCH_FINGERPRINTS = new WeakMap<DiffFile, string>();
 
 /** Content fingerprint from the diff patch. Changes whenever the underlying diff
  *  changes, allowing per-file cache invalidation without a global flush. */
 function patchFingerprint(file: DiffFile) {
-  const { patch } = file;
-  return patch.length === 0 ? metadataFingerprint(file) : fnv1aFingerprint(patch);
+  const cached = PATCH_FINGERPRINTS.get(file);
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  const fingerprint =
+    file.patch.length === 0 ? metadataFingerprint(file) : fnv1aFingerprint(file.patch);
+  PATCH_FINGERPRINTS.set(file, fingerprint);
+  return fingerprint;
 }
 
 /** Cache key that includes a content fingerprint so stale entries are never served
