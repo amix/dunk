@@ -1,18 +1,8 @@
-/**
- * `.tunk/comments.json` reader/writer and drift detection.
- *
- * One JSON file holds all comments for the repo. Each comment carries a
- * `file`, a 1-based `line`, a 16-hex SHA-256 `anchor` of the line's local
- * context (the line itself plus one above and one below, all right-trimmed),
- * and a free-text `body`. On load we recompute the anchor at the recorded
- * line; if it matches we render the comment in place, otherwise it is
- * "drifted" and the UI pins it to the top of the diff.
- */
+/** `.tunk/comments.json` reader/writer and drift detection. */
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { findRepoRoot } from "./config";
-import type { AgentAnnotation, Changeset, DiffFile } from "./types";
+import { join, resolve as resolvePath } from "node:path";
+import type { AgentAnnotation, Changeset, DiffFile, DriftReason } from "./types";
 
 const SCHEMA_VERSION = 1;
 const COMMENTS_DIR = ".tunk";
@@ -42,13 +32,13 @@ export interface AnchoredComment extends PersistedComment {
 /** Comment whose recorded anchor no longer matches the file. */
 export interface DriftedComment extends PersistedComment {
   state: "drifted";
-  reason: "missing-file" | "out-of-range" | "anchor-mismatch";
+  reason: DriftReason;
 }
 
 export type ResolvedComment = AnchoredComment | DriftedComment;
 
 /** Map a freshly loaded file's content to its 1-based lines, no trailing \n. */
-function splitLines(text: string): string[] {
+export function splitLines(text: string): string[] {
   return text.split("\n").map((line) => line.replace(/\s+$/, ""));
 }
 
@@ -64,6 +54,27 @@ export function computeAnchor(lines: string[], line: number): string {
   const hash = createHash("sha256");
   hash.update([above, target, below].join("\n"));
   return hash.digest("hex").slice(0, ANCHOR_HEX_LEN);
+}
+
+/**
+ * Read the post-image of `relPath` (relative to `repoRoot`) and compute the
+ * anchor for one line. Returns null when the file can't be read or the line
+ * is out of range — both situations callers treat as "skip this comment".
+ */
+export function computeAnchorForFile(
+  repoRoot: string,
+  relPath: string,
+  line: number,
+): string | null {
+  let content: string;
+  try {
+    content = readFileSync(resolvePath(repoRoot, relPath), "utf8");
+  } catch {
+    return null;
+  }
+
+  const anchor = computeAnchor(splitLines(content), line);
+  return anchor || null;
 }
 
 /** Read `.tunk/comments.json` from the repo root, returning [] if missing. */
@@ -143,19 +154,25 @@ export function resolveComments(
   comments: PersistedComment[],
   fileContentByPath: Map<string, string | undefined>,
 ): ResolvedComment[] {
+  // Split each file's content exactly once; comments often share a file.
+  const linesByPath = new Map<string, string[]>();
+  for (const [path, content] of fileContentByPath) {
+    if (content !== undefined) {
+      linesByPath.set(path, splitLines(content));
+    }
+  }
+
   return comments.map((comment) => {
-    const content = fileContentByPath.get(comment.file);
-    if (content === undefined) {
+    const lines = linesByPath.get(comment.file);
+    if (!lines) {
       return { ...comment, state: "drifted", reason: "missing-file" } as DriftedComment;
     }
 
-    const lines = splitLines(content);
     if (comment.line < 1 || comment.line > lines.length) {
       return { ...comment, state: "drifted", reason: "out-of-range" } as DriftedComment;
     }
 
-    const anchor = computeAnchor(lines, comment.line);
-    if (anchor !== comment.anchor) {
+    if (computeAnchor(lines, comment.line) !== comment.anchor) {
       return { ...comment, state: "drifted", reason: "anchor-mismatch" } as DriftedComment;
     }
 
@@ -181,7 +198,6 @@ export function commentToAnnotation(comment: AnchoredComment): AgentAnnotation {
 export function applyCommentsToChangeset(
   changeset: Changeset,
   resolved: ResolvedComment[],
-  fileContentByPath: Map<string, string | undefined>,
 ): { changeset: Changeset; drifted: DriftedComment[] } {
   const anchoredByPath = new Map<string, AnchoredComment[]>();
   const drifted: DriftedComment[] = [];
@@ -198,7 +214,6 @@ export function applyCommentsToChangeset(
   }
 
   const files = changeset.files.map((file) => mergeFileAnnotations(file, anchoredByPath));
-  void fileContentByPath;
   return {
     changeset: { ...changeset, files },
     drifted,
@@ -224,19 +239,6 @@ function mergeFileAnnotations(
       annotations: [...(file.agent?.annotations ?? []), ...annotations],
     },
   };
-}
-
-/** Resolve the repo's comments file path, even when the file does not exist yet. */
-export function commentsFilePath(cwd = process.cwd()): string | undefined {
-  const repoRoot = findRepoRoot(cwd);
-  return repoRoot ? join(repoRoot, COMMENTS_DIR, COMMENTS_FILE) : undefined;
-}
-
-/** Return the directory holding the comments file, creating parents as needed. */
-export function ensureCommentsDir(repoRoot: string): string {
-  const dir = join(repoRoot, COMMENTS_DIR);
-  mkdirSync(dir, { recursive: true });
-  return dirname(join(dir, COMMENTS_FILE));
 }
 
 /** Find every comment whose `file` and post-image `line` fall inside one hunk. */

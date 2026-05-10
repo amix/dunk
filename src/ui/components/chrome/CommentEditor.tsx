@@ -42,41 +42,35 @@ export function CommentEditor({
       width={width}
       onClose={onCancel}
     >
-      <box style={{ width: "100%", flexDirection: "column" }}>
-        <box style={{ width: "100%", height: 1 }}>
-          <text fg={theme.muted}>{fitText(target, inputWidth)}</text>
-        </box>
-        <box style={{ width: "100%", height: 1 }} />
-        <input
-          width={inputWidth}
-          value={body}
-          placeholder="comment"
-          focused={true}
-          onInput={setBody}
-          onSubmit={() => {
-            const trimmed = body.trim();
-            if (trimmed.length === 0) {
-              onCancel();
-              return;
-            }
-
-            onSubmit(trimmed);
-          }}
-          onKeyDown={(key: KeyEvent) => {
-            if (!isEscapeKey(key)) {
-              return;
-            }
-
-            key.preventDefault();
-            key.stopPropagation();
+      <text fg={theme.muted}>{fitText(target, inputWidth)}</text>
+      <box style={{ width: "100%", height: 1 }} />
+      <input
+        width={inputWidth}
+        value={body}
+        placeholder="comment"
+        focused={true}
+        onInput={setBody}
+        onSubmit={() => {
+          const trimmed = body.trim();
+          if (trimmed.length === 0) {
             onCancel();
-          }}
-        />
-        <box style={{ width: "100%", height: 1 }} />
-        <box style={{ width: "100%", height: 1 }}>
-          <text fg={theme.muted}>{fitText("Enter to save · Esc to cancel", inputWidth)}</text>
-        </box>
-      </box>
+            return;
+          }
+
+          onSubmit(trimmed);
+        }}
+        onKeyDown={(key: KeyEvent) => {
+          if (!isEscapeKey(key)) {
+            return;
+          }
+
+          key.preventDefault();
+          key.stopPropagation();
+          onCancel();
+        }}
+      />
+      <box style={{ width: "100%", height: 1 }} />
+      <text fg={theme.muted}>{fitText("Enter to save · Esc to cancel", inputWidth)}</text>
     </ModalFrame>
   );
 }

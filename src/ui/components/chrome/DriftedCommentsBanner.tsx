@@ -41,28 +41,22 @@ export function DriftedCommentsBanner({
         paddingBottom: 1,
       }}
     >
-      <box style={{ height: 1 }}>
-        <text fg={theme.badgeNeutral}>
+      <text fg={theme.badgeNeutral}>
+        {fitText(
+          `${drifted.length} drifted comment${drifted.length === 1 ? "" : "s"} · press D on a hunk to dismiss`,
+          innerWidth,
+        )}
+      </text>
+      {visible.map((comment) => (
+        <text key={comment.id} fg={theme.muted}>
           {fitText(
-            `${drifted.length} drifted comment${drifted.length === 1 ? "" : "s"} · press D on a hunk to dismiss`,
+            `[${DRIFT_REASON_LABEL[comment.reason]}] ${comment.file}:${comment.line} · ${comment.body}`,
             innerWidth,
           )}
         </text>
-      </box>
-      {visible.map((comment) => (
-        <box key={comment.id} style={{ height: 1 }}>
-          <text fg={theme.muted}>
-            {fitText(
-              `[${DRIFT_REASON_LABEL[comment.reason]}] ${comment.file}:${comment.line} · ${comment.body}`,
-              innerWidth,
-            )}
-          </text>
-        </box>
       ))}
       {hidden > 0 ? (
-        <box style={{ height: 1 }}>
-          <text fg={theme.muted}>{fitText(`+${hidden} more`, innerWidth)}</text>
-        </box>
+        <text fg={theme.muted}>{fitText(`+${hidden} more`, innerWidth)}</text>
       ) : null}
     </box>
   );

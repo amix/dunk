@@ -153,7 +153,6 @@ export function DiffPane({
   onOpenAgentNotesAtHunk,
   onScrollCodeHorizontally = () => {},
   onSelectFile,
-  onViewportCenteredHunkChange,
 }: {
   codeHorizontalOffset?: number;
   diffContentWidth: number;
@@ -181,7 +180,6 @@ export function DiffPane({
   onOpenAgentNotesAtHunk: (fileId: string, hunkIndex: number) => void;
   onScrollCodeHorizontally?: (delta: number) => void;
   onSelectFile: (fileId: string) => void;
-  onViewportCenteredHunkChange?: (fileId: string, hunkIndex: number) => void;
 }) {
   const renderer = useRenderer();
   const mouseWheelScrollAcceleration = useMemo(
@@ -289,9 +287,6 @@ export function DiffPane({
   const suppressViewportSelectionSyncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
-  // Initialized to null so the first render never fires a selection change; a real scroll
-  // is required before passive viewport-follow selection can trigger.
-  const lastViewportSelectionTopRef = useRef<number | null>(null);
   const lastViewportRowAnchorRef = useRef<ViewportRowAnchor | null>(null);
 
   /**
@@ -538,13 +533,9 @@ export function DiffPane({
   // immediately after imperative scrolls instead of waiting for the polled viewport snapshot.
   const effectiveScrollTop = scrollRef.current?.scrollTop ?? scrollViewport.top;
 
-  // Selection used to follow the viewport center on every scroll, but that fought with explicit
-  // J/K reveals and produced flicker. Selection is now driven only by explicit user actions:
-  // J/K, sidebar clicks, and (soon) hunk-row clicks. Snapping the selection to the first visible
-  // hunk when the viewport reaches the very top lives in a dedicated effect below.
-  void onViewportCenteredHunkChange;
-  void fileSectionLayouts;
-  void sectionGeometry;
+  // Selection only changes via explicit user input (J/K, sidebar clicks). The earlier
+  // viewport-centered tracker fought J/K reveals and produced visible flicker; smart
+  // mouse-scroll tracking is a TODO follow-up that will reintroduce a tracker carefully.
 
   const pinnedHeaderFile = useMemo(() => {
     if (files.length === 0) {

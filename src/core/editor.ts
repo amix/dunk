@@ -1,12 +1,11 @@
 /**
  * Resolve the user's editor and how to open one file at a specific line.
  *
- * Reads `$VISUAL` then `$EDITOR`. Each editor needs its own argument shape:
- * vim/nvim/nano use `+LINE file`; VS Code, Cursor, Sublime, and Zed use a
- * `file:LINE` suffix; Helix uses `file:LINE`. Unknown editors fall back to
- * just the file path.
+ * Reads `$VISUAL` then `$EDITOR` and dispatches by editor basename so each
+ * editor gets the argument shape it expects.
  */
 import { spawn, type SpawnOptions } from "node:child_process";
+import { basename } from "node:path";
 
 export interface EditorLaunchPlan {
   /** Executable + args, ready to pass to spawn. */
@@ -26,7 +25,10 @@ export function resolveEditorLaunch(
   line: number,
   options: ResolveEditorOptions = {},
 ): EditorLaunchPlan | null {
-  const raw = (options.visual ?? options.editor ?? "").trim();
+  // Default to the active environment so the App layer doesn't need to read env vars itself.
+  const visual = options.visual ?? process.env.VISUAL;
+  const editor = options.editor ?? process.env.EDITOR;
+  const raw = (visual ?? editor ?? "").trim();
   if (raw.length === 0) {
     return null;
   }
@@ -36,7 +38,7 @@ export function resolveEditorLaunch(
   // editor convention.
   const parts = splitCommand(raw);
   const program = parts[0]!;
-  const baseName = lastPathSegment(program).toLowerCase();
+  const baseName = basename(program).toLowerCase();
   const flags = parts.slice(1);
 
   switch (baseName) {

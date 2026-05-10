@@ -10,13 +10,9 @@ import fs from "node:fs";
 import { join, resolve as resolvePath } from "node:path";
 import { findAgentFileContext, loadAgentContext } from "./agent";
 import { createSkippedBinaryMetadata, isProbablyBinaryFile, patchLooksBinary } from "./binary";
-import {
-  applyCommentsToChangeset,
-  readCommentsFile,
-  resolveComments,
-  type DriftedComment,
-} from "./comments";
+import { applyCommentsToChangeset, readCommentsFile, resolveComments } from "./comments";
 import { findRepoRoot } from "./config";
+import type { DriftedCommentSummary } from "./types";
 import { normalizeDiffMetadataPaths, normalizeDiffPath } from "./diffPaths";
 import { HunkUserError } from "./errors";
 import {
@@ -1182,7 +1178,8 @@ export async function loadAppBootstrap(
     files: orderDiffFiles(changeset.files, agentContext),
   };
 
-  const driftedComments = mergeUserComments({ changeset, cwd, mutate: (next) => (changeset = next) });
+  const merged = mergeUserComments(changeset, cwd);
+  changeset = merged.changeset;
 
   return {
     input,
@@ -1193,39 +1190,37 @@ export async function loadAppBootstrap(
     initialWrapLines: input.options.wrapLines ?? false,
     initialShowHunkHeaders: input.options.hunkHeaders ?? true,
     initialShowAgentNotes: input.options.agentNotes ?? false,
-    driftedComments,
+    driftedComments: merged.drifted,
   };
 }
 
 /**
- * Read `.tunk/comments.json` for the active repo and fold anchored comments
- * into the changeset's per-file annotations. Drifted comments are returned
- * for top-of-diff rendering. Failures (missing repo, unreadable file) yield
- * an empty drift list rather than aborting the bootstrap.
+ * Read `.tunk/comments.json` for the active repo, anchor comments against the
+ * current post-image, and fold the anchored ones into the changeset's per-file
+ * annotations. Drifted comments are returned separately. Any failure (missing
+ * repo, unreadable file) yields the original changeset and an empty drift
+ * list rather than aborting the bootstrap.
  */
-function mergeUserComments({
-  changeset,
-  cwd,
-  mutate,
-}: {
-  changeset: Changeset;
-  cwd: string;
-  mutate: (next: Changeset) => void;
-}) {
+function mergeUserComments(
+  changeset: Changeset,
+  cwd: string,
+): { changeset: Changeset; drifted: DriftedCommentSummary[] } {
+  const empty = { changeset, drifted: [] };
+
   const repoRoot = findRepoRoot(cwd);
   if (!repoRoot) {
-    return [];
+    return empty;
   }
 
   let commentsFile;
   try {
     commentsFile = readCommentsFile(repoRoot);
   } catch {
-    return [];
+    return empty;
   }
 
   if (commentsFile.comments.length === 0) {
-    return [];
+    return empty;
   }
 
   const fileContentByPath = new Map<string, string | undefined>();
@@ -1234,23 +1229,25 @@ function mergeUserComments({
       continue;
     }
 
-    const candidate = resolvePath(repoRoot, comment.file);
-    fileContentByPath.set(
-      comment.file,
-      fs.existsSync(candidate) ? fs.readFileSync(candidate, "utf8") : undefined,
-    );
+    let content: string | undefined;
+    try {
+      content = fs.readFileSync(resolvePath(repoRoot, comment.file), "utf8");
+    } catch {
+      content = undefined;
+    }
+    fileContentByPath.set(comment.file, content);
   }
 
   const resolved = resolveComments(commentsFile.comments, fileContentByPath);
-  const merged = applyCommentsToChangeset(changeset, resolved, fileContentByPath);
-  mutate(merged.changeset);
-
-  const drifted: DriftedComment[] = merged.drifted;
-  return drifted.map((comment) => ({
-    id: comment.id,
-    file: comment.file,
-    line: comment.line,
-    body: comment.body,
-    reason: comment.reason,
-  }));
+  const applied = applyCommentsToChangeset(changeset, resolved);
+  return {
+    changeset: applied.changeset,
+    drifted: applied.drifted.map((comment) => ({
+      id: comment.id,
+      file: comment.file,
+      line: comment.line,
+      body: comment.body,
+      reason: comment.reason,
+    })),
+  };
 }

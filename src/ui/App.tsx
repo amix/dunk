@@ -5,11 +5,9 @@ import {
 } from "@opentui/core";
 import { useRenderer, useTerminalDimensions } from "@opentui/react";
 import { Suspense, lazy, useCallback, useEffect, useMemo, useState, useRef } from "react";
-import { readFileSync } from "node:fs";
-import { resolve as resolvePath } from "node:path";
 import {
   commentsForHunkRange,
-  computeAnchor,
+  computeAnchorForFile,
   mutateCommentsFile,
   withAddedComment,
   withRemovedComment,
@@ -103,6 +101,9 @@ export function App({
   const pagerMode = Boolean(bootstrap.input.options.pager);
   const renderer = useRenderer();
   const terminal = useTerminalDimensions();
+  // Repo root is invariant for one App mount; resolving it once avoids walking the
+  // filesystem on every hunk-action keystroke.
+  const repoRoot = useMemo(() => findRepoRoot() ?? null, []);
   const sidebarScrollRef = useRef<ScrollBoxRenderable | null>(null);
   const diffScrollRef = useRef<ScrollBoxRenderable | null>(null);
   const wrapToggleScrollTopRef = useRef<number | null>(null);
@@ -146,10 +147,6 @@ export function App({
     },
     [review.selectFile],
   );
-
-  const openAgentNotes = useCallback(() => {
-    setShowAgentNotes(true);
-  }, []);
 
   const bodyPadding = pagerMode ? 0 : BODY_PADDING;
   const bodyWidth = Math.max(0, terminal.width - bodyPadding);
@@ -374,147 +371,110 @@ export function App({
     });
   }, [refreshCurrentInput]);
 
-  /** Resolve the comments matching the currently selected hunk's post-image range. */
-  const focusedHunkComments = useCallback(() => {
+  /** Resolve the active hunk's repo-root, file path, and post-image range. */
+  const focusedHunkTarget = useCallback(() => {
     const selected = review.selectedFile;
     const hunk = review.selectedHunk;
-    if (!selected || !hunk) {
-      return null;
-    }
-
-    const repoRoot = findRepoRoot();
-    if (!repoRoot) {
+    if (!selected || !hunk || !repoRoot) {
       return null;
     }
 
     const range = hunkLineRange(hunk).newRange;
     return { repoRoot, filePath: selected.path, range };
-  }, [review.selectedFile, review.selectedHunk]);
+  }, [repoRoot, review.selectedFile, review.selectedHunk]);
 
-  /** Delete the lowest-id comment on the focused hunk. */
+  /** Apply one mutation to the comments anchored on the focused hunk. */
+  const mutateFocusedHunkComments = useCallback(
+    (
+      reduce: (
+        file: ReturnType<typeof mutateCommentsFile> extends infer R ? R : never,
+        matching: ReturnType<typeof commentsForHunkRange>,
+      ) => ReturnType<typeof mutateCommentsFile> | null,
+    ) => {
+      const target = focusedHunkTarget();
+      if (!target) {
+        return;
+      }
+
+      try {
+        mutateCommentsFile(target.repoRoot, (current) => {
+          const matching = commentsForHunkRange(current.comments, target.filePath, target.range);
+          const next = matching.length === 0 ? current : reduce(current, matching);
+          return next ?? current;
+        });
+      } catch (error) {
+        console.error("Failed to mutate tunk comments.", error);
+        return;
+      }
+
+      triggerRefreshCurrentInput();
+    },
+    [focusedHunkTarget, triggerRefreshCurrentInput],
+  );
+
   const deleteFocusedComment = useCallback(() => {
-    const target = focusedHunkComments();
-    if (!target) {
-      return;
-    }
+    mutateFocusedHunkComments((current, matching) => {
+      const oldest = matching.reduce((a, b) => (a.id < b.id ? a : b));
+      return withRemovedComment(current, oldest.id);
+    });
+  }, [mutateFocusedHunkComments]);
 
-    try {
-      mutateCommentsFile(target.repoRoot, (current) => {
-        const matching = commentsForHunkRange(current.comments, target.filePath, target.range);
-        if (matching.length === 0) {
-          return current;
-        }
-
-        const oldest = matching.reduce((a, b) => (a.id < b.id ? a : b));
-        return withRemovedComment(current, oldest.id);
-      });
-    } catch (error) {
-      console.error("Failed to delete the focused comment.", error);
-      return;
-    }
-
-    triggerRefreshCurrentInput();
-  }, [focusedHunkComments, triggerRefreshCurrentInput]);
-
-  /** Delete every comment that anchors to the focused hunk. */
   const deleteAllFocusedComments = useCallback(() => {
-    const target = focusedHunkComments();
-    if (!target) {
-      return;
-    }
-
-    try {
-      mutateCommentsFile(target.repoRoot, (current) => {
-        const matching = commentsForHunkRange(current.comments, target.filePath, target.range);
-        if (matching.length === 0) {
-          return current;
-        }
-
-        return withRemovedComments(
-          current,
-          matching.map((comment) => comment.id),
-        );
-      });
-    } catch (error) {
-      console.error("Failed to delete the focused hunk's comments.", error);
-      return;
-    }
-
-    triggerRefreshCurrentInput();
-  }, [focusedHunkComments, triggerRefreshCurrentInput]);
+    mutateFocusedHunkComments((current, matching) =>
+      withRemovedComments(
+        current,
+        matching.map((comment) => comment.id),
+      ),
+    );
+  }, [mutateFocusedHunkComments]);
 
   /** Open the comment-authoring modal for the bottom line of the focused hunk. */
   const openCommentEditor = useCallback(() => {
-    const selected = review.selectedFile;
-    const hunk = review.selectedHunk;
-    if (!selected || !hunk) {
+    const target = focusedHunkTarget();
+    if (!target) {
       return;
     }
 
-    const repoRoot = findRepoRoot();
-    if (!repoRoot) {
-      return;
-    }
-
-    const range = hunkLineRange(hunk).newRange;
-    const line = range[1];
-    let content: string;
-    try {
-      content = readFileSync(resolvePath(repoRoot, selected.path), "utf8");
-    } catch (error) {
-      // Comments anchor against on-disk content; skip files we cannot read (binary,
-      // missing post-image, patch-from-stdin) rather than failing loudly.
-      console.error(`Skipping comment for ${selected.path}: ${(error as Error).message}`);
-      return;
-    }
-
-    const lines = content.split("\n").map((row) => row.replace(/\s+$/, ""));
-    const anchor = computeAnchor(lines, line);
+    const line = target.range[1];
+    const anchor = computeAnchorForFile(target.repoRoot, target.filePath, line);
     if (!anchor) {
+      // The post-image was unreadable or the line is out of range — skip rather than fail loudly.
       return;
     }
 
-    setCommentEditorTarget({ repoRoot, filePath: selected.path, line, anchor });
-  }, [review.selectedFile, review.selectedHunk]);
+    setCommentEditorTarget({ repoRoot: target.repoRoot, filePath: target.filePath, line, anchor });
+  }, [focusedHunkTarget]);
 
-  /** Close the editor without saving. */
   const closeCommentEditor = useCallback(() => {
     setCommentEditorTarget(null);
   }, []);
 
   /** Open the focused hunk in the user's editor at the bottom of its post-image range. */
   const openInEditor = useCallback(() => {
-    const selected = review.selectedFile;
-    const hunk = review.selectedHunk;
-    if (!selected || !hunk) {
+    const target = focusedHunkTarget();
+    if (!target) {
       return;
     }
 
-    const repoRoot = findRepoRoot();
-    if (!repoRoot) {
-      return;
-    }
-
-    const line = hunkLineRange(hunk).newRange[1];
-    const plan = resolveEditorLaunch(selected.path, line, {
-      visual: process.env.VISUAL,
-      editor: process.env.EDITOR,
-    });
+    const line = target.range[1];
+    const plan = resolveEditorLaunch(target.filePath, line);
     if (!plan) {
       console.error("Set $VISUAL or $EDITOR to use the `e` shortcut.");
       return;
     }
 
-    void runEditorLaunch(plan, { cwd: repoRoot })
+    void runEditorLaunch(plan, { cwd: target.repoRoot })
       .then(() => {
-        // After the editor exits, file content may have changed — reload so the
-        // diff and any anchored comments refresh against the new post-image.
-        triggerRefreshCurrentInput();
+        // Detached GUI editors return immediately — chaining a reload then would
+        // race the user's typing. Watch mode picks those changes up via fs.watch.
+        if (plan.needsTty) {
+          triggerRefreshCurrentInput();
+        }
       })
       .catch((error) => {
         console.error("Failed to launch the editor.", error);
       });
-  }, [review.selectedFile, review.selectedHunk, triggerRefreshCurrentInput]);
+  }, [focusedHunkTarget, triggerRefreshCurrentInput]);
 
   /** Persist the entered body and reload so the new comment shows up inline. */
   const saveComment = useCallback(
@@ -796,9 +756,6 @@ export function App({
             scrollCodeHorizontally(delta * FAST_CODE_HORIZONTAL_SCROLL_COLUMNS);
           }}
           onSelectFile={jumpToFile}
-          onViewportCenteredHunkChange={(fileId, hunkIndex) =>
-            review.selectHunk(fileId, hunkIndex, { preserveViewport: true })
-          }
         />
       </box>
 

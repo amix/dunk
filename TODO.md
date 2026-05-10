@@ -22,7 +22,7 @@ A *smaller* terminal diff + notes tool than upstream `hunk`. Sharing happens by 
 6. **`e` opens current file at current line** via `$VISUAL`/`$EDITOR` with flag conventions for nvim, vim, code, cursor, zed, subl. Suspend tunk for terminal editors; spawn detached for GUI editors.
 7. **`J` / `K` for hunk navigation** (replace `[` / `]`). `gg` top, `Shift-G` bottom.
 8. **Layout polish**: drop residual top margin from the removed menu; subtle "Press ? for help" hint on the otherwise-idle status line.
-9. **Selection auto-copy** — last, and reconsider. Fights native terminal selection on most terminals; platform-sensitive. May be the wrong feature.
+9. **Selection auto-copy** — selecting text in the diff auto-copies to the clipboard with a small ephemeral status-line confirmation ("copied to clipboard"). Configurable via `.tunk/config.toml` (`selection.autoCopy = true | false`); default is **on**. Note: this can collide with native terminal selection on some terminals — explicitly opt-out path needs to work cleanly.
 
 ## LLM-facing principles
 
