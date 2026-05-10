@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join, resolve as resolvePath } from "node:path";
 import { DUNK_COMMENTS_FILENAME, DUNK_DIR } from "./dunkPaths";
-import type { Annotation, Changeset, DiffFile, DriftReason } from "./types";
+import type { Annotation, Changeset, DiffFile, DriftReason, LineRange } from "./types";
 
 const SCHEMA_VERSION = 1;
 const ANCHOR_HEX_LEN = 16;
@@ -25,7 +25,7 @@ export interface PersistedComment {
   id: number;
   file: string;
   line: number;
-  range: [number, number];
+  range: LineRange;
   anchor: string;
   body: string;
 }
@@ -265,7 +265,7 @@ function mergeFileAnnotations(
 export function commentsForHunkRange(
   comments: PersistedComment[],
   filePath: string,
-  postLineRange: [number, number],
+  postLineRange: LineRange,
 ): PersistedComment[] {
   const [start, end] = postLineRange;
   return comments.filter(

@@ -187,6 +187,8 @@ interface LineRowIndex {
   rows: DiffLineRow[];
   byOldLine: Map<number, DiffLineRow>;
   byNewLine: Map<number, DiffLineRow>;
+  /** Last line row of every hunk, so notes can anchor at the hunk's bottom. */
+  lastLineRowByHunk: Map<number, DiffLineRow>;
   // Render-order position per row identity so covered-row collections can sort
   // without an O(n) indexOf on every comparison.
   positionByKey: Map<string, number>;
@@ -198,10 +200,12 @@ function buildLineRowIndex(rows: DiffRow[]): LineRowIndex {
   const lineRowsList = lineRows(rows);
   const byOldLine = new Map<number, DiffLineRow>();
   const byNewLine = new Map<number, DiffLineRow>();
+  const lastLineRowByHunk = new Map<number, DiffLineRow>();
   const positionByKey = new Map<string, number>();
 
   lineRowsList.forEach((row, position) => {
     positionByKey.set(row.key, position);
+    lastLineRowByHunk.set(row.hunkIndex, row);
     const oldLine = rowOldLineNumber(row);
     if (oldLine !== null && !byOldLine.has(oldLine)) {
       byOldLine.set(oldLine, row);
@@ -216,6 +220,7 @@ function buildLineRowIndex(rows: DiffRow[]): LineRowIndex {
     rows: lineRowsList,
     byOldLine,
     byNewLine,
+    lastLineRowByHunk,
     positionByKey,
     firstHeaderRow: rows.find((row) => row.type === "hunk-header"),
   };
@@ -267,19 +272,13 @@ function collectCoveredRows(index: LineRowIndex, annotation: Annotation) {
   );
 }
 
-/** Map each hunk to the last line row inside it, so notes always anchor at the hunk bottom. */
-function buildHunkLastLineRow(index: LineRowIndex) {
-  const lastByHunk = new Map<number, DiffLineRow>();
-  for (const row of index.rows) {
-    lastByHunk.set(row.hunkIndex, row);
-  }
-  return lastByHunk;
-}
-
 function buildInlineVisibleNotePlacements(rows: DiffRow[], visibleAgentNotes: VisibleAgentNote[]) {
-  const index = buildLineRowIndex(rows);
-  const lastLineRowByHunk = buildHunkLastLineRow(index);
   const placementsByAfterKey = new Map<string, InlineVisibleNotePlacement[]>();
+  if (visibleAgentNotes.length === 0) {
+    return placementsByAfterKey;
+  }
+
+  const index = buildLineRowIndex(rows);
 
   for (const note of visibleAgentNotes) {
     // Resolve the original anchor only for guide-rail placement (the side rail
@@ -292,7 +291,7 @@ function buildInlineVisibleNotePlacements(rows: DiffRow[], visibleAgentNotes: Vi
     }
 
     const hunkIndex = guideAnchorRow.hunkIndex;
-    const cardAnchorRow = lastLineRowByHunk.get(hunkIndex) ?? guideAnchorRow;
+    const cardAnchorRow = index.lastLineRowByHunk.get(hunkIndex) ?? guideAnchorRow;
     const anchorSide = annotationAnchor(note.annotation)?.side;
     const coveredRows = collectCoveredRows(index, note.annotation);
     const fallbackGuideRow = anchorSide ? guideAnchorRow : undefined;
@@ -324,10 +323,10 @@ function buildInlineVisibleNotePlacements(rows: DiffRow[], visibleAgentNotes: Vi
   return placementsByAfterKey;
 }
 
-function buildNoteGuideSideByRowKey(placementsByAnchor: Map<string, InlineVisibleNotePlacement[]>) {
+function buildNoteGuideSideByRowKey(placementsByAfterKey: Map<string, InlineVisibleNotePlacement[]>) {
   const guideSideByRowKey = new Map<string, "old" | "new">();
 
-  for (const placements of placementsByAnchor.values()) {
+  for (const placements of placementsByAfterKey.values()) {
     for (const placement of placements) {
       if (!placement.anchorSide) {
         continue;
@@ -344,10 +343,10 @@ function buildNoteGuideSideByRowKey(placementsByAnchor: Map<string, InlineVisibl
   return guideSideByRowKey;
 }
 
-function buildGuideCapsByRowKey(placementsByAnchor: Map<string, InlineVisibleNotePlacement[]>) {
+function buildGuideCapsByRowKey(placementsByAfterKey: Map<string, InlineVisibleNotePlacement[]>) {
   const guideCapsByRowKey = new Map<string, Set<"old" | "new">>();
 
-  for (const placements of placementsByAnchor.values()) {
+  for (const placements of placementsByAfterKey.values()) {
     for (const placement of placements) {
       if (!placement.anchorSide || !placement.endGuideAfterKey) {
         continue;

@@ -3,11 +3,14 @@ import type { FileDiffMetadata } from "@pierre/diffs";
 export type LayoutMode = "auto" | "split" | "stack";
 export type VcsMode = "git" | "jj";
 
+/** Inclusive 1-based [start, end] line range used by annotations and persisted comments. */
+export type LineRange = [number, number];
+
 /** One inline annotation rendered alongside a diff hunk. Carries a user comment. */
 export interface Annotation {
   id?: string;
-  oldRange?: [number, number];
-  newRange?: [number, number];
+  oldRange?: LineRange;
+  newRange?: LineRange;
   summary?: string;
   rationale?: string;
 }
