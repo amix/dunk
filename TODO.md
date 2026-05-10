@@ -15,11 +15,11 @@ A *smaller* terminal diff + notes tool than upstream `hunk`. Sharing happens by 
 5. **User comments CRUD** on the new file model. Keys:
    - `a` adds a comment for the current hunk via a focused modal.
    - `d` deletes the focused comment.
-   - `D` deletes all comments on the focused hunk.
+   - `D` deletes every comment in the current diff (Y/N confirm).
    - `c` toggles comment visibility (default: on).
-   - Drifted comments render in a stack at the top of the diff with a darker background. The same `d` / `D` keys dismiss them. Exact-match + pinned only; no fuzzy matching.
+   - Drifted comments render in a stack at the top of the diff with a darker background. Exact-match + pinned only; no fuzzy matching.
 
-   Open polish: comment authoring is single-line today; multi-line input requires a custom component since OpenTUI's `<input>` is single-line.
+   Multi-line authoring is not in v1: OpenTUI's `<input>` is single-line and a custom textarea component is more surgery than the workflow needs today. For now, write multi-line bodies by hand-editing `.dunk/comments.json` and letting the active dunk session pick the change up via `--watch`.
 6. **`e` opens current file at current line** via `$VISUAL`/`$EDITOR` with flag conventions for nvim, vim, code, cursor, zed, subl. Suspend dunk for terminal editors; spawn detached for GUI editors.
 7. **`J` / `K` for hunk navigation** (replace `[` / `]`). `gg` top, `Shift-G` bottom.
 8. **Layout polish**: drop residual top margin from the removed menu; subtle "Press ? for help" hint on the otherwise-idle status line.
