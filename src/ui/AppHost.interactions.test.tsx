@@ -18,6 +18,9 @@ import { createTestDiffFile as buildTestDiffFile, lines } from "../../test/helpe
 const { loadAppBootstrap } = await import("../core/loaders");
 const { AppHost } = await import("./AppHost");
 
+const PAGE_DOWN_SEQUENCE = "\x1B[6~";
+const PAGE_UP_SEQUENCE = "\x1B[5~";
+
 function createTestDiffFile(
   id: string,
   path: string,
@@ -1196,7 +1199,7 @@ describe("App interactions", () => {
   test("the first down-arrow step still advances content under the always-pinned file header above a collapsed gap", async () => {
     const setup = await testRender(<AppHost bootstrap={createCollapsedTopBootstrap()} />, {
       width: 220,
-      height: 10,
+      height: 9,
     });
 
     try {
@@ -1234,7 +1237,7 @@ describe("App interactions", () => {
   test("one-line down then up at the top restores the collapsed-gap view beneath the pinned file header", async () => {
     const setup = await testRender(<AppHost bootstrap={createCollapsedTopBootstrap()} />, {
       width: 220,
-      height: 10,
+      height: 9,
     });
 
     try {
@@ -1553,7 +1556,7 @@ describe("App interactions", () => {
       setup.captureCharFrame();
 
       await act(async () => {
-        await setup.mockInput.pressKey("pageup");
+        await setup.mockInput.pressKeys([PAGE_UP_SEQUENCE]);
       });
       await flush(setup);
 
@@ -2014,7 +2017,7 @@ describe("App interactions", () => {
       <AppHost bootstrap={createMouseScrollSelectionBootstrap()} hostClient={hostClient} />,
       {
         width: 220,
-        height: 12,
+        height: 11,
       },
     );
 
@@ -2078,7 +2081,7 @@ describe("App interactions", () => {
       let snapshot = getLatestSnapshot();
       for (let index = 0; index < 8; index += 1) {
         await act(async () => {
-          await setup.mockInput.pressKey("pagedown");
+          await setup.mockInput.pressKeys([PAGE_DOWN_SEQUENCE]);
         });
         await flush(setup);
 
@@ -2102,7 +2105,7 @@ describe("App interactions", () => {
 
       for (let index = 0; index < 8; index += 1) {
         await act(async () => {
-          await setup.mockInput.pressKey("pageup");
+          await setup.mockInput.pressKeys([PAGE_UP_SEQUENCE]);
         });
         await flush(setup);
 
@@ -2180,7 +2183,7 @@ describe("App interactions", () => {
   test("clicking a sidebar file makes that file own the top of the review pane", async () => {
     const setup = await testRender(<AppHost bootstrap={createTwoFileHunkBootstrap()} />, {
       width: 220,
-      height: 10,
+      height: 9,
     });
 
     try {
@@ -2196,7 +2199,7 @@ describe("App interactions", () => {
 
       await act(async () => {
         // Click inside the second file row in the left sidebar.
-        await setup.mockMouse.click(6, 4);
+        await setup.mockMouse.click(6, 3);
       });
       await flush(setup);
 
