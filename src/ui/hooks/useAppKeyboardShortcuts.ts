@@ -30,6 +30,7 @@ export interface UseAppKeyboardShortcutsOptions {
   moveToAnnotatedHunk: (delta: number) => void;
   moveToHunk: (delta: number) => void;
   openCommentEditor: () => void;
+  openInEditor: () => void;
   pagerMode: boolean;
   requestQuit: () => void;
   scrollCodeHorizontally: (delta: number) => void;
@@ -59,6 +60,7 @@ export function useAppKeyboardShortcuts({
   moveToAnnotatedHunk,
   moveToHunk,
   openCommentEditor,
+  openInEditor,
   pagerMode,
   requestQuit,
   scrollCodeHorizontally,
@@ -321,6 +323,11 @@ export function useAppKeyboardShortcuts({
 
     if (key.sequence === "c") {
       openCommentEditor();
+      return;
+    }
+
+    if (key.sequence === "e") {
+      openInEditor();
       return;
     }
 

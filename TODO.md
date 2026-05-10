@@ -28,9 +28,17 @@ A *smaller* terminal diff + notes tool than upstream `hunk`. Sharing happens by 
 
 When tunk surfaces review comments to an LLM (skill, JSON export, MCP-style bridge — *if* we keep one), emit **file paths + line numbers + comment bodies only**. Never feed raw code snippets. The LLM can read the files itself; keeping the output free of content avoids stale snippets, reduces context bloat, and keeps `.tunk/comments.json` itself snippet-free as a side benefit. This applies to any `tunk export`, `tunk review --json`, or skill SKILL.md flow we ship.
 
-## Click-to-select hunks
+## Hunk selection — needs polish
 
-Clicking anywhere inside a hunk's rendered rows should mark it as the current hunk (the same selection state J/K lands on). Sidebar clicks already select the file; extend the behavior to the in-stream hunk rows.
+Selection has visible flicker today. Specific issues to fix together:
+
+- **First hunk selected on open.** Right now the selection lands on `selectedHunkIndex = 0` but the viewport-centered tracker can immediately overwrite it.
+- **`J` / `K` should be precise.** No racey re-selection from the viewport-centered hook between key press and frame paint.
+- **Click-to-select.** Clicking anywhere inside a hunk's rendered rows marks it as the current hunk (the same state J/K lands on). Sidebar file-clicks already work; extend to in-stream rows.
+- **Top of stream → first hunk.** Scrolling all the way up should reselect the first visible hunk so navigation has a clean starting point.
+- **Smart mouse-scroll selection.** Track which hunk's body owns the viewport center on wheel scroll, but debounce so the selection doesn't flicker mid-scroll.
+
+Likely root cause: the viewport-centered selection effect competes with explicit `selectHunk` calls. Make the explicit selection win until the next user interaction, and give the centered tracker a short cooldown.
 
 ## LLM-driven refresh
 

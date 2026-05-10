@@ -1551,6 +1551,7 @@ describe("UI components", () => {
       "Comments",
       "c               add comment on this hunk",
       "d / D           delete one / all on this hunk",
+      "e               open this file in $EDITOR at the hunk",
       "Review",
       "/               focus file filter",
       "Tab             toggle files/filter focus",

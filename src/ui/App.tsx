@@ -16,6 +16,7 @@ import {
   withRemovedComments,
 } from "../core/comments";
 import { findRepoRoot } from "../core/config";
+import { resolveEditorLaunch, runEditorLaunch } from "../core/editor";
 import { hunkLineRange } from "../core/hunkRange";
 import type { AppBootstrap, CliInput, LayoutMode } from "../core/types";
 import { canReloadInput, computeWatchSignature } from "../core/watch";
@@ -481,6 +482,40 @@ export function App({
     setCommentEditorTarget(null);
   }, []);
 
+  /** Open the focused hunk in the user's editor at the bottom of its post-image range. */
+  const openInEditor = useCallback(() => {
+    const selected = review.selectedFile;
+    const hunk = review.selectedHunk;
+    if (!selected || !hunk) {
+      return;
+    }
+
+    const repoRoot = findRepoRoot();
+    if (!repoRoot) {
+      return;
+    }
+
+    const line = hunkLineRange(hunk).newRange[1];
+    const plan = resolveEditorLaunch(selected.path, line, {
+      visual: process.env.VISUAL,
+      editor: process.env.EDITOR,
+    });
+    if (!plan) {
+      console.error("Set $VISUAL or $EDITOR to use the `e` shortcut.");
+      return;
+    }
+
+    void runEditorLaunch(plan, { cwd: repoRoot })
+      .then(() => {
+        // After the editor exits, file content may have changed — reload so the
+        // diff and any anchored comments refresh against the new post-image.
+        triggerRefreshCurrentInput();
+      })
+      .catch((error) => {
+        console.error("Failed to launch the editor.", error);
+      });
+  }, [review.selectedFile, review.selectedHunk, triggerRefreshCurrentInput]);
+
   /** Persist the entered body and reload so the new comment shows up inline. */
   const saveComment = useCallback(
     (body: string) => {
@@ -605,6 +640,7 @@ export function App({
     moveToAnnotatedHunk,
     moveToHunk: review.moveToHunk,
     openCommentEditor,
+    openInEditor,
     pagerMode,
     requestQuit,
     scrollCodeHorizontally,

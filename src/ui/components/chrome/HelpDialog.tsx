@@ -52,6 +52,7 @@ export function HelpDialog({
       items: [
         ["c", "add comment on this hunk"],
         ["d / D", "delete one / all on this hunk"],
+        ["e", "open this file in $EDITOR at the hunk"],
       ],
     },
     {
