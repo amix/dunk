@@ -62,8 +62,10 @@ export function StatusBar({
         </>
       ) : filter.length > 0 ? (
         <text fg={theme.muted}>{`filter=${filter}`}</text>
+      ) : noticeText ? (
+        <text fg={theme.muted}>{noticeText}</text>
       ) : (
-        <text fg={theme.muted}>{noticeText ?? ""}</text>
+        <text fg={theme.muted}>Press ? for help</text>
       )}
     </box>
   );

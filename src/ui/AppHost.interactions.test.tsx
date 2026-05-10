@@ -1042,7 +1042,7 @@ describe("App interactions", () => {
   test("the first down-arrow step still advances content under the always-pinned file header above a collapsed gap", async () => {
     const setup = await testRender(<AppHost bootstrap={createCollapsedTopBootstrap()} />, {
       width: 220,
-      height: 7,
+      height: 8,
     });
 
     try {

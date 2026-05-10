@@ -790,7 +790,7 @@ export function App({
         />
       </box>
 
-      {!pagerMode && (focusArea === "filter" || Boolean(review.filter) || Boolean(noticeText)) ? (
+      {!pagerMode ? (
         <StatusBar
           filter={review.filter}
           filterFocused={focusArea === "filter"}
