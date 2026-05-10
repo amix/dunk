@@ -9,6 +9,7 @@ import {
   commentsForHunkRange,
   computeAnchorForFile,
   mutateCommentsFile,
+  readCommentsFile as readCommentsFileFromRepo,
   withAddedComment,
   withRemovedComment,
   withRemovedCommentsForFiles,
@@ -245,6 +246,12 @@ export function App({
     }
 
     const handleSelection = (selection: { getSelectedText?: () => string } | null) => {
+      // Skip the copy when a modal or filter input owns the keyboard — the user
+      // is typing into a prompt, not selecting code to share.
+      if (commentEditorTarget || confirmPrompt || focusArea === "filter") {
+        return;
+      }
+
       const text = selection?.getSelectedText?.().trim();
       if (!text) {
         return;
@@ -265,7 +272,14 @@ export function App({
     return () => {
       unknownRenderer.off?.("selection", handleSelection as (selection: unknown) => void);
     };
-  }, [flashStatus, renderer, selectionAutoCopy]);
+  }, [
+    commentEditorTarget,
+    confirmPrompt,
+    flashStatus,
+    focusArea,
+    renderer,
+    selectionAutoCopy,
+  ]);
 
   useEffect(() => {
     // Force an intermediate redraw when app geometry or row-wrapping changes so pane relayout
@@ -482,24 +496,45 @@ export function App({
       return;
     }
 
+    const visiblePaths = new Set<string>();
+    for (const file of bootstrap.changeset.files) {
+      visiblePaths.add(file.path);
+      if (file.previousPath) {
+        visiblePaths.add(file.previousPath);
+      }
+    }
+
+    let pendingCount = 0;
+    try {
+      const current = readCommentsFileFromRepo(repoRoot);
+      pendingCount = current.comments.filter((comment) => visiblePaths.has(comment.file)).length;
+    } catch {
+      pendingCount = 0;
+    }
+
+    if (pendingCount === 0) {
+      flashStatus("no comments in this diff");
+      return;
+    }
+
     setConfirmPrompt({
       title: "Delete all comments",
-      message: `Delete every comment in the current diff (${bootstrap.changeset.files.length} files)?`,
+      message: `Delete all ${pendingCount} comment${pendingCount === 1 ? "" : "s"} in this diff?`,
       onConfirm: () => {
         setConfirmPrompt(null);
         // Rebuild path set at confirm time so a file-watcher reload while the dialog is
         // open does not leave the operation targeting a stale changeset.
-        const visiblePaths = new Set<string>();
+        const finalPaths = new Set<string>();
         for (const file of bootstrap.changeset.files) {
-          visiblePaths.add(file.path);
+          finalPaths.add(file.path);
           if (file.previousPath) {
-            visiblePaths.add(file.previousPath);
+            finalPaths.add(file.previousPath);
           }
         }
 
         try {
           mutateCommentsFile(repoRoot, (current) =>
-            withRemovedCommentsForFiles(current, visiblePaths),
+            withRemovedCommentsForFiles(current, finalPaths),
           );
         } catch (error) {
           console.error("Failed to delete comments in the current diff.", error);
@@ -509,7 +544,7 @@ export function App({
         triggerRefreshCurrentInput();
       },
     });
-  }, [bootstrap.changeset.files, repoRoot, triggerRefreshCurrentInput]);
+  }, [bootstrap.changeset.files, flashStatus, repoRoot, triggerRefreshCurrentInput]);
 
   /** Open the comment-authoring modal for the bottom line of the focused hunk. */
   const openCommentEditor = useCallback(() => {

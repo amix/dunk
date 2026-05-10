@@ -50,11 +50,12 @@ The LLM doesn't need a daemon or RPC. It works on the file system:
 
 Mechanism is plain `fs.watch` on the relevant paths, layered on the existing `--watch` flag. Keep the watch surface tight: the diff inputs and `.dunk/comments.json` only.
 
-## Rethinks (locked in from review)
+## Locked-in decisions
 
-- `D` scope: **current hunk only**, never the whole file.
-- Don't evolve agent-comment lifecycle into user notes. Build user notes as a separate file-backed model and delete the live-comment path.
-- Note authoring is **modal**, not on the status line. Inline polish is a later pass.
+- `d` deletes the lowest-id comment on the focused hunk. `D` deletes **every** comment in the current diff, gated by a Y/N confirm modal — user override of the earlier "current hunk only" lock-in. No undo (regret-watch).
+- User comments are a separate file-backed model in `.dunk/comments.json`; the agent-comment lifecycle was deleted, not evolved.
+- Comment authoring uses a focused modal, not status-line input. Inline editing polish stays a later pass.
+- Selection auto-copy defaults **on**, configurable via `.dunk/config.toml` (`selection_auto_copy = false`). Suppressed while a modal or filter input owns the keyboard.
 
 ## Top risks to watch
 
