@@ -19,6 +19,7 @@ import { findRepoRoot } from "../core/config";
 import { hunkLineRange } from "../core/hunkRange";
 import type { AppBootstrap, CliInput, LayoutMode } from "../core/types";
 import { canReloadInput, computeWatchSignature } from "../core/watch";
+import { DriftedCommentsBanner } from "./components/chrome/DriftedCommentsBanner";
 import { StatusBar } from "./components/chrome/StatusBar";
 import { DiffPane } from "./components/panes/DiffPane";
 import { SidebarPane } from "./components/panes/SidebarPane";
@@ -677,6 +678,14 @@ export function App({
         backgroundColor: activeTheme.background,
       }}
     >
+      {!pagerMode && bootstrap.driftedComments && bootstrap.driftedComments.length > 0 ? (
+        <DriftedCommentsBanner
+          drifted={bootstrap.driftedComments}
+          terminalWidth={terminal.width}
+          theme={activeTheme}
+        />
+      ) : null}
+
       <box
         style={{
           flexGrow: 1,
