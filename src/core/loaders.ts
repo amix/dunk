@@ -13,7 +13,7 @@ import { applyCommentsToChangeset, readCommentsFile, resolveComments } from "./c
 import { DEFAULT_VIEW_PREFERENCES, findRepoRoot } from "./config";
 import type { DriftedCommentSummary } from "./types";
 import { normalizeDiffMetadataPaths, normalizeDiffPath } from "./diffPaths";
-import { HunkUserError } from "./errors";
+import { DunkUserError } from "./errors";
 import {
   buildGitDiffArgs,
   buildGitDiffNumstatArgs,
@@ -90,7 +90,7 @@ function stripTerminalControl(text: string) {
  * ```
  *
  * Lines from `commit ` through the first patch header (`diff --git `,
- * `--- `, or `+++ `) are dropped. Hunk-body lines always start with
+ * `--- `, or `+++ `) are dropped. dunk-body lines always start with
  * `+`, `-`, ` ` or `\`, so a real context line that begins with the word
  * "commit" is unaffected (its leading space prevents the regex match).
  *
@@ -1043,8 +1043,8 @@ async function loadStashShowChangeset(
   cwd = process.cwd(),
 ) {
   if (input.options.vcs === "jj") {
-    throw new HunkUserError("`hunk stash show` requires Git VCS mode.", [
-      'Set `vcs = "git"` in Hunk config, then try again.',
+    throw new DunkUserError("`dunk stash show` requires Git VCS mode.", [
+      'Set `vcs = "git"` in dunk config, then try again.',
     ]);
   }
 

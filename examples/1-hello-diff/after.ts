@@ -16,6 +16,6 @@ export function renderWelcome(viewer: Viewer) {
 
 export function renderFooter(viewer: Viewer) {
   return viewer.visits >= 10
-    ? "Thanks for sticking with Hunk."
+    ? "Thanks for sticking with dunk."
     : "Tip: press ] to jump to the next hunk.";
 }

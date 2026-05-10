@@ -32,13 +32,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - package_name: hunkdiff-linux-arm64
+          - package_name: dunk-linux-arm64
             runner: ubuntu-24.04-arm
-          - package_name: hunkdiff-linux-x64
+          - package_name: dunk-linux-x64
             runner: ubuntu-latest
-          - package_name: hunkdiff-darwin-x64
+          - package_name: dunk-darwin-x64
             runner: macos-15-intel
-          - package_name: hunkdiff-darwin-arm64
+          - package_name: dunk-darwin-arm64
             runner: macos-14
     steps:
       - name: Check out repository

@@ -91,44 +91,44 @@ function applyWatchOption(command: Command) {
   return command.option("--watch", "auto-reload when the current diff input changes");
 }
 
-/** Render plain-text version output for `hunk --version`. */
+/** Render plain-text version output for `dunk --version`. */
 function renderCliVersion() {
   return `${resolveCliVersion()}\n`;
 }
 
-/** Render the bundled Hunk review skill path for shell usage. */
+/** Render the bundled dunk review skill path for shell usage. */
 function renderDunkReviewSkillPath() {
   return `${resolveBundledDunkReviewSkillPath()}\n`;
 }
 
-/** Build the `hunk skill` help text. */
+/** Build the `dunk skill` help text. */
 function renderSkillHelp() {
   return [
-    "Usage: hunk skill path",
+    "Usage: dunk skill path",
     "",
-    "Print the bundled Hunk review skill path.",
-    "Load or symlink that file in your coding agent to keep it in sync across Hunk upgrades.",
+    "Print the bundled dunk review skill path.",
+    "Load or symlink that file in your coding agent to keep it in sync across dunk upgrades.",
     "",
   ].join("\n");
 }
 
-/** Build the top-level help text shown by bare `hunk` and `hunk --help`. */
+/** Build the top-level help text shown by bare `dunk` and `dunk --help`. */
 function renderCliHelp() {
   return [
-    "Usage: hunk <command> [options]",
+    "Usage: dunk <command> [options]",
     "",
-    "Desktop-inspired terminal diff viewer for agent-authored changesets.",
+    "Personal terminal diff viewer with file-driven review comments.",
     "",
     "Commands:",
-    "  hunk diff [target] [-- <pathspec...>]   review working tree changes or compare against a target",
-    "  hunk diff --staged [-- <pathspec...>]   review staged changes",
-    "  hunk diff <left> <right>                compare two concrete files",
-    "  hunk show [target] [-- <pathspec...>]   review the last commit or a given target",
-    "  hunk stash show [ref]                   review a stash entry (git only)",
-    "  hunk patch [file]                       review a patch file or stdin",
-    "  hunk pager                              general Git pager wrapper with diff detection",
-    "  hunk difftool <left> <right> [path]     review Git difftool file pairs",
-    "  hunk skill path                         print the bundled Hunk review skill path",
+    "  dunk diff [target] [-- <pathspec...>]   review working tree changes or compare against a target",
+    "  dunk diff --staged [-- <pathspec...>]   review staged changes",
+    "  dunk diff <left> <right>                compare two concrete files",
+    "  dunk show [target] [-- <pathspec...>]   review the last commit or a given target",
+    "  dunk stash show [ref]                   review a stash entry (git only)",
+    "  dunk patch [file]                       review a patch file or stdin",
+    "  dunk pager                              general Git pager wrapper with diff detection",
+    "  dunk difftool <left> <right> [path]     review Git difftool file pairs",
+    "  dunk skill path                         print the bundled dunk review skill path",
     "",
     "Global options:",
     "  -h, --help                              show help",
@@ -149,7 +149,7 @@ function renderCliHelp() {
     "  --exclude-untracked                     hide untracked files in working tree reviews",
     "",
     "Notes:",
-    "  Run `hunk <command> --help` for command-specific syntax and options.",
+    "  Run `dunk <command> --help` for command-specific syntax and options.",
     '  "target" refers to a generic set of changes; it can be a ref (git) or revset (jj)',
     "",
   ].join("\n");
@@ -178,7 +178,7 @@ async function parseStandaloneCommand(command: Command, tokens: string[]) {
   command.exitOverride();
 
   try {
-    await command.parseAsync(["bun", "hunk", ...tokens]);
+    await command.parseAsync(["bun", "dunk", ...tokens]);
   } catch (error) {
     if (
       error &&
@@ -193,7 +193,7 @@ async function parseStandaloneCommand(command: Command, tokens: string[]) {
   }
 }
 
-/** Build one command parser with the shared Hunk options attached. */
+/** Build one command parser with the shared dunk options attached. */
 function createCommand(name: string, description: string) {
   return applyCommonOptions(new Command(name).description(description));
 }
@@ -203,7 +203,7 @@ function resolveJsonOutput(options: { json?: boolean }) {
   return options.json ? "json" : "text";
 }
 
-/** Parse the overloaded `hunk diff` command. */
+/** Parse the overloaded `dunk diff` command. */
 async function parseDiffCommand(tokens: string[], argv: string[]): Promise<ParsedCliInput> {
   const { commandTokens, pathspecs } = splitPathspecArgs(tokens);
   const command = applyWatchOption(
@@ -277,11 +277,11 @@ async function parseDiffCommand(tokens: string[], argv: string[]): Promise<Parse
   }
 
   throw new Error(
-    "Use `hunk diff [target] [-- pathspec...]`, `hunk diff <left> <right>` for file comparison.",
+    "Use `dunk diff [target] [-- pathspec...]`, `dunk diff <left> <right>` for file comparison.",
   );
 }
 
-/** Parse the Git-style `hunk show` command. */
+/** Parse the Git-style `dunk show` command. */
 async function parseShowCommand(tokens: string[], argv: string[]): Promise<ParsedCliInput> {
   const { commandTokens, pathspecs } = splitPathspecArgs(tokens);
   const command = applyWatchOption(
@@ -397,7 +397,7 @@ async function parseDifftoolCommand(tokens: string[], argv: string[]): Promise<P
   };
 }
 
-/** Parse `hunk skill ...` for bundled skill discovery commands. */
+/** Parse `dunk skill ...` for bundled skill discovery commands. */
 async function parseSkillCommand(tokens: string[]): Promise<HelpCommandInput> {
   const [subcommand, ...rest] = tokens;
   if (!subcommand || subcommand === "--help" || subcommand === "-h") {
@@ -408,7 +408,7 @@ async function parseSkillCommand(tokens: string[]): Promise<HelpCommandInput> {
   }
 
   if (subcommand !== "path") {
-    throw new Error("Only `hunk skill path` is supported.");
+    throw new Error("Only `dunk skill path` is supported.");
   }
 
   if (rest.includes("--help") || rest.includes("-h")) {
@@ -419,7 +419,7 @@ async function parseSkillCommand(tokens: string[]): Promise<HelpCommandInput> {
   }
 
   if (rest.length > 0) {
-    throw new Error("`hunk skill path` does not accept additional arguments.");
+    throw new Error("`dunk skill path` does not accept additional arguments.");
   }
 
   return {
@@ -428,7 +428,7 @@ async function parseSkillCommand(tokens: string[]): Promise<HelpCommandInput> {
   };
 }
 
-/** Parse `hunk daemon serve` as the canonical local daemon entrypoint. */
+/** Parse `dunk stash show ...` for stash entry review. */
 async function parseStashCommand(tokens: string[], argv: string[]): Promise<ParsedCliInput> {
   const [subcommand, ...rest] = tokens;
   if (!subcommand || subcommand === "--help" || subcommand === "-h") {
@@ -436,23 +436,23 @@ async function parseStashCommand(tokens: string[], argv: string[]): Promise<Pars
       kind: "help",
       text:
         [
-          "Usage: hunk stash show [ref] [options]",
+          "Usage: dunk stash show [ref] [options]",
           "",
-          "Review a stash entry as a full Hunk changeset.",
+          "Review a stash entry as a full dunk changeset.",
           "",
           "Examples:",
-          "  hunk stash show",
-          "  hunk stash show stash@{1}",
+          "  dunk stash show",
+          "  dunk stash show stash@{1}",
         ].join("\n") + "\n",
     };
   }
 
   if (subcommand !== "show") {
-    throw new Error("Only `hunk stash show` is supported.");
+    throw new Error("Only `dunk stash show` is supported.");
   }
 
   const command = applyWatchOption(
-    createCommand("stash show", "review a stash entry as a full Hunk changeset"),
+    createCommand("stash show", "review a stash entry as a full dunk changeset"),
   ).argument("[ref]");
 
   let parsedRef: string | undefined;

@@ -1,6 +1,6 @@
 import type { Hunk } from "@pierre/diffs";
 
-/** Format a unified-diff hunk header exactly as Hunk should display it. */
+/** Format a unified-diff hunk header exactly as dunk should display it. */
 export function formatHunkHeader(hunk: Hunk) {
   const specs =
     hunk.hunkSpecs ??

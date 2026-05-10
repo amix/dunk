@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import { join } from "node:path";
-import { HunkUserError } from "./errors";
+import { DunkUserError } from "./errors";
 import type { VcsCommandInput, ShowCommandInput, StashShowCommandInput } from "./types";
 
 export type GitBackedInput = VcsCommandInput | ShowCommandInput | StashShowCommandInput;
@@ -139,14 +139,14 @@ export function formatGitCommandLabel(input: GitBackedInput) {
   switch (input.kind) {
     case "vcs":
       if (input.staged) {
-        return "hunk diff --staged";
+        return "dunk diff --staged";
       }
 
-      return input.range ? `hunk diff ${input.range}` : "hunk diff";
+      return input.range ? `dunk diff ${input.range}` : "dunk diff";
     case "show":
-      return input.ref ? `hunk show ${input.ref}` : "hunk show";
+      return input.ref ? `dunk show ${input.ref}` : "dunk show";
     case "stash-show":
-      return input.ref ? `hunk stash show ${input.ref}` : "hunk stash show";
+      return input.ref ? `dunk stash show ${input.ref}` : "dunk stash show";
   }
 }
 
@@ -154,8 +154,8 @@ function getMissingRepoHelp(input: GitBackedInput) {
   if (input.kind === "vcs") {
     return [
       "Run the command from a Git checkout, or compare files directly instead:",
-      "  hunk diff <before-file> <after-file>",
-      "  hunk patch <file.patch>",
+      "  dunk diff <before-file> <after-file>",
+      "  dunk patch <file.patch>",
     ];
   }
 
@@ -194,14 +194,14 @@ function isNoStashEntriesMessage(stderr: string) {
 }
 
 function createMissingGitExecutableError(input: GitBackedInput, gitExecutable: string) {
-  return new HunkUserError(
+  return new DunkUserError(
     `Git is required for \`${formatGitCommandLabel(input)}\`, but \`${gitExecutable}\` was not found in PATH.`,
     ["Install Git or make it available on PATH, then try again."],
   );
 }
 
 function createMissingRepoError(input: GitBackedInput) {
-  return new HunkUserError(
+  return new DunkUserError(
     `\`${formatGitCommandLabel(input)}\` must be run inside a Git repository.`,
     getMissingRepoHelp(input),
   );
@@ -209,14 +209,14 @@ function createMissingRepoError(input: GitBackedInput) {
 
 function createInvalidRevisionError(input: VcsCommandInput | ShowCommandInput) {
   if (input.kind === "vcs") {
-    return new HunkUserError(
+    return new DunkUserError(
       `\`${formatGitCommandLabel(input)}\` could not resolve Git revision or range \`${input.range}\`.`,
       ["Check the revision or range and try again."],
     );
   }
 
   const ref = input.ref ?? "HEAD";
-  return new HunkUserError(
+  return new DunkUserError(
     `\`${formatGitCommandLabel(input)}\` could not resolve Git ref \`${ref}\`.`,
     ["Check the ref name and try again."],
   );
@@ -224,19 +224,19 @@ function createInvalidRevisionError(input: VcsCommandInput | ShowCommandInput) {
 
 function createMissingStashError(input: StashShowCommandInput) {
   if (input.ref) {
-    return new HunkUserError(
+    return new DunkUserError(
       `\`${formatGitCommandLabel(input)}\` could not resolve stash entry \`${input.ref}\`.`,
       ["List available stashes with `git stash list`, then try again."],
     );
   }
 
-  return new HunkUserError("`hunk stash show` could not find a stash entry to show.", [
-    "Create one with `git stash push`, or pass an explicit stash ref like `hunk stash show stash@{0}`.",
+  return new DunkUserError("`dunk stash show` could not find a stash entry to show.", [
+    "Create one with `git stash push`, or pass an explicit stash ref like `dunk stash show stash@{0}`.",
   ]);
 }
 
 function createGenericGitError(input: GitBackedInput, stderr: string) {
-  return new HunkUserError(`\`${formatGitCommandLabel(input)}\` failed.`, [
+  return new DunkUserError(`\`${formatGitCommandLabel(input)}\` failed.`, [
     firstGitErrorLine(stderr),
   ]);
 }
@@ -246,7 +246,7 @@ function translateGitSpawnFailure(
   error: unknown,
   gitExecutable: string,
 ): Error {
-  if (error instanceof HunkUserError) {
+  if (error instanceof DunkUserError) {
     return error;
   }
 
@@ -318,15 +318,15 @@ function runGitCommand({
   };
 }
 
-/** Run a git command and translate common failures into user-facing Hunk errors. */
+/** Run a git command and translate common failures into user-facing dunk errors. */
 export function runGitText(options: RunGitTextOptions) {
   return runGitCommand(options).stdout;
 }
 
 /**
- * Return whether one `hunk diff` input still compares against the live working tree.
+ * Return whether one `dunk diff` input still compares against the live working tree.
  *
- * Plain `hunk diff <ref>` keeps the working tree on one side, so untracked files should still
+ * Plain `dunk diff <ref>` keeps the working tree on one side, so untracked files should still
  * appear. Explicit revision-set expressions like `a..b`, `a...b`, or `rev^!` expand into positive
  * and negative revisions and should stay commit-to-commit only.
  */

@@ -5,7 +5,7 @@ A tall single-file diff made to show line scrolling, paging, and hunk jumps.
 ## Run
 
 ```bash
-hunk diff --pager examples/5-pager-tour/before.ts examples/5-pager-tour/after.ts
+dunk diff --pager examples/5-pager-tour/before.ts examples/5-pager-tour/after.ts
 ```
 
 ## What to look for

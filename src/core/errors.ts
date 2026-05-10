@@ -1,17 +1,17 @@
-export class HunkUserError extends Error {
+export class DunkUserError extends Error {
   readonly details: string[];
 
   constructor(message: string, details: string[] = []) {
     super(message);
-    this.name = "HunkUserError";
+    this.name = "DunkUserError";
     this.details = details;
   }
 }
 
 /** Format CLI and startup failures without exposing Bun internal stack frames for expected errors. */
 export function formatCliError(error: unknown) {
-  if (error instanceof HunkUserError) {
-    const lines = [`hunk: ${error.message}`];
+  if (error instanceof DunkUserError) {
+    const lines = [`dunk: ${error.message}`];
 
     if (error.details.length > 0) {
       lines.push("", ...error.details);
@@ -21,12 +21,12 @@ export function formatCliError(error: unknown) {
   }
 
   if (error instanceof Error) {
-    if (process.env.HUNK_DEBUG === "1" && error.stack) {
+    if (process.env.DUNK_DEBUG === "1" && error.stack) {
       return `${error.stack}\n`;
     }
 
-    return `hunk: ${error.message}\n`;
+    return `dunk: ${error.message}\n`;
   }
 
-  return `hunk: ${String(error)}\n`;
+  return `dunk: ${String(error)}\n`;
 }

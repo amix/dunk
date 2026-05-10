@@ -89,7 +89,7 @@ function createHighlightPrefetchWindowFiles() {
   });
 }
 
-function createMultiHunkDiffFile(id: string, path: string) {
+function createMultiDunkDiffFile(id: string, path: string) {
   const before = lines(
     "export const line1 = 1;",
     "export const line2 = 2;",
@@ -123,7 +123,7 @@ function createMultiHunkDiffFile(id: string, path: string) {
 }
 
 /** Build one tall file with two distant changed lines so the diff parser produces two hunks. */
-function createWideTwoHunkDiffFile(id: string, path: string, start = 1) {
+function createWideTwoDunkDiffFile(id: string, path: string, start = 1) {
   const beforeLines = Array.from(
     { length: 80 },
     (_, index) => `export const line${start + index} = ${start + index};`,
@@ -141,7 +141,7 @@ function scrollTopForCenter(centerOffset: number, viewportHeight: number) {
   return Math.max(0, centerOffset - Math.max(0, Math.floor((viewportHeight - 1) / 2)));
 }
 
-function createViewportSizedBottomHunkDiffFile(id: string, path: string) {
+function createViewportSizedBottomDunkDiffFile(id: string, path: string) {
   const beforeLines = Array.from(
     { length: 20 },
     (_, index) => `export const line${index + 1} = ${index + 1};`,
@@ -156,7 +156,7 @@ function createViewportSizedBottomHunkDiffFile(id: string, path: string) {
   return createTestDiffFile(id, path, lines(...beforeLines), lines(...afterLines));
 }
 
-function createWrappedViewportSizedBottomHunkDiffFile(id: string, path: string) {
+function createWrappedViewportSizedBottomDunkDiffFile(id: string, path: string) {
   const beforeLines = Array.from(
     { length: 20 },
     (_, index) => `export const line${index + 1} = ${index + 1};`,
@@ -537,7 +537,7 @@ describe("UI components", () => {
         lines("export const intro = 1;"),
         lines("export const intro = 2;", "export const introExtra = true;"),
       ),
-      createMultiHunkDiffFile("target", "target.ts"),
+      createMultiDunkDiffFile("target", "target.ts"),
     ];
     const props = createDiffPaneProps(files, theme, {
       diffContentWidth: 96,
@@ -907,7 +907,7 @@ describe("UI components", () => {
   test("DiffPane keeps a viewport-sized selected hunk fully visible when it fits", async () => {
     const theme = resolveTheme("midnight", null);
     const props = createDiffPaneProps(
-      [createViewportSizedBottomHunkDiffFile("target", "target.ts")],
+      [createViewportSizedBottomDunkDiffFile("target", "target.ts")],
       theme,
       {
         diffContentWidth: 96,
@@ -945,7 +945,7 @@ describe("UI components", () => {
   test("DiffPane keeps a selected wrapped hunk fully visible when it fits", async () => {
     const theme = resolveTheme("midnight", null);
     const props = createDiffPaneProps(
-      [createWrappedViewportSizedBottomHunkDiffFile("target", "target.ts")],
+      [createWrappedViewportSizedBottomDunkDiffFile("target", "target.ts")],
       theme,
       {
         diffContentWidth: 76,
@@ -982,7 +982,7 @@ describe("UI components", () => {
 
   test("DiffPane keeps a distant selected hunk visible when row windowing narrows one file body", async () => {
     const theme = resolveTheme("midnight", null);
-    const props = createDiffPaneProps([createWideTwoHunkDiffFile("target", "target.ts")], theme, {
+    const props = createDiffPaneProps([createWideTwoDunkDiffFile("target", "target.ts")], theme, {
       diffContentWidth: 96,
       headerLabelWidth: 48,
       selectedFileId: "target",
@@ -1010,7 +1010,7 @@ describe("UI components", () => {
 
   test("DiffPane keeps a selected hunk with inline notes fully visible when it fits", async () => {
     const theme = resolveTheme("midnight", null);
-    const file = createViewportSizedBottomHunkDiffFile("target", "target.ts");
+    const file = createViewportSizedBottomDunkDiffFile("target", "target.ts");
     file.annotations = {
       path: file.path,
       annotations: [
@@ -1062,9 +1062,9 @@ describe("UI components", () => {
       (_, index) => `export const line${index + 1} = ${index + 1};`,
     );
     const afterLines = [...beforeLines];
-    // Hunk 0: change at line 1
+    // dunk 0: change at line 1
     afterLines[0] = "export const line1 = 100;";
-    // Hunk 1: changes at lines 60-65 to make a multi-line hunk
+    // dunk 1: changes at lines 60-65 to make a multi-line hunk
     afterLines[59] = "export const line60 = 6000;";
     afterLines[60] = "export const line61 = 6100;";
     afterLines[61] = "export const line62 = 6200;";
@@ -1109,7 +1109,7 @@ describe("UI components", () => {
       await settleDiffPane(setupWithout);
       const frameWithout = setupWithout.captureCharFrame();
 
-      // Hunk context (lines near 57-59) should be visible at the top.
+      // dunk context (lines near 57-59) should be visible at the top.
       expect(frameWithout).toContain("line57");
       // Note card should NOT be visible — it's below the 12-row viewport.
       expect(frameWithout).not.toContain("Note anchored on second hunk.");
@@ -1374,7 +1374,7 @@ describe("UI components", () => {
       <StatusBar
         filter=""
         filterFocused={false}
-        noticeText="Update available: 9.9.9 • npm i -g hunkdiff"
+        noticeText="Update available: 9.9.9 • npm i -g dunk"
         terminalWidth={60}
         theme={theme}
         onFilterInput={() => {}}
@@ -1393,7 +1393,7 @@ describe("UI components", () => {
       <StatusBar
         filter="beta"
         filterFocused={true}
-        noticeText="Update available: 9.9.9 • npm i -g hunkdiff"
+        noticeText="Update available: 9.9.9 • npm i -g dunk"
         terminalWidth={60}
         theme={theme}
         onFilterInput={() => {}}
@@ -1414,7 +1414,7 @@ describe("UI components", () => {
       <StatusBar
         filter="beta"
         filterFocused={false}
-        noticeText="Update available: 9.9.9 • npm i -g hunkdiff"
+        noticeText="Update available: 9.9.9 • npm i -g dunk"
         terminalWidth={60}
         theme={theme}
         onFilterInput={() => {}}

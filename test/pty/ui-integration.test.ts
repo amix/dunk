@@ -2,7 +2,7 @@ import { afterEach, describe, expect, setDefaultTimeout, test } from "bun:test";
 import { createPtyHarness } from "./harness";
 
 const harness = createPtyHarness();
-const ptyDescribe = process.env.HUNK_RUN_PTY_TESTS === "1" ? describe : describe.skip;
+const ptyDescribe = process.env.DUNK_RUN_PTY_TESTS === "1" ? describe : describe.skip;
 
 /** Give PTY-backed startup and redraws enough headroom for slower CI machines. */
 setDefaultTimeout(20_000);

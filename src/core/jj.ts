@@ -1,4 +1,4 @@
-import { HunkUserError } from "./errors";
+import { DunkUserError } from "./errors";
 import type { VcsCommandInput, ShowCommandInput } from "./types";
 
 export type JjBackedInput = VcsCommandInput | ShowCommandInput;
@@ -31,7 +31,7 @@ export function buildJjDiffArgs(input: VcsCommandInput) {
   return args;
 }
 
-/** Build the `jj diff --git -r` arguments used for `hunk show` in Jujutsu mode. */
+/** Build the `jj diff --git -r` arguments used for `dunk show` in Jujutsu mode. */
 export function buildJjShowArgs(input: ShowCommandInput) {
   const args = ["diff", "--git", "-r", input.ref ?? "@"];
 
@@ -42,13 +42,13 @@ export function buildJjShowArgs(input: ShowCommandInput) {
 export function formatJjCommandLabel(input: JjBackedInput) {
   if (input.kind === "vcs") {
     if (input.staged) {
-      return "hunk diff --staged";
+      return "dunk diff --staged";
     }
 
-    return input.range ? `hunk diff ${input.range}` : "hunk diff";
+    return input.range ? `dunk diff ${input.range}` : "dunk diff";
   }
 
-  return input.ref ? `hunk show ${input.ref}` : "hunk show";
+  return input.ref ? `dunk show ${input.ref}` : "dunk show";
 }
 
 function trimJjPrefix(message: string) {
@@ -82,36 +82,36 @@ function isInvalidRevsetMessage(stderr: string) {
 }
 
 function createMissingJjExecutableError(input: JjBackedInput, jjExecutable: string) {
-  return new HunkUserError(
+  return new DunkUserError(
     `Jujutsu is required for \`${formatJjCommandLabel(input)}\` when \`vcs = "jj"\`, but \`${jjExecutable}\` was not found in PATH.`,
-    ['Install Jujutsu or set `vcs = "git"` in Hunk config, then try again.'],
+    ['Install Jujutsu or set `vcs = "git"` in dunk config, then try again.'],
   );
 }
 
 function createMissingJjRepoError(input: JjBackedInput) {
-  return new HunkUserError(
+  return new DunkUserError(
     `\`${formatJjCommandLabel(input)}\` must be run inside a Jujutsu repository when \`vcs = "jj"\`.`,
-    ['Run the command from a Jujutsu checkout, or set `vcs = "git"` in Hunk config.'],
+    ['Run the command from a Jujutsu checkout, or set `vcs = "git"` in dunk config.'],
   );
 }
 
 export function createJjStagedError(input: VcsCommandInput) {
-  return new HunkUserError(
+  return new DunkUserError(
     `\`${formatJjCommandLabel(input)}\` requires Git VCS mode because Jujutsu has no staging area.`,
-    ['Remove `--staged`, or set `vcs = "git"` in Hunk config.'],
+    ['Remove `--staged`, or set `vcs = "git"` in dunk config.'],
   );
 }
 
 function createInvalidRevsetError(input: JjBackedInput) {
   const revset = input.kind === "vcs" ? input.range : (input.ref ?? "@");
-  return new HunkUserError(
+  return new DunkUserError(
     `\`${formatJjCommandLabel(input)}\` could not resolve Jujutsu revset \`${revset}\`.`,
     ["Check the revset and try again."],
   );
 }
 
 function createGenericJjError(input: JjBackedInput, stderr: string) {
-  return new HunkUserError(`\`${formatJjCommandLabel(input)}\` failed.`, [
+  return new DunkUserError(`\`${formatJjCommandLabel(input)}\` failed.`, [
     firstJjErrorLine(stderr),
   ]);
 }
@@ -121,7 +121,7 @@ function translateJjSpawnFailure(
   error: unknown,
   jjExecutable: string,
 ): Error {
-  if (error instanceof HunkUserError) {
+  if (error instanceof DunkUserError) {
     return error;
   }
 
@@ -173,7 +173,7 @@ function runJjCommand({ input, args, cwd = process.cwd(), jjExecutable = "jj" }:
   };
 }
 
-/** Run a Jujutsu command and translate common failures into user-facing Hunk errors. */
+/** Run a Jujutsu command and translate common failures into user-facing dunk errors. */
 export function runJjText(options: RunJjTextOptions) {
   return runJjCommand(options).stdout;
 }

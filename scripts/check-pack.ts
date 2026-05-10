@@ -44,7 +44,7 @@ if (!pack) {
 
 const publishedPaths = new Set(pack.files.map((file) => file.path));
 const requiredPaths = [
-  "bin/hunk.cjs",
+  "bin/dunk.cjs",
   "dist/npm/main.js",
   "dist/npm/opentui/index.d.ts",
   "dist/npm/opentui/index.js",
@@ -79,8 +79,8 @@ for (const file of pack.files) {
   }
 }
 
-if (pack.name !== "hunkdiff") {
-  throw new Error(`Expected npm package name to be hunkdiff, got ${pack.name}.`);
+if (pack.name !== "dunk") {
+  throw new Error(`Expected npm package name to be dunk, got ${pack.name}.`);
 }
 
 console.log(

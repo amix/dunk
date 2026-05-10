@@ -12,7 +12,7 @@ if (!metadata) {
 }
 
 await runExample({
-  title: "HunkDiffView from patch text",
+  title: "DunkDiffView from patch text",
   subtitle: "Built with parsePatchFiles. Press Ctrl-C to exit.",
   diff: {
     id: "example:patch",

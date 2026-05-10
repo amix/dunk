@@ -286,7 +286,7 @@ export const THEMES: AppTheme[] = [
   ),
 ];
 
-/** Resolve a named theme or fall back to Hunk's explicit built-in default. */
+/** Resolve a named theme or fall back to dunk's explicit built-in default. */
 export function resolveTheme(requested: string | undefined, _themeMode: ThemeMode | null) {
   const exact = THEMES.find((theme) => theme.id === requested);
   if (exact) {

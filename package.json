@@ -1,26 +1,25 @@
 {
-  "name": "hunkdiff",
+  "name": "dunk",
   "version": "0.11.0",
-  "description": "Desktop-inspired terminal diff viewer for understanding agent-authored changesets.",
+  "description": "Personal terminal diff viewer with file-driven review comments.",
   "keywords": [
-    "ai",
     "code-review",
     "diff",
     "git",
     "terminal",
     "tui"
   ],
-  "homepage": "https://github.com/modem-dev/hunk#readme",
+  "homepage": "https://github.com/amix/dunk#readme",
   "bugs": {
-    "url": "https://github.com/modem-dev/hunk/issues"
+    "url": "https://github.com/amix/dunk/issues"
   },
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/modem-dev/hunk.git"
+    "url": "git+https://github.com/amix/dunk.git"
   },
   "bin": {
-    "hunk": "./bin/hunk.cjs"
+    "dunk": "./bin/dunk.cjs"
   },
   "files": [
     "bin",
@@ -55,10 +54,9 @@
     "lint": "oxlint . --deny-warnings",
     "lint:fix": "oxlint . --fix",
     "prepare": "simple-git-hooks",
-    "test": "\"${npm_execpath:-bun}\" test --parallel ./src ./packages ./scripts ./test/cli ./test/session",
-    "test:integration": "HUNK_RUN_PTY_TESTS=1 \"${npm_execpath:-bun}\" test ./test/pty",
-    "test:session-e2e": "HUNK_RUN_SESSION_E2E=1 \"${npm_execpath:-bun}\" test ./test/session/cli.test.ts ./test/session/broker-e2e.test.ts",
-    "test:tty-smoke": "HUNK_RUN_TTY_SMOKE=1 \"${npm_execpath:-bun}\" test ./test/smoke",
+    "test": "\"${npm_execpath:-bun}\" test --parallel ./src ./packages ./scripts ./test/cli",
+    "test:integration": "DUNK_RUN_PTY_TESTS=1 \"${npm_execpath:-bun}\" test ./test/pty",
+    "test:tty-smoke": "DUNK_RUN_TTY_SMOKE=1 \"${npm_execpath:-bun}\" test ./test/smoke",
     "check:pack": "bun run ./scripts/check-pack.ts",
     "check:prebuilt-pack": "bun run ./scripts/check-prebuilt-pack.ts",
     "smoke:prebuilt-install": "bun run ./scripts/smoke-prebuilt-install.ts",

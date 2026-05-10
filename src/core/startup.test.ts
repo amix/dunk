@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { HunkUserError } from "./errors";
+import { DunkUserError } from "./errors";
 import { prepareStartupPlan } from "./startup";
 import type { AppBootstrap, CliInput, ParsedCliInput } from "./types";
 
@@ -20,7 +20,7 @@ describe("startup planning", () => {
   test("returns help output without entering app startup", async () => {
     let loaded = false;
 
-    const plan = await prepareStartupPlan(["bun", "hunk"], {
+    const plan = await prepareStartupPlan(["bun", "dunk"], {
       parseCliImpl: async () => ({ kind: "help", text: "Usage: hunk\n" }),
       loadAppBootstrapImpl: async () => {
         loaded = true;
@@ -35,7 +35,7 @@ describe("startup planning", () => {
   test("routes non-diff pager stdin to the plain-text pager path", async () => {
     let loaded = false;
 
-    const plan = await prepareStartupPlan(["bun", "hunk", "pager"], {
+    const plan = await prepareStartupPlan(["bun", "dunk", "pager"], {
       parseCliImpl: async () => ({ kind: "pager", options: { theme: "paper" } }),
       readStdinText: async () => "* main\n  feature/demo\n",
       looksLikePatchInputImpl: () => false,
@@ -52,7 +52,7 @@ describe("startup planning", () => {
   test("normalizes diff-like pager stdin into patch app startup", async () => {
     const seenInputs: CliInput[] = [];
 
-    const plan = await prepareStartupPlan(["bun", "hunk", "pager"], {
+    const plan = await prepareStartupPlan(["bun", "dunk", "pager"], {
       parseCliImpl: async () => ({ kind: "pager", options: { theme: "paper" } }),
       readStdinText: async () => "diff --git a/a.ts b/a.ts\n@@ -1 +1 @@\n-old\n+new\n",
       looksLikePatchInputImpl: () => true,
@@ -98,12 +98,12 @@ describe("startup planning", () => {
     };
 
     await expect(
-      prepareStartupPlan(["bun", "hunk", "patch", "-", "--watch"], {
+      prepareStartupPlan(["bun", "dunk", "patch", "-", "--watch"], {
         parseCliImpl: async () => cliInput as ParsedCliInput,
         resolveRuntimeCliInputImpl: (input) => input,
         resolveConfiguredCliInputImpl: (input) => ({ input }) as never,
       }),
-    ).rejects.toBeInstanceOf(HunkUserError);
+    ).rejects.toBeInstanceOf(DunkUserError);
   });
 
   test("opens the controlling terminal for piped patch startup", async () => {
@@ -118,7 +118,7 @@ describe("startup planning", () => {
     const controllingTerminal = { stdin: {} as never, stdout: {} as never, close: () => {} };
     let opened = 0;
 
-    const plan = await prepareStartupPlan(["bun", "hunk", "patch", "-"], {
+    const plan = await prepareStartupPlan(["bun", "dunk", "patch", "-"], {
       parseCliImpl: async () => cliInput as ParsedCliInput,
       resolveRuntimeCliInputImpl: (input) => input,
       resolveConfiguredCliInputImpl: (input) => ({ input }) as never,

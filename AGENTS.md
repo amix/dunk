@@ -1,8 +1,9 @@
-# hunk agent notes
+# dunk agent notes
 
 ## purpose
 
-- Terminal-first diff viewer for understanding coding-agent changesets.
+- Personal terminal diff viewer.
+- Hard-forked from `hunk` and slimmed down: no daemon, no MCP, no broker — agent integration runs through `.dunk/comments.json` on disk.
 - Product target is "modern desktop diff tool in a terminal", not a pager-style TUI.
 
 ## major dependencies
@@ -26,9 +27,7 @@ CLI input
 - All input sources normalize into one internal changeset model.
 - Pager mode has two paths: full diff UI for patch-like stdin, plain-text fallback for non-diff pager content.
 - View defaults are layered through built-ins, user config, repo `.dunk/config.toml`, command sections, pager sections, and CLI flags.
-- `hunk daemon serve` runs one loopback daemon that brokers agent commands to many live Hunk sessions. Normal Hunk sessions should auto-start and register with that daemon when session brokering is enabled. Keep it local-only and session-brokered rather than opening per-TUI ports.
-- Agent rationale is optional sidecar JSON matched onto files/hunks.
-- The order of `files` in the sidecar is intentional. Hunk uses that order for the sidebar and main review stream.
+- Review comments live in one committed `.dunk/comments.json` per repo. Watch mode picks up changes so a coding agent and a human reviewer can ping-pong on the same review.
 - Prefer one source of truth for each user-visible behavior. When rendering, navigation, scrolling, or note placement share the same model, derive them from the same planning layer rather than maintaining parallel implementations.
 - When UI behavior depends on derived structure or metrics, make that structure explicit in helper modules and reuse it across rendering and interaction code instead of re-deriving it ad hoc in multiple places.
 - If a new implementation makes an older path obsolete, remove the dead path instead of keeping two overlapping systems around.
@@ -40,7 +39,7 @@ CLI input
 - Keep Pierre as the diff engine and renderer foundation. Do not switch the main renderer back to OpenTUI's built-in `<diff>` widget.
 - Keep split and stack views terminal-native and driven from the same normalized diff model.
 - Preserve mouse + keyboard parity for primary actions.
-- Keep the chrome restrained: top menu bar, minimal borders, no redundant metadata headers.
+- Keep the chrome restrained: minimal borders, no top menu bar, no redundant metadata headers.
 
 ## component guidance
 
@@ -58,7 +57,6 @@ CLI input
 - Name test helpers so they explicitly include `Test` and are clearly test-only (`createTestDiffFile`).
 - Use repo-level `test/` directories by intent:
   - `test/cli/` for black-box CLI contract coverage.
-  - `test/session/` for daemon/session integration and end-to-end flows.
   - `test/pty/` for PTY-backed live UI integration tests.
   - `test/smoke/` for opt-in terminal transcript smoke coverage.
 
@@ -81,14 +79,12 @@ CLI input
 - Layout modes: `auto`, `split`, `stack`.
 - `auto` should choose split on wide terminals and stack on narrow ones.
 - Explicit `split` and `stack` choices override responsive `auto` layout selection.
-- `[` and `]` navigate hunks across the full review stream. Do not reintroduce `j`/`k` hunk navigation unless the user asks.
-- Agent context belongs beside the code, not hidden in a separate mode or workflow.
-- Agent notes are hunk-specific: show notes for the selected hunk, render them in the diff flow near the annotated row, and keep a clear spatial relationship to the code they explain.
-- Keep note behavior explicit. If the UI intentionally prioritizes one note, one selection, or one active target, encode that as a named policy rather than scattering array-index assumptions through the codebase.
-- If you choose to use a local sidecar for temporary review context, keep it concise and review-oriented: one changeset summary, file summaries in narrative order, and a few hunk-level annotations with real rationale.
-- If a local sidecar is present, its file order is intentional, but the visible note UI should stay hunk-note driven rather than showing generic file or changeset explainer cards.
-- `hunk diff` working-tree reviews include untracked files by default. Use `--exclude-untracked` if you explicitly want tracked changes only.
-- Agents review via `skills/hunk-review/SKILL.md` using `hunk session *` commands; do not run interactive TUI commands directly.
+- `[` and `]` navigate hunks across the full review stream. `J`/`K` step within a hunk.
+- Comments belong beside the code, not hidden in a separate mode or workflow.
+- Comments are hunk-specific: render them in the diff flow near the annotated row, and keep a clear spatial relationship to the code they explain.
+- Drifted comments (file removed, line out of range, or anchor mismatch) pin to the top of the diff so they stay visible until resolved or dismissed.
+- `dunk diff` working-tree reviews include untracked files by default. Use `--exclude-untracked` if you explicitly want tracked changes only.
+- The agent skill at `skills/dunk-review/SKILL.md` describes how a coding agent should read, fix, and prune `.dunk/comments.json`. Don't run interactive TUI commands from agents — they should drive through the file.
 
 ## commands
 
@@ -107,8 +103,8 @@ CLI input
 
 ## binary notes
 
-- Installed `hunk` is a compiled snapshot, not linked to source.
-- After source changes, rebuild/reinstall with `bun run install:bin`.
+- The shipped `dunk` is a tiny shell wrapper around `bun run src/main.tsx` for local installs, and a compiled `bun build --compile` binary for prebuilt npm releases.
+- After source changes, rebuild/reinstall with `bun run install:bin` for local dev.
 - For rendering verification, prefer a real TTY smoke run over redirected stdout capture.
 
 ## verification
@@ -120,9 +116,8 @@ CLI input
 
 ## cross-platform support
 
-- Hunk should work on macOS, Linux, and Windows. Keep tests and CI portable unless a case is explicitly Unix-only (PTY/TTY smoke coverage is Unix-only).
-- In tests, avoid hard-coded POSIX paths, separators, shell syntax, and filenames invalid on Windows; use Node path helpers for real filesystem paths while preserving user-provided/protocol paths when pass-through is intentional.
-- If Windows-only Bun behavior appears around timers, sockets, or line endings, prefer a small compatibility fix or a narrowly scoped skip with a comment over broadening Unix assumptions.
+- `dunk` should work on macOS and Linux. Windows isn't tested.
+- In tests, avoid hard-coded POSIX paths when portable APIs exist.
 
 ## releases
 
@@ -134,25 +129,13 @@ CLI input
 - Append to existing subsections instead of creating duplicates.
 - When cutting a release, move the relevant unreleased entries into a new immutable version section and start a fresh `## [Unreleased]` section.
 - Use the released changelog section as the starting point for the GitHub release body.
-- GitHub releases should follow this format:
-
-  ```md
-  ## What's Changed
-
-  - <change title> by @<author> in <PR URL>
-  - ...
-
-  **Full Changelog**: https://github.com/modem-dev/hunk/compare/<previous-tag>...<new-tag>
-  ```
-
-- Do not rely blindly on autogenerated GitHub release notes. After publishing, verify the release body and edit it if needed.
 - Prefer `gh release create/edit --notes-file` for multi-line release notes so the exact body is reviewed before posting.
 - For patch releases and backports, list only changes actually present between the previous tag and the new tag on that release branch.
 - Prefer concise, user-visible entries over internal refactors unless the refactor changes user-visible behavior.
 
 ## repo notes
 
-- Local review artifacts are ignored on purpose. Leave them alone unless the user explicitly wants them updated, and do not commit them.
+- Local review artifacts under `.dunk/` are gitignored on purpose. Leave them alone unless the user explicitly wants them updated, and do not commit them.
 - Keep this doc short and architectural. Fresh-context agents can discover file paths themselves.
 
 ## commits

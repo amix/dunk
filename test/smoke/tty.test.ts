@@ -6,7 +6,7 @@ import { join } from "node:path";
 const repoRoot = process.cwd();
 const sourceEntrypoint = join(repoRoot, "src/main.tsx");
 const tempDirs: string[] = [];
-const enableTtySmokeTests = process.env.HUNK_RUN_TTY_SMOKE === "1";
+const enableTtySmokeTests = process.env.DUNK_RUN_TTY_SMOKE === "1";
 if (enableTtySmokeTests) {
   setDefaultTimeout(15000);
 }
@@ -170,8 +170,6 @@ async function runTtySmoke(options: {
     env: {
       ...process.env,
       TERM: "xterm-256color",
-      HUNK_MCP_DISABLE: "1",
-      HUNK_DISABLE_UPDATE_NOTICE: "1",
     },
   });
 
@@ -204,8 +202,6 @@ async function runStdinPagerSmoke(options?: {
     env: {
       ...process.env,
       TERM: "xterm-256color",
-      HUNK_MCP_DISABLE: "1",
-      HUNK_DISABLE_UPDATE_NOTICE: "1",
     },
   });
 
@@ -338,7 +334,7 @@ describe("TTY render smoke", () => {
     expect(output).toContain("after_05");
   });
 
-  ttyTest("general pager mode opens Hunk pager UI for diff-like stdin", async () => {
+  ttyTest("general pager mode opens dunk pager UI for diff-like stdin", async () => {
     if (!ttyToolsAvailable) {
       return;
     }

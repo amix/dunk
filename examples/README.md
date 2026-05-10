@@ -1,6 +1,6 @@
 # Examples
 
-Ready-to-run demos for Hunk and the exported OpenTUI diff component.
+Ready-to-run demos for dunk and the exported OpenTUI diff component.
 
 Each folder tells a small review story and includes the exact command to run from the repository root.
 
@@ -8,13 +8,13 @@ Each folder tells a small review story and includes the exact command to run fro
 
 | Example               | Best for                               | Command                                                                                                                                              |
 | --------------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `1-hello-diff`        | fastest first run                      | `hunk diff examples/1-hello-diff/before.ts examples/1-hello-diff/after.ts`                                                                           |
-| `2-mini-app-refactor` | realistic multi-file review            | `hunk patch examples/2-mini-app-refactor/change.patch`                                                                                               |
-| `3-agent-review-demo` | inline agent rationale                 | `hunk patch examples/3-agent-review-demo/change.patch --agent-context examples/3-agent-review-demo/agent-context.json`                               |
-| `4-ui-polish`         | screenshot-friendly TSX diff           | `hunk diff examples/4-ui-polish/before.tsx examples/4-ui-polish/after.tsx`                                                                           |
-| `5-pager-tour`        | line scrolling, paging, and hunk jumps | `hunk diff --pager examples/5-pager-tour/before.ts examples/5-pager-tour/after.ts`                                                                   |
-| `6-readme-screenshot` | README screenshot with agent notes     | `hunk patch examples/6-readme-screenshot/change.patch --agent-context examples/6-readme-screenshot/agent-context.json --mode split --theme midnight` |
-| `7-opentui-component` | embedding `HunkDiffView` in OpenTUI    | `bun run examples/7-opentui-component/from-files.tsx`                                                                                                |
+| `1-hello-diff`        | fastest first run                      | `dunk diff examples/1-hello-diff/before.ts examples/1-hello-diff/after.ts`                                                                           |
+| `2-mini-app-refactor` | realistic multi-file review            | `dunk patch examples/2-mini-app-refactor/change.patch`                                                                                               |
+| `3-agent-review-demo` | inline agent rationale                 | `dunk patch examples/3-agent-review-demo/change.patch --agent-context examples/3-agent-review-demo/agent-context.json`                               |
+| `4-ui-polish`         | screenshot-friendly TSX diff           | `dunk diff examples/4-ui-polish/before.tsx examples/4-ui-polish/after.tsx`                                                                           |
+| `5-pager-tour`        | line scrolling, paging, and hunk jumps | `dunk diff --pager examples/5-pager-tour/before.ts examples/5-pager-tour/after.ts`                                                                   |
+| `6-readme-screenshot` | README screenshot with agent notes     | `dunk patch examples/6-readme-screenshot/change.patch --agent-context examples/6-readme-screenshot/agent-context.json --mode split --theme midnight` |
+| `7-opentui-component` | embedding `DunkDiffView` in OpenTUI    | `bun run examples/7-opentui-component/from-files.tsx`                                                                                                |
 
 ## Notes
 

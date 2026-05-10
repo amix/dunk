@@ -22,7 +22,7 @@ const metadata = parseDiffFromFile(
 );
 
 await runExample({
-  title: "HunkDiffView from file contents",
+  title: "DunkDiffView from file contents",
   subtitle: "Built with parseDiffFromFile. Press Ctrl-C to exit.",
   diff: {
     id: "example:files",

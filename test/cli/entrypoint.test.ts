@@ -21,7 +21,7 @@ function git(cwd: string, ...args: string[]) {
 }
 
 describe("CLI entrypoint contracts", () => {
-  test("bare hunk prints standard help without terminal takeover sequences", () => {
+  test("bare dunk prints standard help without terminal takeover sequences", () => {
     const proc = Bun.spawnSync([bunExecutable, "run", "src/main.tsx"], {
       cwd: process.cwd(),
       stdin: "ignore",
@@ -35,26 +35,26 @@ describe("CLI entrypoint contracts", () => {
     expect(proc.exitCode).toBe(0);
     expect(stderr).toBe("");
     expect(stdout).toContain("Usage:");
-    expect(stdout).toContain("hunk diff");
-    expect(stdout).toContain("hunk show");
+    expect(stdout).toContain("dunk diff");
+    expect(stdout).toContain("dunk show");
     expect(stdout).toContain("Global options:");
     expect(stdout).toContain("Common review options:");
     expect(stdout).toContain("auto-reload when the current diff input changes");
     expect(stdout).toContain("Git diff options:");
     expect(stdout).toContain("Notes:");
     expect(stdout).toContain(
-      "Run `hunk <command> --help` for command-specific syntax and options.",
+      "Run `dunk <command> --help` for command-specific syntax and options.",
     );
     expect(stdout).not.toContain("Config:");
     expect(stdout).not.toContain("Examples:");
-    expect(stdout).toContain("hunk pager");
+    expect(stdout).toContain("dunk pager");
 
-    expect(stdout).toContain("hunk skill path");
+    expect(stdout).toContain("dunk skill path");
 
-    expect(stdout).not.toContain("hunk session");
-    expect(stdout).not.toContain("hunk daemon");
-    expect(stdout).not.toContain("hunk mcp");
-    expect(stdout).not.toContain("hunk git");
+    expect(stdout).not.toContain("dunk session");
+    expect(stdout).not.toContain("dunk daemon");
+    expect(stdout).not.toContain("dunk mcp");
+    expect(stdout).not.toContain("dunk git");
     expect(stdout).not.toContain("\u001b[?1049h");
   });
 
@@ -77,7 +77,7 @@ describe("CLI entrypoint contracts", () => {
     expect(stdout).not.toContain("\u001b[?1049h");
   });
 
-  test("prints the bundled skill path for hunk skill path without terminal takeover sequences", () => {
+  test("prints the bundled skill path for dunk skill path without terminal takeover sequences", () => {
     const proc = Bun.spawnSync([bunExecutable, "run", "src/main.tsx", "skill", "path"], {
       cwd: process.cwd(),
       stdin: "ignore",
@@ -96,8 +96,8 @@ describe("CLI entrypoint contracts", () => {
     expect(stdout).not.toContain("\u001b[?1049h");
   });
 
-  test("bin wrapper prints the bundled skill path for hunk skill path", () => {
-    const proc = Bun.spawnSync(["node", "bin/hunk.cjs", "skill", "path"], {
+  test("bin wrapper prints the bundled skill path for dunk skill path", () => {
+    const proc = Bun.spawnSync(["node", "bin/dunk.cjs", "skill", "path"], {
       cwd: process.cwd(),
       stdin: "ignore",
       stdout: "pipe",
@@ -116,13 +116,13 @@ describe("CLI entrypoint contracts", () => {
   });
 
   test("bin wrapper fails clearly when the bundled skill is missing", () => {
-    const tempDir = mkdtempSync(join(tmpdir(), "hunk-wrapper-skill-missing-"));
+    const tempDir = mkdtempSync(join(tmpdir(), "dunk-wrapper-skill-missing-"));
     const tempBinDir = join(tempDir, "bin");
-    const tempWrapperPath = join(tempBinDir, "hunk.cjs");
+    const tempWrapperPath = join(tempBinDir, "dunk.cjs");
 
     try {
       mkdirSync(tempBinDir, { recursive: true });
-      copyFileSync(join(process.cwd(), "bin", "hunk.cjs"), tempWrapperPath);
+      copyFileSync(join(process.cwd(), "bin", "dunk.cjs"), tempWrapperPath);
 
       const proc = Bun.spawnSync(["node", tempWrapperPath, "skill", "path"], {
         cwd: tempDir,
@@ -137,7 +137,7 @@ describe("CLI entrypoint contracts", () => {
 
       expect(proc.exitCode).toBe(1);
       expect(stdout).toBe("");
-      expect(stderr).toContain("hunk: could not locate the bundled Hunk review skill");
+      expect(stderr).toContain("dunk: could not locate the bundled review skill");
       expect(stderr).toContain(join("skills", "dunk-review", "SKILL.md"));
     } finally {
       rmSync(tempDir, { recursive: true, force: true });
@@ -182,8 +182,8 @@ describe("CLI entrypoint contracts", () => {
 
       expect(proc.exitCode).toBe(1);
       expect(stdout).toBe("");
-      expect(stderr).toContain("hunk: `hunk diff` must be run inside a Git repository.");
-      expect(stderr).toContain("hunk diff <before-file> <after-file>");
+      expect(stderr).toContain("dunk: `dunk diff` must be run inside a Git repository.");
+      expect(stderr).toContain("dunk diff <before-file> <after-file>");
       expect(stderr).not.toContain("at runGitText");
       expect(stderr).not.toContain("loadGitChangeset");
       expect(stderr).not.toContain("Bun v");
@@ -217,7 +217,7 @@ describe("CLI entrypoint contracts", () => {
 
       expect(proc.exitCode).toBe(1);
       expect(stdout).toBe("");
-      expect(stderr).toContain("hunk: `hunk show HEAD~999` could not resolve Git ref `HEAD~999`.");
+      expect(stderr).toContain("dunk: `dunk show HEAD~999` could not resolve Git ref `HEAD~999`.");
       expect(stderr).toContain("Check the ref name and try again.");
       expect(stderr).not.toContain("runGitText");
       expect(stderr).not.toContain("Bun v");

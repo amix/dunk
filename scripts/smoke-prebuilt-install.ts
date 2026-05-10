@@ -85,8 +85,8 @@ try {
 
   // Point a temp copy of the staged meta package at the local platform tarball.
   // The real manifest uses semver ranges, but this smoke test runs before publish.
-  const smokePackageDir = path.join(smokeMetaDir, "hunkdiff");
-  cpSync(path.join(releaseRoot, "hunkdiff"), smokePackageDir, { recursive: true });
+  const smokePackageDir = path.join(smokeMetaDir, "dunk");
+  cpSync(path.join(releaseRoot, "dunk"), smokePackageDir, { recursive: true });
   const smokeManifestPath = path.join(smokePackageDir, "package.json");
   const smokeManifest = JSON.parse(readFileSync(smokeManifestPath, "utf8")) as {
     optionalDependencies?: Record<string, string>;
@@ -100,17 +100,17 @@ try {
   run(["npm", "pack", "--pack-destination", packageDir], {
     cwd: smokePackageDir,
   });
-  const metaTarball = path.join(packageDir, `hunkdiff-${packageVersion}.tgz`);
+  const metaTarball = path.join(packageDir, `dunk-${packageVersion}.tgz`);
 
   run(["npm", "install", "-g", "--prefix", installDir, metaTarball]);
 
   const sanitizedPath = [path.join(installDir, "bin"), nodeDir, bashDir].join(":");
-  const installedHunk = path.join(installDir, "bin", "hunk");
+  const installedDunk = path.join(installDir, "bin", "hunk");
   const installedPlatformBinary = path.join(
     installDir,
     "lib",
     "node_modules",
-    "hunkdiff",
+    "dunk",
     "node_modules",
     hostSpec.packageName,
     "bin",
@@ -130,7 +130,7 @@ try {
     }
   }
 
-  const help = run([installedHunk, "--help"], {
+  const help = run([installedDunk, "--help"], {
     env: commandEnv,
   });
 
@@ -138,7 +138,7 @@ try {
     throw new Error(`Expected help output to include 'Usage: hunk'.\n${help.stdout}`);
   }
 
-  const version = run([installedHunk, "--version"], {
+  const version = run([installedDunk, "--version"], {
     env: commandEnv,
   });
   if (version.stdout !== `${packageVersion}\n`) {
@@ -147,7 +147,7 @@ try {
     );
   }
 
-  const skillPath = run([installedHunk, "skill", "path"], {
+  const skillPath = run([installedDunk, "skill", "path"], {
     env: commandEnv,
   }).stdout.trim();
   if (

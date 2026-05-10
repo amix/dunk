@@ -1,8 +1,6 @@
-# Contributing to Hunk
+# Contributing to dunk
 
-Thanks for helping improve Hunk.
-
-Hunk is a review-first terminal diff viewer. Keep changes focused, verify behavior locally, and prefer small PRs over broad rewrites.
+`dunk` is a small, opinionated terminal diff viewer. Keep changes focused, verify behavior locally, and prefer small PRs over broad rewrites.
 
 ## Development setup
 
@@ -18,7 +16,7 @@ Install dependencies:
 bun install
 ```
 
-Run Hunk from source:
+Run `dunk` from source:
 
 ```bash
 bun run src/main.tsx -- diff
@@ -96,7 +94,6 @@ bun run publish:prebuilt:npm -- --dry-run
 - Most unit tests are colocated in `src/` beside the code they cover.
 - `test/helpers/` contains shared test-only fixtures used by those unit tests.
 - `test/cli/` covers black-box CLI behavior.
-- `test/session/` covers daemon, broker, and session-CLI integration flows.
 - `test/pty/` covers PTY-backed live UI integration.
 - `test/smoke/` contains opt-in transcript-based TTY smoke tests.
 
@@ -119,18 +116,17 @@ Key rules:
 - The sidebar is for navigation. Selecting a file should jump within the main stream, not collapse the review to one file.
 - Keep split, stack, and auto layouts driven from the same normalized diff model.
 - Preserve mouse and keyboard parity for primary actions.
-- Keep agent context beside the code it explains.
+- Keep review comments beside the code they explain.
 - Prefer dedicated helper modules and pane components over growing `App` into a monolith.
 
 ## Pull requests
 
 - Keep scope tight and explain user-visible behavior changes clearly.
 - Update docs and examples when behavior or workflows change.
-- If you want temporary local review notes, you can use `.dunk/latest.json`, but do not commit it.
-- `hunk diff` includes untracked working-tree files by default. Use `--exclude-untracked` if you want to review tracked changes only.
+- `dunk diff` includes untracked working-tree files by default. Use `--exclude-untracked` if you want to review tracked changes only.
 
 ## Release notes
 
-- The npm package name is `hunkdiff`.
-- The installed CLI command remains `hunk`.
+- The npm package name is `dunk`.
+- The installed CLI command is `dunk`.
 - The automated prebuilt publish workflow lives in `.github/workflows/release-prebuilt-npm.yml`.

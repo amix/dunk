@@ -95,8 +95,8 @@ const directories = readdirSync(releaseRoot, { withFileTypes: true })
   .filter((entry) => entry.isDirectory())
   .map((entry) => entry.name)
   .sort((left, right) => {
-    if (left === "hunkdiff") return 1;
-    if (right === "hunkdiff") return -1;
+    if (left === "dunk") return 1;
+    if (right === "dunk") return -1;
     return left.localeCompare(right);
   })
   .map((entry) => path.join(releaseRoot, entry));

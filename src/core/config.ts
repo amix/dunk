@@ -23,7 +23,7 @@ interface ConfigResolutionOptions {
   env?: NodeJS.ProcessEnv;
 }
 
-interface HunkConfigResolution {
+interface DunkConfigResolution {
   input: CliInput;
   globalConfigPath?: string;
   repoConfigPath?: string;
@@ -33,12 +33,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-/** Accept only the layout names Hunk already supports. */
+/** Accept only the layout names dunk already supports. */
 function normalizeLayoutMode(value: unknown): LayoutMode | undefined {
   return value === "auto" || value === "split" || value === "stack" ? value : undefined;
 }
 
-/** Accept only the VCS backends Hunk can load directly. */
+/** Accept only the VCS backends dunk can load directly. */
 function normalizeVcsMode(value: unknown): VcsMode | undefined {
   return value === "git" || value === "jj" ? value : undefined;
 }
@@ -148,7 +148,7 @@ function readTomlRecord(path: string) {
 export function resolveConfiguredCliInput(
   input: CliInput,
   { cwd = process.cwd(), env = process.env }: ConfigResolutionOptions = {},
-): HunkConfigResolution {
+): DunkConfigResolution {
   const repoRoot = findRepoRoot(cwd);
   const repoConfigPath = repoRoot ? join(repoRoot, ".dunk", "config.toml") : undefined;
   const userConfigPath = resolveGlobalConfigPath(env);

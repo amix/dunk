@@ -53,16 +53,16 @@ function hostCandidates() {
 
   const platform = platformMap[os.platform()] || os.platform();
   const arch = archMap[os.arch()] || os.arch();
-  const binary = platform === "windows" ? "hunk.exe" : "hunk";
+  const binary = platform === "windows" ? "dunk.exe" : "dunk";
 
   if (platform === "darwin") {
-    if (arch === "arm64") return [{ packageName: "hunkdiff-darwin-arm64", binary }];
-    if (arch === "x64") return [{ packageName: "hunkdiff-darwin-x64", binary }];
+    if (arch === "arm64") return [{ packageName: "dunk-darwin-arm64", binary }];
+    if (arch === "x64") return [{ packageName: "dunk-darwin-x64", binary }];
   }
 
   if (platform === "linux") {
-    if (arch === "arm64") return [{ packageName: "hunkdiff-linux-arm64", binary }];
-    if (arch === "x64") return [{ packageName: "hunkdiff-linux-x64", binary }];
+    if (arch === "arm64") return [{ packageName: "dunk-linux-arm64", binary }];
+    if (arch === "x64") return [{ packageName: "dunk-linux-x64", binary }];
   }
 
   return [];
@@ -102,7 +102,7 @@ const forwardedArgs = process.argv.slice(2);
 if (forwardedArgs.length === 2 && forwardedArgs[0] === "skill" && forwardedArgs[1] === "path") {
   const skillPath = bundledSkillPath();
   if (!fs.existsSync(skillPath)) {
-    console.error(`hunk: could not locate the bundled Hunk review skill at ${skillPath}`);
+    console.error(`dunk: could not locate the bundled review skill at ${skillPath}`);
     process.exit(1);
   }
 
@@ -110,7 +110,7 @@ if (forwardedArgs.length === 2 && forwardedArgs[0] === "skill" && forwardedArgs[
   process.exit(0);
 }
 
-const overrideBinary = process.env.HUNK_BIN_PATH;
+const overrideBinary = process.env.DUNK_BIN_PATH;
 if (overrideBinary) {
   run(overrideBinary, forwardedArgs);
 }
@@ -132,7 +132,7 @@ const printablePackages = hostCandidates()
   .join(" or ");
 console.error(
   printablePackages.length > 0
-    ? `Failed to locate a matching prebuilt Hunk binary. Try reinstalling hunkdiff or manually installing ${printablePackages}.`
-    : `Unsupported platform for prebuilt Hunk binaries: ${os.platform()} ${os.arch()}`,
+    ? `Failed to locate a matching prebuilt dunk binary. Try reinstalling dunk or manually installing ${printablePackages}.`
+    : `Unsupported platform for prebuilt dunk binaries: ${os.platform()} ${os.arch()}`,
 );
 process.exit(1);

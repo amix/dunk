@@ -29,20 +29,20 @@ describe("prebuilt package helpers", () => {
       if (spec.os === "windows") {
         continue;
       }
-      expect(binaryFilenameForSpec(spec)).toBe("hunk");
+      expect(binaryFilenameForSpec(spec)).toBe("dunk");
     }
   });
 
   test("binaryFilenameForSpec adds .exe for windows packages", () => {
     const windowsSpec: PlatformPackageSpec = {
-      packageName: "hunkdiff-windows-x64",
+      packageName: "dunk-windows-x64",
       os: "windows",
       cpu: "x64",
-      binaryName: "hunk",
-      binaryRelativePath: "bin/hunk.exe",
+      binaryName: "dunk",
+      binaryRelativePath: "bin/dunk.exe",
     };
 
-    expect(binaryFilenameForSpec(windowsSpec)).toBe("hunk.exe");
+    expect(binaryFilenameForSpec(windowsSpec)).toBe("dunk.exe");
   });
 
   test("normalizeHostPlatform and normalizeHostArch reject unsupported values", () => {
@@ -56,15 +56,15 @@ describe("prebuilt package helpers", () => {
   });
 
   test("getPlatformPackageSpecByName returns known package specs", () => {
-    expect(getPlatformPackageSpecByName("hunkdiff-linux-x64")?.cpu).toBe("x64");
-    expect(getPlatformPackageSpecByName("hunkdiff-darwin-arm64")?.os).toBe("darwin");
-    expect(getPlatformPackageSpecByName("hunkdiff-does-not-exist")).toBeUndefined();
+    expect(getPlatformPackageSpecByName("dunk-linux-x64")?.cpu).toBe("x64");
+    expect(getPlatformPackageSpecByName("dunk-darwin-arm64")?.os).toBe("darwin");
+    expect(getPlatformPackageSpecByName("dunk-does-not-exist")).toBeUndefined();
   });
 
   test("getPlatformPackageSpecForHost resolves supported combinations and rejects unsupported ones", () => {
-    expect(getPlatformPackageSpecForHost("linux", "x64").packageName).toBe("hunkdiff-linux-x64");
+    expect(getPlatformPackageSpecForHost("linux", "x64").packageName).toBe("dunk-linux-x64");
     expect(getPlatformPackageSpecForHost("darwin", "arm64").packageName).toBe(
-      "hunkdiff-darwin-arm64",
+      "dunk-darwin-arm64",
     );
     expect(() => getPlatformPackageSpecForHost("freebsd" as NodeJS.Platform, "x64")).toThrow(
       "Unsupported host platform for prebuilt packaging: freebsd",
@@ -73,7 +73,7 @@ describe("prebuilt package helpers", () => {
       "Unsupported host architecture for prebuilt packaging: ia32",
     );
     expect(getPlatformPackageSpecForHost("linux", "arm64").packageName).toBe(
-      "hunkdiff-linux-arm64",
+      "dunk-linux-arm64",
     );
   });
 
@@ -93,10 +93,10 @@ describe("prebuilt package helpers", () => {
       getPlatformPackageSpecForHost("linux", "x64"),
     );
 
-    expect(manifest.name).toBe("hunkdiff-linux-x64");
+    expect(manifest.name).toBe("dunk-linux-x64");
     expect(manifest.version).toBe("1.2.3");
     expect(manifest.bin).toEqual({
-      hunk: "./bin/hunk",
+      dunk: "./bin/dunk",
     });
     expect(manifest.os).toEqual(["linux"]);
     expect(manifest.cpu).toEqual(["x64"]);
@@ -105,11 +105,11 @@ describe("prebuilt package helpers", () => {
   test("sortPlatformPackageSpecs keeps package publish order stable", () => {
     const reversed = [...PLATFORM_PACKAGE_MATRIX].reverse();
     expect(sortPlatformPackageSpecs(reversed).map((spec) => spec.packageName)).toEqual([
-      "hunkdiff-darwin-arm64",
-      "hunkdiff-darwin-x64",
-      "hunkdiff-linux-arm64",
-      "hunkdiff-linux-x64",
-      "hunkdiff-windows-x64",
+      "dunk-darwin-arm64",
+      "dunk-darwin-x64",
+      "dunk-linux-arm64",
+      "dunk-linux-x64",
+      "dunk-windows-x64",
     ]);
   });
 });

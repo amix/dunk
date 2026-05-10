@@ -1,11 +1,11 @@
 # 3-agent-review-demo
 
-A flagship Hunk demo: a small command-palette refactor with inline agent rationale attached to the interesting hunks.
+A flagship dunk demo: a small command-palette refactor with inline agent rationale attached to the interesting hunks.
 
 ## Run
 
 ```bash
-hunk patch examples/3-agent-review-demo/change.patch \
+dunk patch examples/3-agent-review-demo/change.patch \
   --agent-context examples/3-agent-review-demo/agent-context.json
 ```
 

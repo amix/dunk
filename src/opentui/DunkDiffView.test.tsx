@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { testRender } from "@opentui/react/test-utils";
 import { act } from "react";
 import type { ReactNode } from "react";
-import { HUNK_DIFF_THEME_NAMES, HunkDiffView, parseDiffFromFile } from "./index";
+import { DUNK_DIFF_THEME_NAMES, DunkDiffView, parseDiffFromFile } from "./index";
 
 async function captureFrame(node: ReactNode, width = 120, height = 24) {
   const setup = await testRender(node, { width, height });
@@ -20,7 +20,7 @@ async function captureFrame(node: ReactNode, width = 120, height = 24) {
   }
 }
 
-describe("HunkDiffView", () => {
+describe("DunkDiffView", () => {
   test("renders a diff through the public OpenTUI entrypoint", async () => {
     const metadata = parseDiffFromFile(
       {
@@ -38,7 +38,7 @@ describe("HunkDiffView", () => {
     );
 
     const frame = await captureFrame(
-      <HunkDiffView
+      <DunkDiffView
         diff={{
           id: "example",
           language: "typescript",
@@ -61,6 +61,6 @@ describe("HunkDiffView", () => {
   });
 
   test("exports the documented built-in theme names", () => {
-    expect(HUNK_DIFF_THEME_NAMES).toEqual(["graphite", "midnight", "paper", "ember"]);
+    expect(DUNK_DIFF_THEME_NAMES).toEqual(["graphite", "midnight", "paper", "ember"]);
   });
 });

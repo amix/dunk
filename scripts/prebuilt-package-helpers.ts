@@ -28,48 +28,48 @@ const ARCH_NAME_MAP: Partial<Record<NodeJS.Architecture, SupportedArch>> = {
 /** Platforms we actually plan to publish in the first prebuilt-binary rollout. */
 export const PLATFORM_PACKAGE_MATRIX: PlatformPackageSpec[] = [
   {
-    packageName: "hunkdiff-darwin-arm64",
+    packageName: "dunk-darwin-arm64",
     os: "darwin",
     cpu: "arm64",
-    binaryName: "hunk",
-    binaryRelativePath: "bin/hunk",
+    binaryName: "dunk",
+    binaryRelativePath: "bin/dunk",
   },
   {
-    packageName: "hunkdiff-darwin-x64",
+    packageName: "dunk-darwin-x64",
     os: "darwin",
     cpu: "x64",
-    binaryName: "hunk",
-    binaryRelativePath: "bin/hunk",
+    binaryName: "dunk",
+    binaryRelativePath: "bin/dunk",
   },
   {
-    packageName: "hunkdiff-linux-arm64",
+    packageName: "dunk-linux-arm64",
     os: "linux",
     cpu: "arm64",
-    binaryName: "hunk",
-    binaryRelativePath: "bin/hunk",
+    binaryName: "dunk",
+    binaryRelativePath: "bin/dunk",
   },
   {
-    packageName: "hunkdiff-linux-x64",
+    packageName: "dunk-linux-x64",
     os: "linux",
     cpu: "x64",
-    binaryName: "hunk",
-    binaryRelativePath: "bin/hunk",
+    binaryName: "dunk",
+    binaryRelativePath: "bin/dunk",
   },
   {
-    packageName: "hunkdiff-windows-x64",
+    packageName: "dunk-windows-x64",
     os: "windows",
     cpu: "x64",
-    binaryName: "hunk",
-    binaryRelativePath: "bin/hunk.exe",
+    binaryName: "dunk",
+    binaryRelativePath: "bin/dunk.exe",
   },
 ] as const;
 
-/** Normalize a Node platform string into Hunk's package naming vocabulary. */
+/** Normalize a Node platform string into dunk's package naming vocabulary. */
 export function normalizeHostPlatform(platform: NodeJS.Platform) {
   return PLATFORM_NAME_MAP[platform];
 }
 
-/** Normalize a Node architecture string into Hunk's package naming vocabulary. */
+/** Normalize a Node architecture string into dunk's package naming vocabulary. */
 export function normalizeHostArch(arch: NodeJS.Architecture) {
   return ARCH_NAME_MAP[arch];
 }
@@ -106,12 +106,12 @@ export function getPlatformPackageSpecForHost(
   return spec;
 }
 
-/** Return the Hunk package spec that matches the current machine. */
+/** Return the dunk package spec that matches the current machine. */
 export function getHostPlatformPackageSpec() {
   return getPlatformPackageSpecForHost(os.platform(), os.arch());
 }
 
-/** Build the optional dependency map for the top-level hunkdiff package. */
+/** Build the optional dependency map for the top-level dunk package. */
 export function buildOptionalDependencyMap(
   version: string,
   specs: readonly PlatformPackageSpec[] = PLATFORM_PACKAGE_MATRIX,
@@ -147,7 +147,7 @@ export function buildPlatformPackageManifest(
     os: [spec.os === "windows" ? "win32" : spec.os],
     cpu: [spec.cpu],
     bin: {
-      hunk: `./bin/${binaryName}`,
+      dunk: `./bin/${binaryName}`,
     },
     files: ["bin", "LICENSE"],
     license: rootPackage.license,

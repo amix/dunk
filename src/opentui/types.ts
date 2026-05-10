@@ -1,10 +1,10 @@
 import type { FileDiffMetadata } from "@pierre/diffs";
-import type { HunkDiffThemeName } from "./themes";
+import type { DunkDiffThemeName } from "./themes";
 
-export type HunkDiffLayout = "split" | "stack";
+export type DunkDiffLayout = "split" | "stack";
 
 /** One diff file body that the exported OpenTUI component can render. */
-export interface HunkDiffFile {
+export interface DunkDiffFile {
   id: string;
   metadata: FileDiffMetadata;
   language?: string;
@@ -13,11 +13,11 @@ export interface HunkDiffFile {
 }
 
 /** Public props for the reusable OpenTUI diff component. */
-export interface HunkDiffViewProps {
-  diff?: HunkDiffFile;
-  layout?: HunkDiffLayout;
+export interface DunkDiffViewProps {
+  diff?: DunkDiffFile;
+  layout?: DunkDiffLayout;
   width: number;
-  theme?: HunkDiffThemeName;
+  theme?: DunkDiffThemeName;
   showLineNumbers?: boolean;
   showHunkHeaders?: boolean;
   wrapLines?: boolean;

@@ -10,7 +10,7 @@ function stripTerminalControl(text: string) {
     .replace(/\x1b[@-_]/g, "");
 }
 
-/** Detect whether generic pager stdin looks like a diff/patch that Hunk should review. */
+/** Detect whether generic pager stdin looks like a diff/patch that dunk should review. */
 export function looksLikePatchInput(text: string) {
   const normalized = stripTerminalControl(text.replaceAll("\r\n", "\n"));
 
@@ -23,7 +23,7 @@ export function looksLikePatchInput(text: string) {
 
 /** Choose a plain-text pager command while avoiding recursive `hunk pager` launches. */
 export function resolveTextPagerCommand(env: NodeJS.ProcessEnv = process.env) {
-  const candidate = env.HUNK_TEXT_PAGER ?? env.PAGER;
+  const candidate = env.DUNK_TEXT_PAGER ?? env.PAGER;
 
   if (!candidate || /(^|\s)hunk(\s|$)/.test(candidate)) {
     return "less -R";

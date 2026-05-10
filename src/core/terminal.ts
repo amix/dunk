@@ -12,7 +12,7 @@ export function usesPipedPatchInput(input: CliInput, stdinIsTTY = Boolean(proces
   return input.kind === "patch" && (!input.file || input.file === "-") && !stdinIsTTY;
 }
 
-/** Enable pager-style chrome automatically when Hunk is consuming a piped patch. */
+/** Enable pager-style chrome automatically when dunk is consuming a piped patch. */
 export function shouldUsePagerMode(input: CliInput, stdinIsTTY = Boolean(process.stdin.isTTY)) {
   return Boolean(input.options.pager) || usesPipedPatchInput(input, stdinIsTTY);
 }

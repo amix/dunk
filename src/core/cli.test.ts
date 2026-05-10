@@ -24,7 +24,7 @@ afterEach(() => {
 
 describe("parseCli", () => {
   test("prints help when no subcommand is passed", async () => {
-    const parsed = await parseCli(["bun", "hunk"]);
+    const parsed = await parseCli(["bun", "dunk"]);
 
     expect(parsed.kind).toBe("help");
     if (parsed.kind !== "help") {
@@ -32,24 +32,24 @@ describe("parseCli", () => {
     }
 
     expect(parsed.text).toContain("Usage:");
-    expect(parsed.text).toContain("hunk diff");
-    expect(parsed.text).toContain("hunk show");
-    expect(parsed.text).toContain("hunk skill path");
+    expect(parsed.text).toContain("dunk diff");
+    expect(parsed.text).toContain("dunk show");
+    expect(parsed.text).toContain("dunk skill path");
     expect(parsed.text).toContain("Global options:");
     expect(parsed.text).toContain("Common review options:");
     expect(parsed.text).toContain("auto-reload when the current diff input changes");
     expect(parsed.text).toContain("Git diff options:");
     expect(parsed.text).toContain("Notes:");
     expect(parsed.text).toContain(
-      "Run `hunk <command> --help` for command-specific syntax and options.",
+      "Run `dunk <command> --help` for command-specific syntax and options.",
     );
     expect(parsed.text).not.toContain("Config:");
     expect(parsed.text).not.toContain("Examples:");
   });
 
   test("prints the same top-level help for --help", async () => {
-    const bare = await parseCli(["bun", "hunk"]);
-    const explicit = await parseCli(["bun", "hunk", "--help"]);
+    const bare = await parseCli(["bun", "dunk"]);
+    const explicit = await parseCli(["bun", "dunk", "--help"]);
 
     expect(explicit).toEqual(bare);
   });
@@ -60,8 +60,8 @@ describe("parseCli", () => {
 
   test("prints the package version for --version and version", async () => {
     const expectedVersion = require("../../package.json").version;
-    const flag = await parseCli(["bun", "hunk", "--version"]);
-    const command = await parseCli(["bun", "hunk", "version"]);
+    const flag = await parseCli(["bun", "dunk", "--version"]);
+    const command = await parseCli(["bun", "dunk", "version"]);
 
     expect(flag).toEqual({ kind: "help", text: `${expectedVersion}\n` });
     expect(command).toEqual(flag);
@@ -70,7 +70,7 @@ describe("parseCli", () => {
   test("parses git-style diff mode with shared options", async () => {
     const parsed = await parseCli([
       "bun",
-      "hunk",
+      "dunk",
       "diff",
       "main...feature",
       "--mode",
@@ -101,16 +101,16 @@ describe("parseCli", () => {
   });
 
   test("parses staged git-style diff aliases", async () => {
-    const staged = await parseCli(["bun", "hunk", "diff", "--staged"]);
-    const cached = await parseCli(["bun", "hunk", "diff", "--cached"]);
+    const staged = await parseCli(["bun", "dunk", "diff", "--staged"]);
+    const cached = await parseCli(["bun", "dunk", "diff", "--cached"]);
 
     expect(staged).toMatchObject({ kind: "vcs", staged: true });
     expect(cached).toMatchObject({ kind: "vcs", staged: true });
   });
 
   test("parses untracked file toggles for git diff", async () => {
-    const excluded = await parseCli(["bun", "hunk", "diff", "--exclude-untracked"]);
-    const included = await parseCli(["bun", "hunk", "diff", "--no-exclude-untracked"]);
+    const excluded = await parseCli(["bun", "dunk", "diff", "--exclude-untracked"]);
+    const included = await parseCli(["bun", "dunk", "diff", "--no-exclude-untracked"]);
 
     expect(excluded).toMatchObject({
       kind: "vcs",
@@ -135,7 +135,7 @@ describe("parseCli", () => {
     writeFileSync(left, "before\n");
     writeFileSync(right, "after\n");
 
-    const parsed = await parseCli(["bun", "hunk", "diff", left, right, "--mode", "stack"]);
+    const parsed = await parseCli(["bun", "dunk", "diff", left, right, "--mode", "stack"]);
 
     expect(parsed).toMatchObject({
       kind: "diff",
@@ -150,7 +150,7 @@ describe("parseCli", () => {
   test("parses pathspec-limited git diffs", async () => {
     const parsed = await parseCli([
       "bun",
-      "hunk",
+      "dunk",
       "diff",
       "main",
       "--",
@@ -166,7 +166,7 @@ describe("parseCli", () => {
   });
 
   test("parses target followed by pathspecs without a separator", async () => {
-    const parsed = await parseCli(["bun", "hunk", "diff", "trunk()..@", ".github"]);
+    const parsed = await parseCli(["bun", "dunk", "diff", "trunk()..@", ".github"]);
 
     expect(parsed).toMatchObject({
       kind: "vcs",
@@ -176,7 +176,7 @@ describe("parseCli", () => {
   });
 
   test("parses show mode with optional ref and pathspecs", async () => {
-    const parsed = await parseCli(["bun", "hunk", "show", "HEAD~1", "--", "src/app.ts"]);
+    const parsed = await parseCli(["bun", "dunk", "show", "HEAD~1", "--", "src/app.ts"]);
 
     expect(parsed).toMatchObject({
       kind: "show",
@@ -186,7 +186,7 @@ describe("parseCli", () => {
   });
 
   test("parses general pager mode", async () => {
-    const parsed = await parseCli(["bun", "hunk", "pager", "--theme", "paper"]);
+    const parsed = await parseCli(["bun", "dunk", "pager", "--theme", "paper"]);
 
     expect(parsed).toMatchObject({
       kind: "pager",
@@ -196,8 +196,8 @@ describe("parseCli", () => {
     });
   });
 
-  test("prints the bundled skill path for hunk skill path", async () => {
-    const parsed = await parseCli(["bun", "hunk", "skill", "path"]);
+  test("prints the bundled skill path for dunk skill path", async () => {
+    const parsed = await parseCli(["bun", "dunk", "skill", "path"]);
 
     expect(parsed.kind).toBe("help");
     if (parsed.kind !== "help") {
@@ -207,16 +207,16 @@ describe("parseCli", () => {
     expect(parsed.text).toEndWith(`${join("skills", "dunk-review", "SKILL.md")}\n`);
   });
 
-  test("prints skill help for hunk skill --help", async () => {
-    const parsed = await parseCli(["bun", "hunk", "skill", "--help"]);
+  test("prints skill help for dunk skill --help", async () => {
+    const parsed = await parseCli(["bun", "dunk", "skill", "--help"]);
 
     expect(parsed).toEqual({
       kind: "help",
       text: [
-        "Usage: hunk skill path",
+        "Usage: dunk skill path",
         "",
-        "Print the bundled Hunk review skill path.",
-        "Load or symlink that file in your coding agent to keep it in sync across Hunk upgrades.",
+        "Print the bundled dunk review skill path.",
+        "Load or symlink that file in your coding agent to keep it in sync across dunk upgrades.",
         "",
       ].join("\n"),
     });
@@ -224,7 +224,7 @@ describe("parseCli", () => {
 
 
   test("parses stash show mode", async () => {
-    const parsed = await parseCli(["bun", "hunk", "stash", "show", "stash@{1}"]);
+    const parsed = await parseCli(["bun", "dunk", "stash", "show", "stash@{1}"]);
 
     expect(parsed).toMatchObject({
       kind: "stash-show",
@@ -233,11 +233,11 @@ describe("parseCli", () => {
   });
 
   test("rejects removed legacy git alias", async () => {
-    await expect(parseCli(["bun", "hunk", "git"])).rejects.toThrow("Unknown command: git");
+    await expect(parseCli(["bun", "dunk", "git"])).rejects.toThrow("Unknown command: git");
   });
 
   test("parses patch mode from a file", async () => {
-    const parsed = await parseCli(["bun", "hunk", "patch", "changes.patch", "--pager"]);
+    const parsed = await parseCli(["bun", "dunk", "patch", "changes.patch", "--pager"]);
 
     expect(parsed).toMatchObject({
       kind: "patch",
@@ -256,7 +256,7 @@ describe("parseCli", () => {
   test("parses difftool mode with display path", async () => {
     const parsed = await parseCli([
       "bun",
-      "hunk",
+      "dunk",
       "difftool",
       "left.ts",
       "right.ts",

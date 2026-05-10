@@ -116,14 +116,14 @@ jobs:
           install_dir="$(mktemp -d)"
           node_dir="$(dirname "$(command -v node)")"
           npm pack --pack-destination "$pkg_dir" >/dev/null
-          pkg="$(find "$pkg_dir" -maxdepth 1 -name 'hunkdiff-*.tgz' | head -n1)"
+          pkg="$(find "$pkg_dir" -maxdepth 1 -name 'dunk-*.tgz' | head -n1)"
           npm install -g --prefix "$install_dir" "$pkg"
           PATH="$install_dir/bin:$node_dir:/usr/bin:/bin"
           if command -v bun >/dev/null 2>&1; then
             echo "bun unexpectedly available on the sanitized PATH" >&2
             exit 1
           fi
-          hunk --help | grep 'Usage: hunk'
+          dunk --help | grep 'Usage: dunk'
 
       - name: Stage prebuilt npm packages
         run: bun run build:prebuilt:npm

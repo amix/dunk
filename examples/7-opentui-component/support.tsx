@@ -3,15 +3,15 @@ import path from "node:path";
 import { createCliRenderer } from "@opentui/core";
 import { createRoot, useTerminalDimensions } from "@opentui/react";
 import { useState } from "react";
-import type { HunkDiffFile, HunkDiffLayout } from "../../src/opentui";
-import { HunkDiffView } from "../../src/opentui";
+import type { DunkDiffFile, DunkDiffLayout } from "../../src/opentui";
+import { DunkDiffView } from "../../src/opentui";
 import { fitText } from "../../src/ui/lib/text";
 
 interface ExampleProps {
   title: string;
   subtitle: string;
-  diff: HunkDiffFile;
-  layout?: HunkDiffLayout;
+  diff: DunkDiffFile;
+  layout?: DunkDiffLayout;
 }
 
 /** Read one checked-in example file relative to this folder. */
@@ -83,13 +83,13 @@ function ExampleApp({ title, subtitle, diff, layout = "split" }: ExampleProps) {
       </box>
       <box style={{ height: 1 }} />
       <box style={{ flexGrow: 1 }}>
-        <HunkDiffView diff={diff} layout={activeLayout} width={diffWidth} theme="midnight" />
+        <DunkDiffView diff={diff} layout={activeLayout} width={diffWidth} theme="midnight" />
       </box>
     </box>
   );
 }
 
-/** Launch a tiny OpenTUI app that embeds the exported Hunk diff component. */
+/** Launch a tiny OpenTUI app that embeds the exported dunk diff component. */
 export async function runExample(props: ExampleProps) {
   const renderer = await createCliRenderer({
     useAlternateScreen: true,

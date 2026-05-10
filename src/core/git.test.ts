@@ -23,7 +23,7 @@ describe("git command helpers", () => {
         gitExecutable: "definitely-not-a-real-git-binary",
       }),
     ).toThrow(
-      "Git is required for `hunk diff`, but `definitely-not-a-real-git-binary` was not found in PATH.",
+      "Git is required for `dunk diff`, but `definitely-not-a-real-git-binary` was not found in PATH.",
     );
   });
 });

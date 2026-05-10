@@ -402,7 +402,7 @@ export function createPtyHarness() {
     return { dir, patchFile };
   }
 
-  /** Build the source-run Hunk command so PTY tests can reuse it inside shell pipelines. */
+  /** Build the source-run dunk command so PTY tests can reuse it inside shell pipelines. */
   function buildHunkCommand(args: string[]) {
     return [
       shellQuote(bunExecutable),
@@ -430,8 +430,6 @@ export function createPtyHarness() {
       rows: options.rows ?? 24,
       env: {
         ...process.env,
-        HUNK_MCP_DISABLE: "1",
-        HUNK_DISABLE_UPDATE_NOTICE: "1",
         ...options.env,
       },
     });
@@ -455,16 +453,14 @@ export function createPtyHarness() {
       rows: options.rows ?? 24,
       env: {
         ...process.env,
-        HUNK_MCP_DISABLE: "1",
-        HUNK_DISABLE_UPDATE_NOTICE: "1",
         ...options.env,
       },
     });
   }
 
   /**
-   * Launch Hunk with a file-backed stdin while keeping stdout/stderr attached to the PTY.
-   * Uses `exec cmd < file` so bash replaces itself with Hunk, preserving the PTY on stdout/stderr
+   * Launch dunk with a file-backed stdin while keeping stdout/stderr attached to the PTY.
+   * Uses `exec cmd < file` so bash replaces itself with dunk, preserving the PTY on stdout/stderr
    * and the controlling terminal while giving the child a non-TTY stdin.
    */
   async function launchHunkWithFileBackedStdin(options: {

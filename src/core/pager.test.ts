@@ -101,11 +101,11 @@ describe("plain text pager fallback", () => {
     expect(resolveTextPagerCommand({})).toBe("less -R");
   });
 
-  test("prefers HUNK_TEXT_PAGER and avoids recursive hunk launches", () => {
-    expect(resolveTextPagerCommand({ HUNK_TEXT_PAGER: "bat --paging=always" })).toBe(
+  test("prefers DUNK_TEXT_PAGER and avoids recursive hunk launches", () => {
+    expect(resolveTextPagerCommand({ DUNK_TEXT_PAGER: "bat --paging=always" })).toBe(
       "bat --paging=always",
     );
-    expect(resolveTextPagerCommand({ HUNK_TEXT_PAGER: "hunk pager" })).toBe("less -R");
+    expect(resolveTextPagerCommand({ DUNK_TEXT_PAGER: "hunk pager" })).toBe("less -R");
     expect(resolveTextPagerCommand({ PAGER: "env FOO=1 hunk pager" })).toBe("less -R");
   });
 

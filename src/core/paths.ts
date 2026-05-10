@@ -3,7 +3,7 @@ import { dirname, join, resolve } from "node:path";
 
 const DUNK_REVIEW_SKILL_RELATIVE_PATH = join("skills", "dunk-review", "SKILL.md");
 
-/** Resolve the base config directory Hunk should use for user-scoped files. */
+/** Resolve the base config directory dunk should use for user-scoped files. */
 export function resolveUserConfigDir(env: NodeJS.ProcessEnv = process.env) {
   if (env.XDG_CONFIG_HOME) {
     return env.XDG_CONFIG_HOME;
@@ -16,16 +16,16 @@ export function resolveUserConfigDir(env: NodeJS.ProcessEnv = process.env) {
   return undefined;
 }
 
-/** Resolve the global Hunk config file path from the current environment. */
+/** Resolve the global dunk config file path from the current environment. */
 export function resolveGlobalConfigPath(env: NodeJS.ProcessEnv = process.env) {
   const configDir = resolveUserConfigDir(env);
-  return configDir ? join(configDir, "hunk", "config.toml") : undefined;
+  return configDir ? join(configDir, "dunk", "config.toml") : undefined;
 }
 
-/** Resolve the persisted Hunk state file path from the current environment. */
-export function resolveHunkStatePath(env: NodeJS.ProcessEnv = process.env) {
+/** Resolve the persisted dunk state file path from the current environment. */
+export function resolveDunkStatePath(env: NodeJS.ProcessEnv = process.env) {
   const configDir = resolveUserConfigDir(env);
-  return configDir ? join(configDir, "hunk", "state.json") : undefined;
+  return configDir ? join(configDir, "dunk", "state.json") : undefined;
 }
 
 /** Search one path and its parents for one relative child path. */
@@ -60,8 +60,8 @@ export function resolveBundledDunkReviewSkillPath(searchRoots?: string[]) {
   const roots = searchRoots ?? [import.meta.dir, process.execPath];
   const relativeCandidates = [
     DUNK_REVIEW_SKILL_RELATIVE_PATH,
-    join("hunkdiff", DUNK_REVIEW_SKILL_RELATIVE_PATH),
-    join("node_modules", "hunkdiff", DUNK_REVIEW_SKILL_RELATIVE_PATH),
+    join("dunk", DUNK_REVIEW_SKILL_RELATIVE_PATH),
+    join("node_modules", "dunk", DUNK_REVIEW_SKILL_RELATIVE_PATH),
   ];
 
   for (const root of roots) {

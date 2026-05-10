@@ -1,5 +1,5 @@
 import { resolveConfiguredCliInput } from "./config";
-import { HunkUserError } from "./errors";
+import { DunkUserError } from "./errors";
 import { loadAppBootstrap } from "./loaders";
 import { looksLikePatchInput } from "./pager";
 import {
@@ -89,8 +89,8 @@ export async function prepareStartupPlan(
   const cliInput = configured.input;
 
   if (cliInput.options.watch && !canReloadInput(cliInput)) {
-    throw new HunkUserError(
-      "`--watch` requires a file- or Git-backed input that Hunk can reopen.",
+    throw new DunkUserError(
+      "`--watch` requires a file- or Git-backed input that dunk can reopen.",
       [
         "Use a patch file path instead of stdin, and avoid `--agent-context -` for watched sessions.",
       ],

@@ -1,114 +1,96 @@
-# hunk
+# dunk
 
-Hunk is a review-first terminal diff viewer for agent-authored changesets, built on [OpenTUI](https://github.com/anomalyco/opentui) and [Pierre diffs](https://www.npmjs.com/package/@pierre/diffs).
+A personal terminal diff viewer with file-driven review comments. Built on [OpenTUI](https://github.com/anomalyco/opentui) and [Pierre diffs](https://www.npmjs.com/package/@pierre/diffs).
 
-[![CI status](https://img.shields.io/github/actions/workflow/status/modem-dev/hunk/ci.yml?branch=main&style=for-the-badge&label=CI)](https://github.com/modem-dev/hunk/actions/workflows/ci.yml?branch=main)
-[![Latest release](https://img.shields.io/github/v/release/modem-dev/hunk?style=for-the-badge)](https://github.com/modem-dev/hunk/releases)
-[![MIT License](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
+`dunk` is a hard fork of [hunk](https://github.com/modem-dev/hunk), stripped of the daemon/MCP/session-broker layer and rebuilt around one committed `.dunk/comments.json` per repo. The whole review loop — human + agent — flows through that one file.
 
 - multi-file review stream with sidebar navigation
-- inline AI and agent annotations beside the code
+- inline review comments anchored to file:line, drift-detected via line-context hashing
 - split, stack, and responsive auto layouts
-- watch mode for auto-reloading file and Git-backed reviews
-- keyboard, mouse, pager, and Git difftool support
-
-<table>
- <tr>
-   <td width="60%" align="center">
-     <img width="794" alt="image" src="https://github.com/user-attachments/assets/f6ffd9c4-67f5-483c-88f1-cbe88c19f52f" />
-     <br />
-     <sub>Split view with sidebar and inline comments</sub>
-   </td>
-   <td width="40%" align="center">
-     <img width="508" alt="image" src="https://github.com/user-attachments/assets/44c542a2-0a09-41cd-b264-fbd942e92f06" />
-     <br />
-     <sub>Stacked view and mouse-selectable menus</sub>
-   </td>
- </tr>
-</table>
+- watch mode that picks up edits to `.dunk/comments.json` so coding agents and humans can ping-pong on the same review
+- pager + `git difftool` adapters
 
 ## Install
 
+`dunk` is shipped via npm with prebuilt binaries for macOS and Linux:
+
 ```bash
-npm i -g hunkdiff
+npm i -g dunk
 ```
 
-Requirements:
-
-- Node.js 18+
-- macOS or Linux
-- Git recommended for most workflows
+Requirements: Node.js 18+, Git for most workflows.
 
 ## Quick start
 
 ```bash
-hunk           # show help
-hunk --version # print the installed version
+dunk            # show help
+dunk --version  # print the installed version
+
+dunk diff             # review the working tree (includes untracked)
+dunk diff --watch     # auto-reload as files (and comments.json) change
+dunk show             # review the latest commit
+dunk show HEAD~1      # review an earlier commit
+dunk diff before.ts after.ts            # compare two concrete files
+git diff --no-color | dunk patch -      # review a patch from stdin
 ```
 
-### Working with Git
+## Workflow with Claude Code / Codex
 
-Hunk mirrors Git's diff-style commands, but opens the changeset in a review UI instead of plain text.
+`dunk` is designed for the back-and-forth between a human reviewer in a terminal window and a coding agent in another. The bridge is `.dunk/comments.json`, which is committed to the repo:
+
+1. You open `dunk diff --watch` (or `dunk show <ref> --watch`).
+2. Press `a` to drop an inline comment on the focused hunk. It gets saved to `.dunk/comments.json` with a file path, line number, and an anchor hash of nearby context so it survives small edits.
+3. Hand the comments to your agent — paste the JSON, or just point Claude Code / Codex at `.dunk/comments.json`. Each comment carries `file`, `line`, and `body`; the agent fixes the issue at that exact location and removes its entry from the JSON.
+4. Watch mode picks up the JSON edits. Resolved comments disappear from the diff in real time; remaining ones stay pinned to the right hunks.
+5. When the file the comment was anchored to changes too much, the comment surfaces as **drifted** at the top of the diff so it doesn't get lost. `D` clears all drifted comments at once.
+
+There's a sample agent skill at `skills/dunk-review/SKILL.md` (also reachable via `dunk skill path`) that you can load into Claude Code or any skill-aware agent. It tells the agent how to read, fix, and prune `.dunk/comments.json`.
+
+Tip: keep the diff and the agent in two side-by-side terminals. Mark a comment with `a`, save the file, and the agent on the other side notices the JSON change and starts working.
+
+## Git integration
+
+Wire `dunk` as your Git pager so `git diff` and `git show` open in `dunk` automatically:
 
 ```bash
-hunk diff                      # review current repo changes, including untracked files
-hunk diff --watch              # auto-reload as the working tree changes
-hunk show                      # review the latest commit
-hunk show HEAD~1               # review an earlier commit
+git config --global core.pager "dunk pager"
 ```
 
-### Working with Jujutsu
+Or in `~/.gitconfig`:
 
-Hunk auto-detects Jujutsu checkouts, so `hunk diff [revset]` and `hunk show [revset]` use jj revsets inside a jj workspace. To override VCS detection, set `vcs = "git"` or `vcs = "jj"` in [config](#config).
+```ini
+[core]
+    pager = dunk pager
+```
 
-### Working with raw files and patches
+Prefer to keep Git's default pager and add opt-in aliases:
 
 ```bash
-hunk diff before.ts after.ts                # compare two files directly
-hunk diff before.ts after.ts --watch        # auto-reload when either file changes
-git diff --no-color | hunk patch -          # review a patch from stdin
+git config --global alias.ddiff "-c core.pager=\"dunk pager\" diff"
+git config --global alias.dshow "-c core.pager=\"dunk pager\" show"
 ```
 
-### Working with agents
+> [!NOTE]
+> Untracked files are auto-included only for `dunk diff` (the working-tree loader). When you go through `dunk pager`, Git decides what's in the patch — untracked files won't appear there.
 
-1. Open Hunk in another terminal with `hunk diff` or `hunk show`.
-2. Tell your agent to add the skill file returned by `hunk skill path`.
-3. Ask your agent to use the skill against the live Hunk session.
+### Jujutsu
 
-A good generic prompt is:
+`dunk` auto-detects Jujutsu workspaces, so `dunk diff [revset]` and `dunk show [revset]` use jj revsets when run inside one. To force a backend, set `vcs = "git"` or `vcs = "jj"` in [config](#config).
 
-```text
-Load the Hunk skill and use it for this review.
+To use `dunk` as jj's pager, run `jj config edit --user` and add:
+
+```toml
+[ui]
+pager = ["dunk", "pager"]
+diff-formatter = ":git"
 ```
 
-For the full live-session and `--agent-context` workflow guide, see [docs/agent-workflows.md](docs/agent-workflows.md).
+## Config
 
-## Feature comparison
+Persist preferences in either:
 
-| Capability                         | [hunk](https://github.com/modem-dev/hunk) | [lumen](https://github.com/jnsahaj/lumen) | [difftastic](https://github.com/Wilfred/difftastic) | [delta](https://github.com/dandavison/delta) | [diff-so-fancy](https://github.com/so-fancy/diff-so-fancy) | [diff](https://www.gnu.org/software/diffutils/) |
-| ---------------------------------- | ----------------------------------------- | ----------------------------------------- | --------------------------------------------------- | -------------------------------------------- | ---------------------------------------------------------- | ----------------------------------------------- |
-| Review-first interactive UI        | ✅                                        | ✅                                        | ❌                                                  | ❌                                           | ❌                                                         | ❌                                              |
-| Multi-file review stream + sidebar | ✅                                        | ✅                                        | ❌                                                  | ❌                                           | ❌                                                         | ❌                                              |
-| Inline agent / AI annotations      | ✅                                        | ❌                                        | ❌                                                  | ❌                                           | ❌                                                         | ❌                                              |
-| Responsive auto split/stack layout | ✅                                        | ❌                                        | ❌                                                  | ❌                                           | ❌                                                         | ❌                                              |
-| Mouse support inside the viewer    | ✅                                        | ✅                                        | ❌                                                  | ❌                                           | ❌                                                         | ❌                                              |
-| Runtime view toggles               | ✅                                        | ✅                                        | ❌                                                  | ❌                                           | ❌                                                         | ❌                                              |
-| Syntax highlighting                | ✅                                        | ✅                                        | ✅                                                  | ✅                                           | ❌                                                         | ❌                                              |
-| Structural diffing                 | ❌                                        | ❌                                        | ✅                                                  | ❌                                           | ❌                                                         | ❌                                              |
-| Pager-compatible mode              | ✅                                        | ❌                                        | ✅                                                  | ✅                                           | ✅                                                         | ✅                                              |
-
-Hunk is optimized for reviewing a full changeset interactively.
-
-## Advanced
-
-### Config
-
-You can persist preferences to a config file:
-
-- `~/.config/hunk/config.toml`
-- `.dunk/config.toml`
-
-Example:
+- `~/.config/dunk/config.toml`
+- `.dunk/config.toml` (per-repo)
 
 ```toml
 theme = "graphite"   # graphite, midnight, paper, ember
@@ -121,71 +103,16 @@ comments = true
 selection_auto_copy = true
 ```
 
-`exclude_untracked` affects Git working-tree `hunk diff` sessions only.
+`exclude_untracked` only affects `dunk diff` working-tree sessions.
 
-### Git integration
+## OpenTUI component
 
-Set Hunk as your Git pager so `git diff` and `git show` open in Hunk automatically:
-
-> [!NOTE]
-> Untracked files are auto-included only for Hunk's own `hunk diff` working-tree loader. If you open `git diff` through `hunk pager`, Git still decides the patch contents, so untracked files will not appear there.
-
-```bash
-git config --global core.pager "hunk pager"
-```
-
-Or in your Git config:
-
-```ini
-[core]
-    pager = hunk pager
-```
-
-If you want to keep Git's default pager and add opt-in aliases instead:
-
-```bash
-git config --global alias.hdiff "-c core.pager=\"hunk pager\" diff"
-git config --global alias.hshow "-c core.pager=\"hunk pager\" show"
-```
-
-### Jujutsu pager integration
-
-To use Hunk as jj's pager, run `jj config edit --user` and update:
-
-```toml
-[ui]
-pager = ["hunk", "pager"]
-diff-formatter = ":git"
-```
-
-### OpenTUI component
-
-Hunk also publishes `HunkDiffView` from `hunkdiff/opentui` for embedding the same diff renderer in your own OpenTUI app.
-
-See [docs/opentui-component.md](docs/opentui-component.md) for install, API, and runnable examples.
+`dunk` exports `DunkDiffView` from `dunk/opentui` for embedding the diff renderer in your own OpenTUI app. See [docs/opentui-component.md](docs/opentui-component.md).
 
 ## Examples
 
-Ready-to-run demo diffs live in [`examples/`](examples/README.md).
-
-Each example includes the exact command to run from the repository root.
-
-## Contributing
-
-For source setup, tests, packaging checks, and repo architecture, see [CONTRIBUTING.md](CONTRIBUTING.md).
-
-## Sponsor
-
-Sponsored by [Modem](https://modem.dev?utm_source=github&utm_medium=oss&utm_campaign=hunk).
-
-<a href="https://modem.dev?utm_source=github&utm_medium=oss&utm_campaign=hunk">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://modem.dev/images/logo/svg/modem-combined-white.svg">
-    <source media="(prefers-color-scheme: light)" srcset="https://modem.dev/images/logo/svg/modem-combined-black.svg">
-    <img src="https://modem.dev/images/logo/svg/modem-combined-black.svg" alt="Modem" width="220">
-  </picture>
-</a>
+Runnable demo diffs live in [`examples/`](examples/README.md). Each one prints the exact command to run from the repo root.
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE) — same as upstream hunk, of which this is a hard fork.

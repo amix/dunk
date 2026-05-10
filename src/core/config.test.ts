@@ -52,9 +52,9 @@ describe("config resolution", () => {
     const repo = createTempDir("hunk-config-repo-");
     createRepo(repo);
 
-    mkdirSync(join(home, ".config", "hunk"), { recursive: true });
+    mkdirSync(join(home, ".config", "dunk"), { recursive: true });
     writeFileSync(
-      join(home, ".config", "hunk", "config.toml"),
+      join(home, ".config", "dunk", "config.toml"),
       [
         'theme = "graphite"',
         "line_numbers = false",
@@ -105,9 +105,9 @@ describe("config resolution", () => {
 
   test("command-specific config sections also apply to show mode", () => {
     const home = createTempDir("hunk-config-home-");
-    mkdirSync(join(home, ".config", "hunk"), { recursive: true });
+    mkdirSync(join(home, ".config", "dunk"), { recursive: true });
     writeFileSync(
-      join(home, ".config", "hunk", "config.toml"),
+      join(home, ".config", "dunk", "config.toml"),
       ["[show]", 'mode = "stack"', "line_numbers = false"].join("\n"),
     );
 
@@ -126,8 +126,8 @@ describe("config resolution", () => {
 
   test("defaults git diff to include untracked files and honors config plus CLI overrides", () => {
     const home = createTempDir("hunk-config-home-");
-    mkdirSync(join(home, ".config", "hunk"), { recursive: true });
-    writeFileSync(join(home, ".config", "hunk", "config.toml"), "exclude_untracked = true\n");
+    mkdirSync(join(home, ".config", "dunk"), { recursive: true });
+    writeFileSync(join(home, ".config", "dunk", "config.toml"), "exclude_untracked = true\n");
 
     const cwd = createTempDir("hunk-config-cwd-");
     const defaultResolved = resolveConfiguredCliInput(
@@ -163,8 +163,8 @@ describe("config resolution", () => {
 
   test("defaults to git VCS mode and accepts jj from config", () => {
     const home = createTempDir("hunk-config-home-");
-    mkdirSync(join(home, ".config", "hunk"), { recursive: true });
-    writeFileSync(join(home, ".config", "hunk", "config.toml"), 'vcs = "jj"\n');
+    mkdirSync(join(home, ".config", "dunk"), { recursive: true });
+    writeFileSync(join(home, ".config", "dunk", "config.toml"), 'vcs = "jj"\n');
 
     const cwd = createTempDir("hunk-config-cwd-");
     const defaultResolved = resolveConfiguredCliInput(
@@ -246,9 +246,9 @@ describe("config resolution", () => {
     const repo = createTempDir("hunk-config-repo-");
     createRepo(repo);
 
-    mkdirSync(join(home, ".config", "hunk"), { recursive: true });
+    mkdirSync(join(home, ".config", "dunk"), { recursive: true });
     writeFileSync(
-      join(home, ".config", "hunk", "config.toml"),
+      join(home, ".config", "dunk", "config.toml"),
       [
         'theme = "paper"',
         "line_numbers = false",

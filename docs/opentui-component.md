@@ -1,23 +1,23 @@
 # OpenTUI component
 
-`hunkdiff/opentui` exports `HunkDiffView`, a reusable terminal diff component built from the same renderer as the Hunk CLI.
+`dunk/opentui` exports `DunkDiffView`, a reusable terminal diff component built from the same renderer as the dunk CLI.
 
-Use it when you want Hunk's split or stack diff view inside your own OpenTUI app.
+Use it when you want dunk's split or stack diff view inside your own OpenTUI app.
 
 ## Install
 
 ```bash
-npm i hunkdiff @opentui/core @opentui/react react
+npm i dunk @opentui/core @opentui/react react
 ```
 
-`hunkdiff` declares OpenTUI and React as peer dependencies, so install them in your app.
+`dunk` declares OpenTUI and React as peer dependencies, so install them in your app.
 
 ## Quick start
 
 ```tsx
 import { createCliRenderer } from "@opentui/core";
 import { createRoot } from "@opentui/react";
-import { HunkDiffView, parseDiffFromFile } from "hunkdiff/opentui";
+import { DunkDiffView, parseDiffFromFile } from "dunk/opentui";
 
 const metadata = parseDiffFromFile(
   {
@@ -42,7 +42,7 @@ const renderer = await createCliRenderer({
 const root = createRoot(renderer);
 
 root.render(
-  <HunkDiffView
+  <DunkDiffView
     diff={{
       id: "example",
       metadata,
@@ -60,10 +60,10 @@ In a real app, derive `width` from your layout or `useTerminalDimensions()`.
 
 ## Building the `diff` input
 
-`HunkDiffView` renders one file at a time. Pass a `diff` object shaped like this:
+`DunkDiffView` renders one file at a time. Pass a `diff` object shaped like this:
 
 ```ts
-type HunkDiffFile = {
+type DunkDiffFile = {
   id: string;
   metadata: FileDiffMetadata;
   language?: string;
@@ -77,7 +77,7 @@ type HunkDiffFile = {
 Use `parseDiffFromFile(...)` when you already have the old and new file contents.
 
 ```tsx
-import { parseDiffFromFile } from "hunkdiff/opentui";
+import { parseDiffFromFile } from "dunk/opentui";
 
 const metadata = parseDiffFromFile(beforeFile, afterFile, { context: 3 }, true);
 ```
@@ -87,7 +87,7 @@ const metadata = parseDiffFromFile(beforeFile, afterFile, { context: 3 }, true);
 Use `parsePatchFiles(...)` when you already have a patch string.
 
 ```tsx
-import { parsePatchFiles } from "hunkdiff/opentui";
+import { parsePatchFiles } from "dunk/opentui";
 
 const parsed = parsePatchFiles(patchText, "example:patch", true);
 const metadata = parsed.flatMap((entry) => entry.files)[0];
@@ -101,10 +101,10 @@ if (!metadata) {
 
 | Prop                | Type                                             | Default      | Notes                                                                     |
 | ------------------- | ------------------------------------------------ | ------------ | ------------------------------------------------------------------------- |
-| `diff`              | `HunkDiffFile`                                   | `undefined`  | File to render. When omitted, the component shows an empty-state message. |
+| `diff`              | `DunkDiffFile`                                   | `undefined`  | File to render. When omitted, the component shows an empty-state message. |
 | `layout`            | `"split" \| "stack"`                             | `"split"`    | Chooses side-by-side or stacked rendering.                                |
 | `width`             | `number`                                         | —            | Required content width in terminal columns.                               |
-| `theme`             | `"graphite" \| "midnight" \| "paper" \| "ember"` | `"graphite"` | Matches Hunk's built-in themes.                                           |
+| `theme`             | `"graphite" \| "midnight" \| "paper" \| "ember"` | `"graphite"` | Matches dunk's built-in themes.                                           |
 | `showLineNumbers`   | `boolean`                                        | `true`       | Toggles line-number columns.                                              |
 | `showHunkHeaders`   | `boolean`                                        | `true`       | Toggles `@@ ... @@` hunk header rows.                                     |
 | `wrapLines`         | `boolean`                                        | `false`      | Wraps long lines instead of clipping horizontally.                        |
@@ -118,11 +118,11 @@ if (!metadata) {
 - `parseDiffFromFile`
 - `parsePatchFiles`
 - `FileDiffMetadata`
-- `HUNK_DIFF_THEME_NAMES`
-- `HunkDiffThemeName`
-- `HunkDiffLayout`
-- `HunkDiffFile`
-- `HunkDiffViewProps`
+- `DUNK_DIFF_THEME_NAMES`
+- `DunkDiffThemeName`
+- `DunkDiffLayout`
+- `DunkDiffFile`
+- `DunkDiffViewProps`
 
 `parseDiffFromFile`, `parsePatchFiles`, and `FileDiffMetadata` are re-exported from `@pierre/diffs` so you can build `metadata` without adding a second diff dependency.
 
@@ -131,4 +131,4 @@ if (!metadata) {
 - Runnable demo overview: [`examples/README.md`](../examples/README.md)
 - Component demos: [`examples/7-opentui-component/README.md`](../examples/7-opentui-component/README.md)
 
-The in-repo demos import from `../../src/opentui` so they run from source. Published consumers should import from `hunkdiff/opentui`.
+The in-repo demos import from `../../src/opentui` so they run from source. Published consumers should import from `dunk/opentui`.

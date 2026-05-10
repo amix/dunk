@@ -77,7 +77,7 @@ function stageMetaPackage(
 ) {
   const metaDir = path.join(releaseRoot, rootPackage.name);
   ensureDirectory(path.join(metaDir, "bin"));
-  cpSync(path.join(repoRoot, "bin", "hunk.cjs"), path.join(metaDir, "bin", "hunk.cjs"));
+  cpSync(path.join(repoRoot, "bin", "dunk.cjs"), path.join(metaDir, "bin", "dunk.cjs"));
   cpSync(path.join(repoRoot, "skills"), path.join(metaDir, "skills"), { recursive: true });
   cpSync(path.join(repoRoot, "README.md"), path.join(metaDir, "README.md"));
   cpSync(path.join(repoRoot, "LICENSE"), path.join(metaDir, "LICENSE"));
@@ -87,7 +87,7 @@ function stageMetaPackage(
     version: rootPackage.version,
     description: rootPackage.description,
     bin: {
-      hunk: "./bin/hunk.cjs",
+      dunk: "./bin/dunk.cjs",
     },
     files: ["bin", "skills", "README.md", "LICENSE"],
     keywords: rootPackage.keywords,
@@ -165,7 +165,7 @@ const artifacts = artifactRoot
   : [
       {
         spec: getHostPlatformPackageSpec(),
-        compiledBinary: path.join(repoRoot, "dist", "hunk"),
+        compiledBinary: path.join(repoRoot, "dist", "dunk"),
       },
     ];
 
@@ -184,5 +184,5 @@ for (const spec of stagedSpecs) {
 if (artifactRoot) {
   console.log(`Artifacts source: ${artifactRoot}`);
 } else {
-  console.log(`Artifacts source: ${path.join(repoRoot, "dist", "hunk")}`);
+  console.log(`Artifacts source: ${path.join(repoRoot, "dist", "dunk")}`);
 }

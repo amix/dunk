@@ -541,7 +541,7 @@ describe("loadAppBootstrap", () => {
         staged: false,
         options: { mode: "auto" },
       }),
-    ).rejects.toThrow("`hunk diff` must be run inside a Git repository.");
+    ).rejects.toThrow("`dunk diff` must be run inside a Git repository.");
   });
 
   test("reports a friendly error when diff cannot resolve a range", async () => {
@@ -558,7 +558,7 @@ describe("loadAppBootstrap", () => {
         staged: false,
         options: { mode: "auto" },
       }),
-    ).rejects.toThrow("`hunk diff HEAD~999` could not resolve Git revision or range `HEAD~999`.");
+    ).rejects.toThrow("`dunk diff HEAD~999` could not resolve Git revision or range `HEAD~999`.");
   });
 
   test("loads staged-only git diffs from the full UI command path", async () => {
@@ -737,7 +737,7 @@ describe("loadAppBootstrap", () => {
         ref: "HEAD~999",
         options: { mode: "auto" },
       }),
-    ).rejects.toThrow("`hunk show HEAD~999` could not resolve Git ref `HEAD~999`.");
+    ).rejects.toThrow("`dunk show HEAD~999` could not resolve Git ref `HEAD~999`.");
   });
 
   test("loads show output limited by pathspec", async () => {
@@ -829,7 +829,7 @@ describe("loadAppBootstrap", () => {
         kind: "stash-show",
         options: { mode: "auto", vcs: "jj" },
       }),
-    ).rejects.toThrow("`hunk stash show` requires Git VCS mode.");
+    ).rejects.toThrow("`dunk stash show` requires Git VCS mode.");
   });
 
   test("reports a friendly error when no stash entries exist", async () => {
@@ -844,7 +844,7 @@ describe("loadAppBootstrap", () => {
         kind: "stash-show",
         options: { mode: "auto" },
       }),
-    ).rejects.toThrow("`hunk stash show` could not find a stash entry to show.");
+    ).rejects.toThrow("`dunk stash show` could not find a stash entry to show.");
   });
 
   test("reports a friendly error when a stash ref does not exist", async () => {
@@ -863,7 +863,7 @@ describe("loadAppBootstrap", () => {
         ref: "stash@{99}",
         options: { mode: "auto" },
       }),
-    ).rejects.toThrow("`hunk stash show stash@{99}` could not resolve stash entry `stash@{99}`.");
+    ).rejects.toThrow("`dunk stash show stash@{99}` could not resolve stash entry `stash@{99}`.");
   });
 
   test("strips parser-added line endings from rename-only paths", async () => {
@@ -946,7 +946,7 @@ describe("loadAppBootstrap", () => {
     expect(bootstrap.changeset.files[0]?.stats.additions).toBeGreaterThan(0);
   });
 
-  test("loads patch text emitted with diff.noprefix=true (e.g. from `hunk pager` stdin)", async () => {
+  test("loads patch text emitted with diff.noprefix=true (e.g. from `dunk pager` stdin)", async () => {
     const bootstrap = await loadAppBootstrap({
       kind: "patch",
       text: [
@@ -969,7 +969,7 @@ describe("loadAppBootstrap", () => {
     expect(bootstrap.changeset.files[0]?.stats.additions).toBe(1);
   });
 
-  test("loads patch text emitted with diff.mnemonicPrefix=true (e.g. from `hunk pager` stdin)", async () => {
+  test("loads patch text emitted with diff.mnemonicPrefix=true (e.g. from `dunk pager` stdin)", async () => {
     const dir = createTempRepo("hunk-patch-mnemonic-prefix-");
 
     writeFileSync(join(dir, "example.ts"), "export const value = 1;\n");

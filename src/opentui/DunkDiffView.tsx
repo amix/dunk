@@ -7,10 +7,10 @@ import { buildSplitRows, buildStackRows } from "../ui/diff/pierre";
 import { diffMessage, DiffRowView, fitText } from "../ui/diff/renderRows";
 import { useHighlightedDiff } from "../ui/diff/useHighlightedDiff";
 import { resolveTheme } from "../ui/themes";
-import type { HunkDiffFile, HunkDiffViewProps } from "./types";
+import type { DunkDiffFile, DunkDiffViewProps } from "./types";
 
 /** Count visible additions and deletions from Pierre metadata for the internal file adapter. */
-function countDiffStats(metadata: HunkDiffFile["metadata"]) {
+function countDiffStats(metadata: DunkDiffFile["metadata"]) {
   let additions = 0;
   let deletions = 0;
 
@@ -26,8 +26,8 @@ function countDiffStats(metadata: HunkDiffFile["metadata"]) {
   return { additions, deletions };
 }
 
-/** Adapt the public diff shape into Hunk's internal file model without exposing app-only fields. */
-function toInternalDiffFile(diff: HunkDiffFile): DiffFile {
+/** Adapt the public diff shape into dunk's internal file model without exposing app-only fields. */
+function toInternalDiffFile(diff: DunkDiffFile): DiffFile {
   const patch = diff.patch ?? "";
   const metadata = normalizeDiffMetadataPaths(diff.metadata);
   const path = normalizeDiffPath(diff.path) ?? metadata.name;
@@ -45,8 +45,8 @@ function toInternalDiffFile(diff: HunkDiffFile): DiffFile {
   };
 }
 
-/** Render one diff file body with Hunk's terminal-native OpenTUI renderer. */
-export function HunkDiffView({
+/** Render one diff file body with dunk's terminal-native OpenTUI renderer. */
+export function DunkDiffView({
   diff,
   layout = "split",
   width,
@@ -58,7 +58,7 @@ export function HunkDiffView({
   highlight = true,
   scrollable = true,
   selectedHunkIndex = 0,
-}: HunkDiffViewProps) {
+}: DunkDiffViewProps) {
   const resolvedTheme = resolveTheme(theme, null);
   const internalDiff = useMemo(() => (diff ? toInternalDiffFile(diff) : undefined), [diff]);
   const resolvedHighlighted = useHighlightedDiff({
