@@ -258,6 +258,13 @@ export function mutateCommentsFile(
 ): CommentsFile {
   const current = readCommentsFile(repoRoot);
   const next = mutate(current);
+  // Skip the write when the mutation was a no-op so we don't materialize an
+  // empty .tunk/comments.json on disk just because the user pressed a delete
+  // key on a hunk that has no comments.
+  if (next === current) {
+    return current;
+  }
+
   writeCommentsFile(repoRoot, next);
   return next;
 }
