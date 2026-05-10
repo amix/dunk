@@ -1465,6 +1465,7 @@ describe("UI components", () => {
       "{ / }           previous / next comment",
       "← / →           scroll code left / right (Shift = faster)",
       "Home / End      jump to top / bottom",
+      "gg / G          jump to top / bottom (vim)",
       "Mouse",
       "Wheel           scroll vertically",
       "Shift+Wheel     scroll code horizontally",

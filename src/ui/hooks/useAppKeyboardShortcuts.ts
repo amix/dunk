@@ -83,6 +83,10 @@ export function useAppKeyboardShortcuts({
   const showHelpRef = useRef(showHelp);
   const commentEditorActiveRef = useRef(commentEditorActive);
   const confirmActiveRef = useRef(confirmActive);
+  // Track the last key press time + sequence for the vim-style `gg` chord. Anything
+  // older than the window resets the chord so a stray `g` doesn't fire later.
+  const pendingGAtRef = useRef<number | null>(null);
+  const G_CHORD_WINDOW_MS = 600;
 
   focusAreaRef.current = focusArea;
   pagerModeRef.current = pagerMode;
@@ -231,6 +235,23 @@ export function useAppKeyboardShortcuts({
     }
 
     if (key.name === "end") {
+      scrollDiff(1, "content");
+      return;
+    }
+
+    // Vim-style top/bottom: `gg` jumps to the very first hunk; Shift+G to the last.
+    if (key.sequence === "g") {
+      const now = Date.now();
+      const previous = pendingGAtRef.current;
+      pendingGAtRef.current = previous && now - previous <= G_CHORD_WINDOW_MS ? null : now;
+      if (previous && now - previous <= G_CHORD_WINDOW_MS) {
+        scrollDiff(-1, "content");
+      }
+      return;
+    }
+    pendingGAtRef.current = null;
+
+    if (key.sequence === "G") {
       scrollDiff(1, "content");
       return;
     }
