@@ -399,7 +399,6 @@ describe("App interactions", () => {
     try {
       await flush(setup);
 
-      // Comments are visible by default; pressing `c` hides them.
       let frame = setup.captureCharFrame();
       expect(frame).toContain("Annotation for alpha.ts");
       expect(frame).toContain("Why alpha.ts changed");

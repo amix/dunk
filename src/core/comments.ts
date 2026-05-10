@@ -149,6 +149,20 @@ export function withRemovedComments(file: CommentsFile, ids: Iterable<number>): 
   };
 }
 
+/** Remove every comment whose `file` matches one of the supplied repo-relative paths. */
+export function withRemovedCommentsForFiles(
+  file: CommentsFile,
+  paths: Iterable<string>,
+): CommentsFile {
+  const pathSet = new Set(paths);
+  const next = file.comments.filter((comment) => !pathSet.has(comment.file));
+  if (next.length === file.comments.length) {
+    return file;
+  }
+
+  return { ...file, comments: next };
+}
+
 /** Resolve persisted comments against current file contents. */
 export function resolveComments(
   comments: PersistedComment[],

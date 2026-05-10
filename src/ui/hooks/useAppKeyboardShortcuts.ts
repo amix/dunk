@@ -146,12 +146,12 @@ export function useAppKeyboardShortcuts({
       return;
     }
 
-    if (key.name === "w" || key.sequence === "w") {
+    if (key.sequence === "w") {
       toggleLineWrap();
       return;
     }
 
-    if (key.name === "s" || key.sequence === "s") {
+    if (key.sequence === "s") {
       toggleSidebar();
     }
   };
@@ -270,22 +270,22 @@ export function useAppKeyboardShortcuts({
       return;
     }
 
-    if (key.name === "s") {
+    if (key.sequence === "s") {
       toggleSidebar();
       return;
     }
 
-    if ((key.name === "r" || key.sequence === "r") && canRefreshCurrentInput) {
+    if (key.sequence === "r" && canRefreshCurrentInput) {
       triggerRefreshCurrentInput();
       return;
     }
 
-    if (key.name === "t") {
+    if (key.sequence === "t") {
       cycleTheme();
       return;
     }
 
-    if (key.name === "a") {
+    if (key.sequence === "a") {
       openCommentEditor();
       return;
     }
@@ -295,17 +295,17 @@ export function useAppKeyboardShortcuts({
       return;
     }
 
-    if (key.name === "l" || key.sequence === "l") {
+    if (key.sequence === "l") {
       toggleLineNumbers();
       return;
     }
 
-    if (key.name === "w" || key.sequence === "w") {
+    if (key.sequence === "w") {
       toggleLineWrap();
       return;
     }
 
-    if (key.name === "m" || key.sequence === "m") {
+    if (key.sequence === "m") {
       toggleHunkHeaders();
       return;
     }

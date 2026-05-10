@@ -9,7 +9,7 @@ import type {
   VcsMode,
 } from "./types";
 
-const DEFAULT_VIEW_PREFERENCES: PersistedViewPreferences = {
+export const DEFAULT_VIEW_PREFERENCES: PersistedViewPreferences = {
   mode: "auto",
   showLineNumbers: false,
   wrapLines: true,
@@ -184,16 +184,12 @@ export function resolveConfiguredCliInput(
   resolvedOptions = mergeOptions(resolvedOptions, input.options);
   resolvedOptions = {
     ...resolvedOptions,
+    // Per-invocation flags always win — they come from CLI args, not config layers.
     agentContext: input.options.agentContext,
     pager: input.options.pager ?? false,
     watch: input.options.watch ?? false,
     excludeUntracked: resolvedOptions.excludeUntracked ?? false,
     vcs: resolvedOptions.vcs ?? "git",
-    mode: resolvedOptions.mode ?? DEFAULT_VIEW_PREFERENCES.mode,
-    lineNumbers: resolvedOptions.lineNumbers ?? DEFAULT_VIEW_PREFERENCES.showLineNumbers,
-    wrapLines: resolvedOptions.wrapLines ?? DEFAULT_VIEW_PREFERENCES.wrapLines,
-    hunkHeaders: resolvedOptions.hunkHeaders ?? DEFAULT_VIEW_PREFERENCES.showHunkHeaders,
-    comments: resolvedOptions.comments ?? DEFAULT_VIEW_PREFERENCES.showComments,
   };
 
   return {

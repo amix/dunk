@@ -29,11 +29,15 @@ export function ConfirmDialog({
 
   useKeyboard((key: KeyEvent) => {
     if (isEscapeKey(key) || key.sequence === "n" || key.sequence === "N") {
+      key.preventDefault();
+      key.stopPropagation();
       onCancel();
       return;
     }
 
     if (key.sequence === "y" || key.sequence === "Y" || key.name === "return") {
+      key.preventDefault();
+      key.stopPropagation();
       onConfirm();
     }
   });

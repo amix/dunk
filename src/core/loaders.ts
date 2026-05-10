@@ -11,7 +11,7 @@ import { join, resolve as resolvePath } from "node:path";
 import { findAgentFileContext, loadAgentContext } from "./agent";
 import { createSkippedBinaryMetadata, isProbablyBinaryFile, patchLooksBinary } from "./binary";
 import { applyCommentsToChangeset, readCommentsFile, resolveComments } from "./comments";
-import { findRepoRoot } from "./config";
+import { DEFAULT_VIEW_PREFERENCES, findRepoRoot } from "./config";
 import type { DriftedCommentSummary } from "./types";
 import { normalizeDiffMetadataPaths, normalizeDiffPath } from "./diffPaths";
 import { HunkUserError } from "./errors";
@@ -1184,12 +1184,13 @@ export async function loadAppBootstrap(
   return {
     input,
     changeset,
-    initialMode: input.options.mode ?? "auto",
+    initialMode: input.options.mode ?? DEFAULT_VIEW_PREFERENCES.mode,
     initialTheme: input.options.theme,
-    initialShowLineNumbers: input.options.lineNumbers ?? true,
-    initialWrapLines: input.options.wrapLines ?? false,
-    initialShowHunkHeaders: input.options.hunkHeaders ?? true,
-    initialShowComments: input.options.comments ?? true,
+    initialShowLineNumbers: input.options.lineNumbers ?? DEFAULT_VIEW_PREFERENCES.showLineNumbers,
+    initialWrapLines: input.options.wrapLines ?? DEFAULT_VIEW_PREFERENCES.wrapLines,
+    initialShowHunkHeaders:
+      input.options.hunkHeaders ?? DEFAULT_VIEW_PREFERENCES.showHunkHeaders,
+    initialShowComments: input.options.comments ?? DEFAULT_VIEW_PREFERENCES.showComments,
     driftedComments: merged.drifted,
   };
 }

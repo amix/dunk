@@ -11,7 +11,9 @@ import {
   mutateCommentsFile,
   withAddedComment,
   withRemovedComment,
-  withRemovedComments,
+  withRemovedCommentsForFiles,
+  type CommentsFile,
+  type PersistedComment,
 } from "../core/comments";
 import { findRepoRoot } from "../core/config";
 import { resolveEditorLaunch, runEditorLaunch } from "../core/editor";
@@ -282,7 +284,6 @@ export function App({
     setLayoutMode(mode);
   }, []);
 
-  /** Toggle the global agent note layer on or off. */
   const toggleComments = () => {
     setShowComments((current) => !current);
   };
@@ -393,12 +394,7 @@ export function App({
 
   /** Apply one mutation to the comments anchored on the focused hunk. */
   const mutateFocusedHunkComments = useCallback(
-    (
-      reduce: (
-        file: ReturnType<typeof mutateCommentsFile> extends infer R ? R : never,
-        matching: ReturnType<typeof commentsForHunkRange>,
-      ) => ReturnType<typeof mutateCommentsFile> | null,
-    ) => {
+    (reduce: (file: CommentsFile, matching: PersistedComment[]) => CommentsFile | null) => {
       const target = focusedHunkTarget();
       if (!target) {
         return;
@@ -433,31 +429,25 @@ export function App({
       return;
     }
 
-    const visiblePaths = new Set<string>();
-    for (const file of bootstrap.changeset.files) {
-      visiblePaths.add(file.path);
-      if (file.previousPath) {
-        visiblePaths.add(file.previousPath);
-      }
-    }
-
     setConfirmPrompt({
       title: "Delete all comments",
       message: `Delete every comment in the current diff (${bootstrap.changeset.files.length} files)?`,
       onConfirm: () => {
         setConfirmPrompt(null);
-        try {
-          mutateCommentsFile(repoRoot, (current) => {
-            const targets = current.comments.filter((comment) => visiblePaths.has(comment.file));
-            if (targets.length === 0) {
-              return current;
-            }
+        // Rebuild path set at confirm time so a file-watcher reload while the dialog is
+        // open does not leave the operation targeting a stale changeset.
+        const visiblePaths = new Set<string>();
+        for (const file of bootstrap.changeset.files) {
+          visiblePaths.add(file.path);
+          if (file.previousPath) {
+            visiblePaths.add(file.previousPath);
+          }
+        }
 
-            return withRemovedComments(
-              current,
-              targets.map((comment) => comment.id),
-            );
-          });
+        try {
+          mutateCommentsFile(repoRoot, (current) =>
+            withRemovedCommentsForFiles(current, visiblePaths),
+          );
         } catch (error) {
           console.error("Failed to delete comments in the current diff.", error);
           return;
