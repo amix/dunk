@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import { dirname, join, resolve } from "node:path";
 
-const HUNK_REVIEW_SKILL_RELATIVE_PATH = join("skills", "hunk-review", "SKILL.md");
+const TUNK_REVIEW_SKILL_RELATIVE_PATH = join("skills", "tunk-review", "SKILL.md");
 
 /** Resolve the base config directory Hunk should use for user-scoped files. */
 export function resolveUserConfigDir(env: NodeJS.ProcessEnv = process.env) {
@@ -55,13 +55,13 @@ function findRelativePathFromAncestors(startPath: string, relativePath: string) 
   }
 }
 
-/** Resolve the bundled Hunk review skill path from source, npm, or prebuilt package layouts. */
-export function resolveBundledHunkReviewSkillPath(searchRoots?: string[]) {
+/** Resolve the bundled tunk review skill path from source, npm, or prebuilt package layouts. */
+export function resolveBundledTunkReviewSkillPath(searchRoots?: string[]) {
   const roots = searchRoots ?? [import.meta.dir, process.execPath];
   const relativeCandidates = [
-    HUNK_REVIEW_SKILL_RELATIVE_PATH,
-    join("hunkdiff", HUNK_REVIEW_SKILL_RELATIVE_PATH),
-    join("node_modules", "hunkdiff", HUNK_REVIEW_SKILL_RELATIVE_PATH),
+    TUNK_REVIEW_SKILL_RELATIVE_PATH,
+    join("hunkdiff", TUNK_REVIEW_SKILL_RELATIVE_PATH),
+    join("node_modules", "hunkdiff", TUNK_REVIEW_SKILL_RELATIVE_PATH),
   ];
 
   for (const root of roots) {
@@ -73,5 +73,5 @@ export function resolveBundledHunkReviewSkillPath(searchRoots?: string[]) {
     }
   }
 
-  throw new Error("Could not locate the bundled Hunk review skill.");
+  throw new Error("Could not locate the bundled tunk review skill.");
 }

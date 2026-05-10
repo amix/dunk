@@ -6,7 +6,7 @@ const os = require("node:os");
 const path = require("node:path");
 
 function bundledSkillPath() {
-  return path.join(__dirname, "..", "skills", "hunk-review", "SKILL.md");
+  return path.join(__dirname, "..", "skills", "tunk-review", "SKILL.md");
 }
 
 function ensureExecutable(target) {

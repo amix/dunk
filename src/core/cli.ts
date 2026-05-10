@@ -7,7 +7,7 @@ import type {
   PagerCommandInput,
   ParsedCliInput,
 } from "./types";
-import { resolveBundledHunkReviewSkillPath } from "./paths";
+import { resolveBundledTunkReviewSkillPath } from "./paths";
 import { resolveCliVersion } from "./version";
 
 /** Validate one requested layout mode from CLI input. */
@@ -100,8 +100,8 @@ function renderCliVersion() {
 }
 
 /** Render the bundled Hunk review skill path for shell usage. */
-function renderHunkReviewSkillPath() {
-  return `${resolveBundledHunkReviewSkillPath()}\n`;
+function renderTunkReviewSkillPath() {
+  return `${resolveBundledTunkReviewSkillPath()}\n`;
 }
 
 /** Build the `hunk skill` help text. */
@@ -428,7 +428,7 @@ async function parseSkillCommand(tokens: string[]): Promise<HelpCommandInput> {
 
   return {
     kind: "help",
-    text: renderHunkReviewSkillPath(),
+    text: renderTunkReviewSkillPath(),
   };
 }
 

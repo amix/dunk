@@ -207,7 +207,7 @@ describe("parseCli", () => {
       throw new Error("Expected bundled skill path output.");
     }
 
-    expect(parsed.text).toEndWith(`${join("skills", "hunk-review", "SKILL.md")}\n`);
+    expect(parsed.text).toEndWith(`${join("skills", "tunk-review", "SKILL.md")}\n`);
   });
 
   test("prints skill help for hunk skill --help", async () => {
