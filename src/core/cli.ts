@@ -117,7 +117,7 @@ function renderCliHelp() {
   return [
     "Usage: dunk <command> [options]",
     "",
-    "Personal terminal diff viewer with file-driven review comments.",
+    "Review diffs in a TUI, leave inline comments, and let a coding agent resolve them through .dunk/comments.json.",
     "",
     "Commands:",
     "  dunk diff [target] [-- <pathspec...>]   review working tree changes or compare against a target",
