@@ -299,7 +299,7 @@ async function waitForFrame(
 
 async function pressHunkNavigationKey(
   setup: Awaited<ReturnType<typeof testRender>>,
-  key: "]" | "[",
+  key: "J" | "K",
   count: number,
 ) {
   for (let index = 0; index < count; index += 1) {
@@ -1682,7 +1682,7 @@ describe("App interactions", () => {
       expect(frame).toContain("first.ts");
 
       await act(async () => {
-        await setup.mockInput.typeText("]");
+        await setup.mockInput.typeText("J");
       });
       await flush(setup);
 
@@ -1712,7 +1712,7 @@ describe("App interactions", () => {
 
     try {
       await flush(setup);
-      await pressHunkNavigationKey(setup, "]", 18);
+      await pressHunkNavigationKey(setup, "J", 18);
 
       let frame = await waitForFrame(
         setup,
@@ -1722,7 +1722,7 @@ describe("App interactions", () => {
       );
       expect(firstCrossFileHunkNavigationHeader(frame)).toContain("short-file.ts");
 
-      await pressHunkNavigationKey(setup, "]", 1);
+      await pressHunkNavigationKey(setup, "J", 1);
       frame = await waitForFrame(
         setup,
         (nextFrame) => nextFrame.includes("export const mid = 4;"),
@@ -1749,10 +1749,10 @@ describe("App interactions", () => {
 
     try {
       await flush(setup);
-      await pressHunkNavigationKey(setup, "]", 19);
+      await pressHunkNavigationKey(setup, "J", 19);
       await waitForFrame(setup, (nextFrame) => nextFrame.includes("export const mid = 4;"), 24);
 
-      await pressHunkNavigationKey(setup, "[", 2);
+      await pressHunkNavigationKey(setup, "K", 2);
       const frame = await waitForFrame(
         setup,
         (nextFrame) =>

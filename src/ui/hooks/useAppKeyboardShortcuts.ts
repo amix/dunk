@@ -289,12 +289,12 @@ export function useAppKeyboardShortcuts({
       return;
     }
 
-    if (key.name === "[") {
+    if (key.sequence === "K") {
       moveToHunk(-1);
       return;
     }
 
-    if (key.name === "]") {
+    if (key.sequence === "J") {
       moveToHunk(1);
       return;
     }

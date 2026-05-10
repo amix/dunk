@@ -26,12 +26,15 @@ export function isPageUpKey(key: KeyEvent) {
 
 /** Match any key alias that should scroll forward by a single diff row. */
 export function isStepDownKey(key: KeyEvent) {
-  return key.name === "down" || key.name === "j" || key.sequence === "j";
+  // Match the down arrow or a literal lowercase `j`. Uppercase `J` is reserved
+  // for hunk navigation, so check `sequence` (case-preserving) rather than
+  // `name` (always lowercase).
+  return key.name === "down" || key.sequence === "j";
 }
 
 /** Match any key alias that should scroll backward by a single diff row. */
 export function isStepUpKey(key: KeyEvent) {
-  return key.name === "up" || key.name === "k" || key.sequence === "k";
+  return key.name === "up" || key.sequence === "k";
 }
 
 /** Match any key alias that should scroll forward by half a viewport. */
