@@ -33,17 +33,13 @@ When dunk surfaces review comments to an LLM (skill, JSON export, MCP-style brid
 
 Make the selected hunk visually brighter so it's obvious where you are. Today the selection rail is subtle. Options: brighten the hunk rail to `theme.accent`, give the selected hunk a slightly tinted background, or both. Whatever change lands here also has to look reasonable on every theme (graphite/midnight/paper/ember).
 
-## Hunk selection — needs polish
+## Hunk selection — remaining polish
 
-Selection has visible flicker today. Specific issues to fix together:
+Done: the viewport-centered tracker that fought J/K reveals is gone, and the active rail blends 55% toward `theme.accent` so the selected hunk is unmistakable. Still pending:
 
-- **First hunk selected on open.** Right now the selection lands on `selectedHunkIndex = 0` but the viewport-centered tracker can immediately overwrite it.
-- **`J` / `K` should be precise.** No racey re-selection from the viewport-centered hook between key press and frame paint.
-- **Click-to-select.** Clicking anywhere inside a hunk's rendered rows marks it as the current hunk (the same state J/K lands on). Sidebar file-clicks already work; extend to in-stream rows.
-- **Top of stream → first hunk.** Scrolling all the way up should reselect the first visible hunk so navigation has a clean starting point.
-- **Smart mouse-scroll selection.** Track which hunk's body owns the viewport center on wheel scroll, but debounce so the selection doesn't flicker mid-scroll.
-
-Likely root cause: the viewport-centered selection effect competes with explicit `selectHunk` calls. Make the explicit selection win until the next user interaction, and give the centered tracker a short cooldown.
+- **Click-to-select on hunk rows.** Clicking anywhere inside a hunk's rendered rows should mark it as the current hunk. Requires threading an `onSelectHunk(fileId, hunkIndex)` callback through `DiffSection` → `PierreDiffView` → `renderRows` and attaching `onMouseUp` on each row's outer container. Sidebar file-clicks and the file-header click already work.
+- **Top of stream → first hunk.** Scrolling all the way up should reselect the first visible hunk.
+- **Smart mouse-scroll selection.** Track which hunk's body owns the viewport center on wheel scroll, with debounce. Reintroducing the tracker will need a tighter cooldown than the previous one.
 
 ## LLM-driven refresh
 
