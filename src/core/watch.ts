@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import { join } from "node:path";
+import { findRepoRoot } from "./config";
 import {
   buildGitDiffArgs,
   buildGitShowArgs,
@@ -10,6 +11,8 @@ import {
 } from "./git";
 import { buildJjDiffArgs, buildJjShowArgs, runJjText } from "./jj";
 import type { CliInput } from "./types";
+
+const COMMENTS_RELATIVE_PATH = join(".tunk", "comments.json");
 
 /** Return whether the current input can be rebuilt from files or VCS state without rereading stdin. */
 export function canReloadInput(input: CliInput) {
@@ -91,6 +94,13 @@ export function computeWatchSignature(input: CliInput) {
 
   if (input.options.agentContext && input.options.agentContext !== "-") {
     parts.push(`agent:${statSignature(input.options.agentContext)}`);
+  }
+
+  // Tracking the comments file too lets watch mode pick up agent edits to
+  // `.tunk/comments.json` without an extra fs.watch hookup.
+  const repoRoot = findRepoRoot();
+  if (repoRoot) {
+    parts.push(`comments:${statSignature(join(repoRoot, COMMENTS_RELATIVE_PATH))}`);
   }
 
   return parts.join("\n---\n");
