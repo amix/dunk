@@ -22,6 +22,10 @@ A *smaller* terminal diff + notes tool than upstream `hunk`. Sharing happens by 
 8. **Layout polish**: drop residual top margin from the removed menu; subtle "Press ? for help" hint on the otherwise-idle status line.
 9. **Selection auto-copy** — last, and reconsider. Fights native terminal selection on most terminals; platform-sensitive. May be the wrong feature.
 
+## LLM-facing principles
+
+When tunk surfaces review comments to an LLM (skill, JSON export, MCP-style bridge — *if* we keep one), emit **file paths + line numbers + comment bodies only**. Never feed raw code snippets. The LLM can read the files itself; keeping the output free of content avoids stale snippets, reduces context bloat, and keeps `.tunk/comments.json` itself snippet-free as a side benefit. This applies to any `tunk export`, `tunk review --json`, or skill SKILL.md flow we ship.
+
 ## Rethinks (locked in from review)
 
 - `D` scope: **current hunk only**, never the whole file.
