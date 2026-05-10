@@ -975,7 +975,9 @@ export function App({
           layout={resolvedLayout}
           scrollRef={diffScrollRef}
           selectedFileId={selectedFile?.id}
-          selectedHunkIndex={selectedHunkIndex}
+          // Mute the in-pane hunk-selected rail when drift focus owns
+          // navigation so the user only sees one selection at a time.
+          selectedHunkIndex={selectedDriftIndex !== null ? -1 : selectedHunkIndex}
           scrollToNote={review.scrollToNote}
           separatorWidth={diffSeparatorWidth}
           showComments={showComments}
