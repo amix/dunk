@@ -126,6 +126,11 @@ export function App({
   const [sidebarVisible, setSidebarVisible] = useState(() => !pagerMode);
   const [forceSidebarOpen, setForceSidebarOpen] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  // When non-null, hunk navigation (J/K) and the `d` delete key target the
+  // drifted-comments banner pinned at the top of the diff instead of a real
+  // hunk. Pressing K from the first hunk enters drift focus; J past the last
+  // drifted entry exits back into the review stream.
+  const [selectedDriftIndex, setSelectedDriftIndex] = useState<number | null>(null);
   const [commentEditorTarget, setCommentEditorTarget] = useState<{
     repoRoot: string;
     filePath: string;
@@ -152,6 +157,43 @@ export function App({
   const selectedFile = review.selectedFile;
   const selectedHunkIndex = review.selectedHunkIndex;
   const moveToAnnotatedHunk = review.moveToAnnotatedHunk;
+  const driftedCount = bootstrap.driftedComments?.length ?? 0;
+
+  /**
+   * Wrap hunk navigation so drifted comments are addressable just like real
+   * hunks. K from the first hunk drops focus into the drifted banner; J past
+   * the last drifted entry hands focus back to the first real hunk.
+   */
+  const moveToHunkWithDrift = useCallback(
+    (delta: number) => {
+      if (selectedDriftIndex !== null) {
+        const next = selectedDriftIndex + delta;
+        if (next < 0) {
+          setSelectedDriftIndex(0);
+          return;
+        }
+        if (next >= driftedCount) {
+          setSelectedDriftIndex(null);
+          review.moveToHunk(0);
+          return;
+        }
+        setSelectedDriftIndex(next);
+        return;
+      }
+
+      // K (delta = -1) from the very first hunk drops into the drifted list.
+      if (delta < 0 && driftedCount > 0 && review.selectedHunkIndex === 0) {
+        const firstFile = review.visibleFiles[0];
+        if (firstFile && review.selectedFile?.id === firstFile.id) {
+          setSelectedDriftIndex(driftedCount - 1);
+          return;
+        }
+      }
+
+      review.moveToHunk(delta);
+    },
+    [driftedCount, review, selectedDriftIndex],
+  );
 
   const jumpToFile = useCallback(
     (fileId: string, nextHunkIndex = 0, options?: { alignFileHeaderTop?: boolean }) => {
@@ -482,12 +524,57 @@ export function App({
     [focusedHunkTarget, triggerRefreshCurrentInput],
   );
 
+  const driftedComments = bootstrap.driftedComments ?? [];
+
+  // Keep the drift selection valid as the bootstrap changes underneath us
+  // (a watch-mode reload can resolve drifted comments, shrinking the list).
+  useEffect(() => {
+    if (selectedDriftIndex === null) {
+      return;
+    }
+    if (driftedComments.length === 0) {
+      setSelectedDriftIndex(null);
+      return;
+    }
+    if (selectedDriftIndex >= driftedComments.length) {
+      setSelectedDriftIndex(driftedComments.length - 1);
+    }
+  }, [driftedComments.length, selectedDriftIndex]);
+
   const deleteFocusedComment = useCallback(() => {
+    // Drift focus takes precedence: when J/K has cycled into the drifted
+    // banner, `d` removes that specific drifted comment by id rather than
+    // the oldest comment on a real hunk.
+    if (selectedDriftIndex !== null && repoRoot) {
+      const target = driftedComments[selectedDriftIndex];
+      if (!target) {
+        return;
+      }
+      try {
+        mutateCommentsFile(repoRoot, (current) => withRemovedComment(current, target.id));
+      } catch (error) {
+        console.error("Failed to delete drifted comment.", error);
+        return;
+      }
+      // Clamp the selection to the remaining drifted list so the focus stays
+      // in the banner while there are still entries to address.
+      const nextLength = driftedComments.length - 1;
+      setSelectedDriftIndex(nextLength > 0 ? Math.min(selectedDriftIndex, nextLength - 1) : null);
+      triggerRefreshCurrentInput();
+      return;
+    }
+
     mutateFocusedHunkComments((current, matching) => {
       const oldest = matching.reduce((a, b) => (a.id < b.id ? a : b));
       return withRemovedComment(current, oldest.id);
     });
-  }, [mutateFocusedHunkComments]);
+  }, [
+    driftedComments,
+    mutateFocusedHunkComments,
+    repoRoot,
+    selectedDriftIndex,
+    triggerRefreshCurrentInput,
+  ]);
 
   /** Delete every comment whose file appears in the current diff, after a Y/N confirm. */
   const deleteAllVisibleComments = useCallback(() => {
@@ -540,6 +627,9 @@ export function App({
           return;
         }
 
+        // Clearing every comment in the current diff also empties the drifted
+        // banner — drop the focus so J/K resumes inside the review stream.
+        setSelectedDriftIndex(null);
         triggerRefreshCurrentInput();
       },
     });
@@ -738,7 +828,7 @@ export function App({
     focusArea,
     focusFilter,
     moveToAnnotatedHunk,
-    moveToHunk: review.moveToHunk,
+    moveToHunk: moveToHunkWithDrift,
     openCommentEditor,
     openInEditor,
     pagerMode,
@@ -817,6 +907,7 @@ export function App({
       {!pagerMode && bootstrap.driftedComments && bootstrap.driftedComments.length > 0 ? (
         <DriftedCommentsBanner
           drifted={bootstrap.driftedComments}
+          selectedIndex={selectedDriftIndex}
           terminalWidth={terminal.width}
           theme={activeTheme}
         />
