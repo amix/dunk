@@ -1,68 +1,102 @@
 # dunk
 
-Review diffs in a TUI, leave inline comments, and let a coding agent resolve them.
+Review diffs in a terminal UI, leave inline comments, and let a coding agent fix them.
 
-`dunk` is a hard fork of [hunk](https://github.com/modem-dev/hunk): the same OpenTUI / [Pierre](https://www.npmjs.com/package/@pierre/diffs) diff-viewer foundation, without the daemon, MCP, or session-broker layer. A human reviewer marks issues in the diff; dunk writes anchored comments to one committed `.dunk/comments.json`; Claude Code, Codex, or another agent fixes the code and removes resolved entries; watch mode reloads the loop in place.
+`dunk` is built for the review loop between a human and a coding agent. You mark issues directly in the diff. `dunk` writes hunk-anchored comments to `.dunk/comments.json`. Claude Code, Codex, or another agent reads the comments, fixes the code, and removes resolved entries. With `--watch`, the diff reloads in place as code and comments change.
 
-- press `a` on a hunk to save an anchored `file` / `line` / `body` comment
-- comments live in `.dunk/comments.json`, so agents can read, fix, and prune them without a service process
-- `--watch` reloads both code changes and comment edits; resolved comments disappear, drifted anchors surface instead of getting lost
-- built on hunk's terminal diff viewer with sidebar navigation, split/stack layouts, pager support, and `git difftool` adapters
+`dunk` is a hard fork of [hunk](https://github.com/modem-dev/hunk). It keeps the OpenTUI / [Pierre](https://www.npmjs.com/package/@pierre/diffs) diff-viewer foundation and removes the daemon, MCP, and session-broker layers.
+
+* Press `a` on a hunk to save a comment scoped to that hunk. Comments are hunk-level — you don't pick a specific line.
+* Comments live in `.dunk/comments.json`. Don't commit it; treat it as a local review scratchpad. Add `.dunk/` to your `.gitignore`.
+* `--watch` reloads code changes and comment edits automatically.
+* Resolved comments disappear as the agent removes them.
+* Drifted anchors surface at the top of the diff instead of getting lost.
+* Built on hunk’s terminal diff viewer, with sidebar navigation, split/stack layouts, pager support, and `git difftool` adapters.
 
 ## Install
 
-`dunk` is shipped via npm with prebuilt binaries for macOS and Linux:
+`dunk` ships through npm with prebuilt binaries for macOS and Linux:
 
 ```bash
 npm i -g dunk
 ```
 
-Requirements: Node.js 18+, Git for most workflows.
+Requirements: Node.js 18+ and Git for most workflows.
 
 ## Quick start
 
 ```bash
-dunk            # show help
-dunk --version  # print the installed version
+dunk             # show help
+dunk --version   # print the installed version
 
-dunk diff             # review the working tree (includes untracked)
-dunk diff --watch     # auto-reload as files (and comments.json) change
-dunk show             # review the latest commit
-dunk show HEAD~1      # review an earlier commit
-dunk diff before.ts after.ts            # compare two concrete files
-git diff --no-color | dunk patch -      # review a patch from stdin
+dunk diff                    # review the working tree, including untracked files
+dunk diff --watch            # auto-reload as files and comments change
+dunk show                    # review the latest commit
+dunk show HEAD~1             # review an earlier commit
+dunk diff before.ts after.ts # compare two concrete files
+git diff --no-color | dunk patch - # review a patch from stdin
 ```
 
-## Workflow with Claude Code / Codex
+## Agent review workflow
 
-`dunk` is designed for the back-and-forth between a human reviewer in a terminal window and a coding agent in another. The bridge is `.dunk/comments.json`, which is committed to the repo:
+`dunk` is designed for a human reviewer in one terminal and a coding agent in another.
 
-1. You open `dunk diff --watch` (or `dunk show <ref> --watch`).
-2. Press `a` to drop an inline comment on the focused hunk. It gets saved to `.dunk/comments.json` with a file path, line number, and an anchor hash of nearby context so it survives small edits.
-3. Hand the comments to your agent — paste the JSON, or just point Claude Code / Codex at `.dunk/comments.json`. Each comment carries `file`, `line`, and `body`; the agent fixes the issue at that exact location and removes its entry from the JSON.
-4. Watch mode picks up the JSON edits. Resolved comments disappear from the diff in real time; remaining ones stay pinned to the right hunks.
-5. When the file the comment was anchored to changes too much, the comment surfaces as **drifted** at the top of the diff so it doesn't get lost. `D` clears all drifted comments at once.
+1. Start a watched review:
 
-There's a sample agent skill at `skills/dunk-review/SKILL.md` (also reachable via `dunk skill path`) that you can load into Claude Code or any skill-aware agent. It tells the agent how to read, fix, and prune `.dunk/comments.json`.
+   ```bash
+   dunk diff --watch
+   ```
 
-Tip: keep the diff and the agent in two side-by-side terminals. Mark a comment with `a`, save the file, and the agent on the other side notices the JSON change and starts working.
+   You can also review a commit or revision:
+
+   ```bash
+   dunk show <ref> --watch
+   ```
+
+2. Move to a hunk and press `a` to add a comment.
+
+   Comments are hunk-scoped, not line-scoped — pick a hunk with `[`/`]`, then drop a comment on it. `dunk` saves it to `.dunk/comments.json` with the file path, the hunk's anchor line, the comment body, and a context hash so the comment survives small edits to nearby code.
+
+   `.dunk/comments.json` is intentionally a local file — keep `.dunk/` in your `.gitignore` so review chatter doesn't leak into commits.
+
+3. Point your agent at `.dunk/comments.json`.
+
+   Each comment tells the agent what to fix and where. The agent should fix the issue, then remove the resolved comment from the JSON file.
+
+4. Keep reviewing while the agent works.
+
+   Watch mode reloads code and comment changes automatically. Resolved comments disappear from the diff. Remaining comments stay pinned to their hunks.
+
+5. Handle drifted comments.
+
+   If a file changes too much for an anchor to be matched, `dunk` shows the comment as **drifted** at the top of the diff. Press `D` to clear all drifted comments.
+
+A sample agent skill lives at `skills/dunk-review/SKILL.md`. You can also find it with:
+
+```bash
+dunk skill path
+```
+
+Load that skill into Claude Code or any skill-aware agent to teach it how to read, fix, and prune `.dunk/comments.json`.
+
+Tip: keep `dunk diff --watch` and your agent side by side. Add comments with `a`; as the agent updates `.dunk/comments.json`, the review updates in place.
 
 ## Git integration
 
-Wire `dunk` as your Git pager so `git diff` and `git show` open in `dunk` automatically:
+Use `dunk` as your Git pager so `git diff` and `git show` open in `dunk` automatically:
 
 ```bash
 git config --global core.pager "dunk pager"
 ```
 
-Or in `~/.gitconfig`:
+Or add it to `~/.gitconfig`:
 
 ```ini
 [core]
     pager = dunk pager
 ```
 
-Prefer to keep Git's default pager and add opt-in aliases:
+To keep Git’s default pager and add opt-in aliases:
 
 ```bash
 git config --global alias.ddiff "-c core.pager=\"dunk pager\" diff"
@@ -70,13 +104,21 @@ git config --global alias.dshow "-c core.pager=\"dunk pager\" show"
 ```
 
 > [!NOTE]
-> Untracked files are auto-included only for `dunk diff` (the working-tree loader). When you go through `dunk pager`, Git decides what's in the patch — untracked files won't appear there.
+> Untracked files are included automatically only by `dunk diff`, which uses the working-tree loader. When you use `dunk pager`, Git decides what goes into the patch, so untracked files won’t appear.
 
-### Jujutsu
+## Jujutsu
 
-`dunk` auto-detects Jujutsu workspaces, so `dunk diff [revset]` and `dunk show [revset]` use jj revsets when run inside one. To force a backend, set `vcs = "git"` or `vcs = "jj"` in [config](#config).
+`dunk` auto-detects Jujutsu workspaces. Inside one, `dunk diff [revset]` and `dunk show [revset]` use jj revsets.
 
-To use `dunk` as jj's pager, run `jj config edit --user` and add:
+To force a backend, set `vcs = "git"` or `vcs = "jj"` in [config](#config).
+
+To use `dunk` as jj’s pager, run:
+
+```bash
+jj config edit --user
+```
+
+Then add:
 
 ```toml
 [ui]
@@ -86,10 +128,12 @@ diff-formatter = ":git"
 
 ## Config
 
-Persist preferences in either:
+`dunk` reads config from either location:
 
-- `~/.config/dunk/config.toml`
-- `.dunk/config.toml` (per-repo)
+* `~/.config/dunk/config.toml`
+* `.dunk/config.toml`
+
+Example:
 
 ```toml
 theme = "graphite"   # graphite, midnight, paper, ember
@@ -106,11 +150,13 @@ selection_auto_copy = true
 
 ## OpenTUI component
 
-`dunk` exports `DunkDiffView` from `dunk/opentui` for embedding the diff renderer in your own OpenTUI app. See [docs/opentui-component.md](docs/opentui-component.md).
+`dunk` exports `DunkDiffView` from `dunk/opentui` for embedding the diff renderer in your own OpenTUI app.
+
+See [docs/opentui-component.md](docs/opentui-component.md).
 
 ## Examples
 
-Runnable demo diffs live in [`examples/`](examples/README.md). Each one prints the exact command to run from the repo root.
+Runnable demo diffs live in [`examples/`](examples/README.md). Each example prints the exact command to run from the repo root.
 
 ## License
 
