@@ -102,7 +102,7 @@ function resolveConfigLayer(source: Record<string, unknown>, input: CliInput): C
 }
 
 /** Return the first parent that looks like a repository root. */
-function findRepoRoot(cwd = process.cwd()) {
+export function findRepoRoot(cwd = process.cwd()) {
   let current = resolve(cwd);
 
   for (;;) {

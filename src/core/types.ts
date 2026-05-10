@@ -150,4 +150,15 @@ export interface AppBootstrap {
   initialWrapLines?: boolean;
   initialShowHunkHeaders?: boolean;
   initialShowAgentNotes?: boolean;
+  /** User comments whose recorded anchor no longer matches the current diff. */
+  driftedComments?: DriftedCommentSummary[];
+}
+
+/** Snapshot of a drifted user comment, surfaced to the UI for top-of-diff rendering. */
+export interface DriftedCommentSummary {
+  id: number;
+  file: string;
+  line: number;
+  body: string;
+  reason: "missing-file" | "out-of-range" | "anchor-mismatch";
 }

@@ -13,10 +13,12 @@ A *smaller* terminal diff + notes tool than upstream `hunk`. Sharing happens by 
 3. **Remove session/MCP/daemon/broker code and agent-note ingestion.** Confirm reload/watch has a non-session path before pulling. Audit `useHunkSessionBridge` for hidden coupling (live comments, jump-to-location, note visibility, reload callbacks).
 4. **Simplify hunk navigation pipeline.** Port the simplified version from `/Users/amix/Desktop/GitHub/hunk-amix`. Notes depend on a stable "current hunk."
 5. **User comments CRUD** on the new file model. Keys:
-   - `n` adds a comment for the current hunk. **Open in a focused modal first** (inline TUI editing collides with global shortcuts; revisit inline polish later).
+   - `c` adds a comment for the current hunk. **Open in a focused modal first** (inline TUI editing collides with global shortcuts; revisit inline polish later).
    - `d` deletes the focused comment.
    - `D` deletes **all comments at the current location** — i.e. all comments on the focused hunk, *or* all drifted comments if the drifted-comments stack is focused. Never a whole-file wipe.
    - Drifted comments render in a stack at the top of the diff with a darker background. The same `d` / `D` keys dismiss them — so cleaning up after a refactor is just "select drifted, hit `D`". Exact-match + pinned only; no fuzzy matching.
+
+   Vocabulary: the data layer, UI labels, and shortcut hints all say **"comments"** consistently. No "notes" anywhere user-visible. The existing `--agent-notes`, "Toggle AI notes" label, etc. get renamed in a separate cleanup pass.
 6. **`e` opens current file at current line** via `$VISUAL`/`$EDITOR` with flag conventions for nvim, vim, code, cursor, zed, subl. Suspend tunk for terminal editors; spawn detached for GUI editors.
 7. **`J` / `K` for hunk navigation** (replace `[` / `]`). `gg` top, `Shift-G` bottom.
 8. **Layout polish**: drop residual top margin from the removed menu; subtle "Press ? for help" hint on the otherwise-idle status line.
@@ -25,6 +27,10 @@ A *smaller* terminal diff + notes tool than upstream `hunk`. Sharing happens by 
 ## LLM-facing principles
 
 When tunk surfaces review comments to an LLM (skill, JSON export, MCP-style bridge — *if* we keep one), emit **file paths + line numbers + comment bodies only**. Never feed raw code snippets. The LLM can read the files itself; keeping the output free of content avoids stale snippets, reduces context bloat, and keeps `.tunk/comments.json` itself snippet-free as a side benefit. This applies to any `tunk export`, `tunk review --json`, or skill SKILL.md flow we ship.
+
+## Click-to-select hunks
+
+Clicking anywhere inside a hunk's rendered rows should mark it as the current hunk (the same selection state J/K lands on). Sidebar clicks already select the file; extend the behavior to the in-stream hunk rows.
 
 ## LLM-driven refresh
 

@@ -10,6 +10,13 @@ import fs from "node:fs";
 import { join, resolve as resolvePath } from "node:path";
 import { findAgentFileContext, loadAgentContext } from "./agent";
 import { createSkippedBinaryMetadata, isProbablyBinaryFile, patchLooksBinary } from "./binary";
+import {
+  applyCommentsToChangeset,
+  readCommentsFile,
+  resolveComments,
+  type DriftedComment,
+} from "./comments";
+import { findRepoRoot } from "./config";
 import { normalizeDiffMetadataPaths, normalizeDiffPath } from "./diffPaths";
 import { HunkUserError } from "./errors";
 import {
@@ -1175,6 +1182,8 @@ export async function loadAppBootstrap(
     files: orderDiffFiles(changeset.files, agentContext),
   };
 
+  const driftedComments = mergeUserComments({ changeset, cwd, mutate: (next) => (changeset = next) });
+
   return {
     input,
     changeset,
@@ -1184,5 +1193,64 @@ export async function loadAppBootstrap(
     initialWrapLines: input.options.wrapLines ?? false,
     initialShowHunkHeaders: input.options.hunkHeaders ?? true,
     initialShowAgentNotes: input.options.agentNotes ?? false,
+    driftedComments,
   };
+}
+
+/**
+ * Read `.tunk/comments.json` for the active repo and fold anchored comments
+ * into the changeset's per-file annotations. Drifted comments are returned
+ * for top-of-diff rendering. Failures (missing repo, unreadable file) yield
+ * an empty drift list rather than aborting the bootstrap.
+ */
+function mergeUserComments({
+  changeset,
+  cwd,
+  mutate,
+}: {
+  changeset: Changeset;
+  cwd: string;
+  mutate: (next: Changeset) => void;
+}) {
+  const repoRoot = findRepoRoot(cwd);
+  if (!repoRoot) {
+    return [];
+  }
+
+  let commentsFile;
+  try {
+    commentsFile = readCommentsFile(repoRoot);
+  } catch {
+    return [];
+  }
+
+  if (commentsFile.comments.length === 0) {
+    return [];
+  }
+
+  const fileContentByPath = new Map<string, string | undefined>();
+  for (const comment of commentsFile.comments) {
+    if (fileContentByPath.has(comment.file)) {
+      continue;
+    }
+
+    const candidate = resolvePath(repoRoot, comment.file);
+    fileContentByPath.set(
+      comment.file,
+      fs.existsSync(candidate) ? fs.readFileSync(candidate, "utf8") : undefined,
+    );
+  }
+
+  const resolved = resolveComments(commentsFile.comments, fileContentByPath);
+  const merged = applyCommentsToChangeset(changeset, resolved, fileContentByPath);
+  mutate(merged.changeset);
+
+  const drifted: DriftedComment[] = merged.drifted;
+  return drifted.map((comment) => ({
+    id: comment.id,
+    file: comment.file,
+    line: comment.line,
+    body: comment.body,
+    reason: comment.reason,
+  }));
 }
