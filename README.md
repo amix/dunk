@@ -1,6 +1,6 @@
 # dunk
 
-Review diffs in a TUI, leave inline comments, and let a coding agent resolve them through `.dunk/comments.json`.
+Review diffs in a TUI, leave inline comments, and let a coding agent resolve them.
 
 `dunk` is a hard fork of [hunk](https://github.com/modem-dev/hunk): the same OpenTUI / [Pierre](https://www.npmjs.com/package/@pierre/diffs) diff-viewer foundation, without the daemon, MCP, or session-broker layer. A human reviewer marks issues in the diff; dunk writes anchored comments to one committed `.dunk/comments.json`; Claude Code, Codex, or another agent fixes the code and removes resolved entries; watch mode reloads the loop in place.
 

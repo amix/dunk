@@ -487,7 +487,7 @@ describe("UI components", () => {
     expect(frame).toContain("beta.ts");
     expect(frame).toContain("@@ -1,1 +1,2 @@");
     expect(frame).toContain("@@ -1,1 +1,1 @@");
-    expect(frame).toContain("[AI]");
+    expect(frame).toContain("[Comment]");
     expect(frame.indexOf("alpha.ts")).toBeLessThan(frame.indexOf("beta.ts"));
   });
 
@@ -1155,24 +1155,21 @@ describe("UI components", () => {
       .slice(0, 8)
       .map((line) => line.trimEnd());
     expect(lines[0]).toBe("┌────────────────────────────────┐");
-    expect(lines[1]).toContain("AI note");
+    expect(lines[1]).toContain("Comment");
     expect(lines[2]).toContain("Annotation for alpha.ts");
     expect(lines[4]).toContain("Why alpha.ts changed");
     expect(lines[6]).toContain("alpha.ts +2");
     expect(lines[7]).toBe("└────────────────────────────────┘");
   });
 
-  test("AgentInlineNote renders a connected bordered panel without a blank connector row", async () => {
+  test("AgentInlineNote renders title, body, and close affordance with a left accent bar", async () => {
     const theme = resolveTheme("midnight", null);
     const frame = await captureFrame(
       <AgentInlineNote
         annotation={{
-          newRange: [2, 4],
           summary: "Summary line",
           rationale: "Rationale line.",
         }}
-        anchorSide="new"
-        layout="split"
         theme={theme}
         width={96}
         onClose={() => {}}
@@ -1182,12 +1179,12 @@ describe("UI components", () => {
     );
 
     const lines = frame.split("\n");
-    expect(lines[0]?.trimStart().startsWith("┌")).toBe(true);
-    expect(lines[1]).toContain("AI note · ▶ new 2-4");
-    expect(lines[1]).toContain("[x]");
-    expect(lines[2]).toContain("Summary line");
-    expect(lines[3]).toContain("Rationale line.");
-    expect(lines[4]?.trimStart().startsWith("└")).toBe(true);
+    // First three rows: title (with accent + [x]), summary, rationale.
+    expect(lines[0]).toContain("▎");
+    expect(lines[0]).toContain("Comment");
+    expect(lines[0]).toContain("[x]");
+    expect(lines[1]).toContain("Summary line");
+    expect(lines[2]).toContain("Rationale line.");
   });
 
   test("DiffPane renders all visible hunk notes across the review stream", async () => {
@@ -1226,13 +1223,13 @@ describe("UI components", () => {
       28,
     );
 
-    expect(frame).toContain("AI note · ▶ new 2");
+    expect(frame).toContain("Comment");
     expect(frame).toContain("Annotation for alpha.ts");
     expect(frame).toContain("Why alpha.ts changed");
-    expect(frame.indexOf("AI note · ▶ new 2")).toBeLessThan(
+    expect(frame.indexOf("Comment")).toBeLessThan(
       frame.indexOf("2 + export const add = true;"),
     );
-    expect(frame).toContain("AI note · ▶ new 1");
+    expect(frame).toContain("Comment");
     expect(frame).toContain("Annotation for beta.ts");
     expect(frame).toContain("Why beta.ts changed");
     expect(frame).not.toContain("alpha.ts note");
@@ -1269,11 +1266,17 @@ describe("UI components", () => {
     );
 
     const lines = frame.split("\n");
-    const noteBottomIndex = lines.findIndex((line) => line.includes("└") && line.includes("┤"));
-    expect(noteBottomIndex).toBeGreaterThanOrEqual(0);
-    expect(lines[noteBottomIndex + 1]).toContain("export const add = true;");
-    expect(lines[noteBottomIndex + 1]?.trim()).not.toBe("│");
+    // The note card sits at the hunk bottom. The "[Comment]" badge appears
+    // ON the changed row; the Comment *title* row appears AFTER the last
+    // hunk row, alongside an accent bar.
+    const lastHunkRowIndex = lines.findIndex((line) => line.includes("export const add = true;"));
+    const noteTitleIndex = lines.findIndex(
+      (line, idx) => idx > lastHunkRowIndex && line.includes("▎") && line.includes("Comment"),
+    );
+    expect(lastHunkRowIndex).toBeGreaterThanOrEqual(0);
+    expect(noteTitleIndex).toBeGreaterThan(lastHunkRowIndex);
 
+    // The hunk's two changed rows still render at the same column.
     const changedLine = lines.find((line) => line.includes("export const alpha = 2;"));
     const annotatedLine = lines.find((line) => line.includes("export const add = true;"));
     expect(changedLine).toBeDefined();
@@ -1321,8 +1324,8 @@ describe("UI components", () => {
       24,
     );
 
-    expect(frame).toContain("AI note 1/2");
-    expect(frame).toContain("AI note 2/2");
+    expect(frame).toContain("Comment 1/2");
+    expect(frame).toContain("Comment 2/2");
     expect(frame).toContain("First rationale.");
     expect(frame).toContain("Second rationale.");
   });
@@ -1767,10 +1770,12 @@ describe("UI components", () => {
     );
 
     expect(frame).not.toContain("@@ -1,1 +1,2 @@");
-    expect(frame).toContain("AI note · hunk");
+    expect(frame).toContain("Comment");
     expect(frame).toContain("Falls back to the first visible");
     expect(frame).toContain("row.");
-    expect(frame.indexOf("AI note · hunk")).toBeLessThan(
+    // Range-less notes now anchor at the hunk bottom too, so the card sits
+    // after the last hunk row rather than above the first one.
+    expect(frame.indexOf("Comment")).toBeGreaterThan(
       frame.indexOf("1 - export const value = 1;"),
     );
   });
@@ -2046,7 +2051,7 @@ describe("UI components", () => {
     expect(frame).toContain("beta.ts");
     expect(frame).toContain("@@ -1,1 +1,2 @@");
     expect(frame).toContain("@@ -1,1 +1,1 @@");
-    expect(frame).toContain("[AI]");
+    expect(frame).toContain("[Comment]");
     expect(frame).not.toContain("Changeset summary");
   });
 });

@@ -117,7 +117,7 @@ describe("ui helpers", () => {
       width: 34,
     });
 
-    expect(content.title).toBe("AI note 1/2");
+    expect(content.title).toBe("Comment 1/2");
     expect(content.summaryLines.length).toBeGreaterThan(0);
     expect(content.rationaleLines.length).toBeGreaterThan(0);
     expect(content.height).toBe(9);

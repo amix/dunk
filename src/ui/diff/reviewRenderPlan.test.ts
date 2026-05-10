@@ -54,8 +54,19 @@ function firstInlineNote(plannedRows: PlannedReviewRow[]) {
 }
 
 function inlineNoteAnchorRow(plannedRows: PlannedReviewRow[]) {
+  // Notes render at the bottom of the hunk, so the anchor row is the last
+  // diff-row preceding the inline-note in the plan.
   const noteIndex = plannedRows.findIndex((row) => row.kind === "inline-note");
-  return noteIndex >= 0 ? plannedRows[noteIndex + 1] : undefined;
+  if (noteIndex < 0) {
+    return undefined;
+  }
+  for (let index = noteIndex - 1; index >= 0; index -= 1) {
+    const candidate = plannedRows[index];
+    if (candidate?.kind === "diff-row") {
+      return candidate;
+    }
+  }
+  return undefined;
 }
 
 function guidedSplitLineNumbers(plannedRows: PlannedReviewRow[], side: "old" | "new") {
@@ -108,7 +119,8 @@ describe("review render plan", () => {
     if (anchoredRow?.kind === "diff-row") {
       expect(anchoredRow.row.type).toBe("split-line");
       if (anchoredRow.row.type === "split-line") {
-        expect(anchoredRow.row.right.lineNumber).toBe(2);
+        // Notes anchor at the hunk's last line; the diff adds lines 1-3, so 3 is the bottom.
+        expect(anchoredRow.row.right.lineNumber).toBe(3);
       }
     }
 
@@ -158,8 +170,9 @@ describe("review render plan", () => {
     if (anchoredRow?.kind === "diff-row") {
       expect(anchoredRow.row.type).toBe("split-line");
       if (anchoredRow.row.type === "split-line") {
-        expect(anchoredRow.row.left.lineNumber).toBe(1);
-        expect(anchoredRow.row.right.lineNumber).toBeUndefined();
+        // Note anchors at the hunk's last row (kept line on both sides).
+        expect(anchoredRow.row.left.lineNumber).toBe(2);
+        expect(anchoredRow.row.right.lineNumber).toBe(1);
       }
     }
 
@@ -329,7 +342,8 @@ describe("review render plan", () => {
       expect(anchoredRow.hunkIndex).toBe(1);
       expect(anchoredRow.row.type).toBe("split-line");
       if (anchoredRow.row.type === "split-line") {
-        expect(anchoredRow.row.right.lineNumber).toBe(11);
+        // Note anchors at the bottom of hunk 1, which renders trailing context up to line 12.
+        expect(anchoredRow.row.right.lineNumber).toBe(12);
       }
     }
   });
@@ -372,10 +386,13 @@ describe("review render plan", () => {
     );
 
     expect(inlineNotes).toHaveLength(2);
+    // Both notes anchor at the hunk's last line, so render order = input order.
     expect(inlineNotes.map((row) => row.annotationId)).toEqual([
-      "annotation:counted:0:1",
       "annotation:counted:0:0",
+      "annotation:counted:0:1",
     ]);
-    expect(inlineNotes.every((row) => row.noteIndex === 0 && row.noteCount === 1)).toBe(true);
+    // Both share the hunk-bottom anchor, so they are indexed within one stack of 2.
+    expect(inlineNotes.map((row) => row.noteIndex)).toEqual([0, 1]);
+    expect(inlineNotes.every((row) => row.noteCount === 2)).toBe(true);
   });
 });

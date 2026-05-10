@@ -267,45 +267,61 @@ function collectCoveredRows(index: LineRowIndex, annotation: Annotation) {
   );
 }
 
+/** Map each hunk to the last line row inside it, so notes always anchor at the hunk bottom. */
+function buildHunkLastLineRow(index: LineRowIndex) {
+  const lastByHunk = new Map<number, DiffLineRow>();
+  for (const row of index.rows) {
+    lastByHunk.set(row.hunkIndex, row);
+  }
+  return lastByHunk;
+}
+
 function buildInlineVisibleNotePlacements(rows: DiffRow[], visibleAgentNotes: VisibleAgentNote[]) {
   const index = buildLineRowIndex(rows);
-  const placementsByAnchor = new Map<string, InlineVisibleNotePlacement[]>();
+  const lastLineRowByHunk = buildHunkLastLineRow(index);
+  const placementsByAfterKey = new Map<string, InlineVisibleNotePlacement[]>();
 
   for (const note of visibleAgentNotes) {
-    const anchorRow = findInlineNoteAnchorRow(index, note.annotation);
-    if (!anchorRow) {
+    // Resolve the original anchor only for guide-rail placement (the side rail
+    // still highlights the annotated range). The note card itself always sits
+    // at the hunk bottom — anchoring at the changed line makes the card jump
+    // around inside the hunk depending on which line is touched.
+    const guideAnchorRow = findInlineNoteAnchorRow(index, note.annotation);
+    if (!guideAnchorRow) {
       continue;
     }
 
+    const hunkIndex = guideAnchorRow.hunkIndex;
+    const cardAnchorRow = lastLineRowByHunk.get(hunkIndex) ?? guideAnchorRow;
     const anchorSide = annotationAnchor(note.annotation)?.side;
     const coveredRows = collectCoveredRows(index, note.annotation);
-    const fallbackGuideRow = anchorSide ? anchorRow : undefined;
+    const fallbackGuideRow = anchorSide ? guideAnchorRow : undefined;
     const guideRows =
       coveredRows.length > 0 ? coveredRows : fallbackGuideRow ? [fallbackGuideRow] : [];
-    const anchorPlacements = placementsByAnchor.get(anchorRow.key) ?? [];
+    const anchorPlacements = placementsByAfterKey.get(cardAnchorRow.key) ?? [];
 
     anchorPlacements.push({
-      anchorKey: anchorRow.key,
+      anchorKey: cardAnchorRow.key,
       anchorSide,
       endGuideAfterKey: guideRows.at(-1)?.key,
       guidedRowKeys:
         guideRows.length > 0 ? new Set(guideRows.map((row) => row.key)) : EMPTY_ROW_KEYS,
-      hunkIndex: anchorRow.hunkIndex,
+      hunkIndex,
       note,
       noteCount: 1,
       noteIndex: 0,
     });
-    placementsByAnchor.set(anchorRow.key, anchorPlacements);
+    placementsByAfterKey.set(cardAnchorRow.key, anchorPlacements);
   }
 
-  for (const placements of placementsByAnchor.values()) {
-    placements.forEach((placement, index) => {
-      placement.noteIndex = index;
+  for (const placements of placementsByAfterKey.values()) {
+    placements.forEach((placement, position) => {
+      placement.noteIndex = position;
       placement.noteCount = placements.length;
     });
   }
 
-  return placementsByAnchor;
+  return placementsByAfterKey;
 }
 
 function buildNoteGuideSideByRowKey(placementsByAnchor: Map<string, InlineVisibleNotePlacement[]>) {
@@ -372,9 +388,9 @@ export function buildReviewRenderPlan({
   visibleAgentNotes?: VisibleAgentNote[];
   selectedHunkIndex?: number;
 }) {
-  const placementsByAnchor = buildInlineVisibleNotePlacements(rows, visibleAgentNotes);
-  const noteGuideSideByRowKey = buildNoteGuideSideByRowKey(placementsByAnchor);
-  const guideCapsByRowKey = buildGuideCapsByRowKey(placementsByAnchor);
+  const placementsByAfterKey = buildInlineVisibleNotePlacements(rows, visibleAgentNotes);
+  const noteGuideSideByRowKey = buildNoteGuideSideByRowKey(placementsByAfterKey);
+  const guideCapsByRowKey = buildGuideCapsByRowKey(placementsByAfterKey);
   const plannedRows: PlannedReviewRow[] = [];
   const anchoredHunks = new Set<number>();
 
@@ -389,22 +405,6 @@ export function buildReviewRenderPlan({
     if (shouldAnchorHunk) {
       anchoredHunks.add(row.hunkIndex);
     }
-
-    const anchoredNotes = placementsByAnchor.get(row.key) ?? [];
-    anchoredNotes.forEach((placement) => {
-      plannedRows.push({
-        kind: "inline-note",
-        key: `inline-note:${placement.note.id}:${row.key}:${placement.noteIndex}`,
-        stableKey: `inline-note:${placement.note.id}`,
-        fileId,
-        hunkIndex: placement.hunkIndex,
-        annotationId: placement.note.id,
-        annotation: placement.note.annotation,
-        anchorSide: placement.anchorSide,
-        noteCount: placement.noteCount,
-        noteIndex: placement.noteIndex,
-      });
-    });
 
     plannedRows.push({
       kind: "diff-row",
@@ -431,6 +431,25 @@ export function buildReviewRenderPlan({
         });
       });
     }
+
+    // Notes are anchored after the hunk's last line row, not before it: the
+    // card sits at the bottom of every hunk so its position is predictable
+    // regardless of which line is annotated.
+    const notesAfterThisRow = placementsByAfterKey.get(row.key) ?? [];
+    notesAfterThisRow.forEach((placement) => {
+      plannedRows.push({
+        kind: "inline-note",
+        key: `inline-note:${placement.note.id}:${row.key}:${placement.noteIndex}`,
+        stableKey: `inline-note:${placement.note.id}`,
+        fileId,
+        hunkIndex: placement.hunkIndex,
+        annotationId: placement.note.id,
+        annotation: placement.note.annotation,
+        anchorSide: placement.anchorSide,
+        noteCount: placement.noteCount,
+        noteIndex: placement.noteIndex,
+      });
+    });
   }
 
   return plannedRows;

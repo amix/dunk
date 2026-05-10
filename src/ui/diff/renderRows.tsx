@@ -564,7 +564,7 @@ function renderHeaderRow(
   anchorId?: string,
   onOpenAgentNotesAtHunk?: (hunkIndex: number) => void,
 ) {
-  const badgeText = annotated ? "[AI]" : "";
+  const badgeText = annotated ? "[Comment]" : "";
   const badgeWidth = annotated ? badgeText.length + 1 : 0;
   const label =
     row.type === "collapsed"

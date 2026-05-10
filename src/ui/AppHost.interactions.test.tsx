@@ -836,12 +836,13 @@ describe("App interactions", () => {
       await flush(setup);
 
       const frame = setup.captureCharFrame();
-      expect(frame).toContain("AI note · ▶ new 2");
+      expect(frame).toContain("Comment");
       expect(frame).toContain("Annotation for prefs.ts");
       expect(frame).toContain("Why prefs.ts changed");
       expect(frame).not.toContain("@@ -1,1 +1,2 @@");
       expect(frame).not.toContain("1 - export const message");
-      expect(frame.indexOf("AI note · ▶ new 2")).toBeLessThan(
+      // Notes anchor at the hunk bottom now, so the card sits below the last hunk row.
+      expect(frame.indexOf("Comment")).toBeGreaterThan(
         frame.indexOf("export const added = true;"),
       );
     } finally {
