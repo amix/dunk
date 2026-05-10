@@ -181,7 +181,11 @@ export function DiffPane({
   onOpenAgentNotesAtHunk: (fileId: string, hunkIndex: number) => void;
   onScrollCodeHorizontally?: (delta: number) => void;
   onSelectFile: (fileId: string) => void;
-  onSelectHunk?: (fileId: string, hunkIndex: number) => void;
+  onSelectHunk?: (
+    fileId: string,
+    hunkIndex: number,
+    options?: { preserveViewport?: boolean },
+  ) => void;
 }) {
   const renderer = useRenderer();
   const mouseWheelScrollAcceleration = useMemo(
@@ -684,6 +688,108 @@ export function DiffPane({
       sectionTop: selectedFileSectionLayout.sectionTop,
     };
   }, [fileSectionLayouts, sectionGeometry, selectedFile, selectedFileIndex, selectedHunkIndex]);
+
+  /**
+   * Follow the viewport: as the user scrolls (wheel, drag), set the current
+   * hunk to the one whose body owns the viewport center. Without this, the
+   * selection can drift far from what the user is actually looking at, which
+   * breaks `a`, `d`, and `e` — they all read the current hunk.
+   *
+   * Programmatic reveals (J/K, gg/G, click-to-select) already set the
+   * selection and then scroll to it. We swallow the scroll caused by those
+   * reveals so the user-scroll tracking only fires for *actual* user scroll
+   * input.
+   */
+  const viewportTrackingScrollRef = useRef(scrollViewport.top);
+  const viewportTrackingRevealIdsRef = useRef({
+    reveal: selectedHunkRevealRequestId,
+    topAlign: selectedFileTopAlignRequestId,
+  });
+  useLayoutEffect(() => {
+    const ids = viewportTrackingRevealIdsRef.current;
+    const revealChanged = ids.reveal !== selectedHunkRevealRequestId;
+    const topAlignChanged = ids.topAlign !== selectedFileTopAlignRequestId;
+    if (revealChanged || topAlignChanged) {
+      viewportTrackingRevealIdsRef.current = {
+        reveal: selectedHunkRevealRequestId,
+        topAlign: selectedFileTopAlignRequestId,
+      };
+      // A reveal just fired; the impending scroll change is programmatic.
+      // Re-baseline the tracked scroll position so the next user scroll is
+      // measured against the new resting point.
+      viewportTrackingScrollRef.current = scrollViewport.top;
+      return;
+    }
+
+    if (viewportTrackingScrollRef.current === scrollViewport.top) {
+      return;
+    }
+    viewportTrackingScrollRef.current = scrollViewport.top;
+
+    if (!onSelectHunk || files.length === 0 || scrollViewport.height <= 0) {
+      return;
+    }
+    if (fileSectionLayouts.length !== files.length) {
+      return;
+    }
+
+    const center = scrollViewport.top + Math.floor(scrollViewport.height / 2);
+    let bestFileIndex = -1;
+    let bestHunkIndex = -1;
+
+    for (let fileIndex = 0; fileIndex < files.length; fileIndex += 1) {
+      const layout = fileSectionLayouts[fileIndex];
+      const geometry = sectionGeometry[fileIndex];
+      if (!layout || !geometry) {
+        continue;
+      }
+      if (layout.sectionBottom < scrollViewport.top || layout.sectionTop > center) {
+        continue;
+      }
+      const file = files[fileIndex];
+      if (!file) {
+        continue;
+      }
+      for (let hunkIndex = 0; hunkIndex < file.metadata.hunks.length; hunkIndex += 1) {
+        const hunkBounds = geometry.hunkBounds.get(hunkIndex);
+        if (!hunkBounds || hunkBounds.height <= 0) {
+          continue;
+        }
+        const absTop = layout.bodyTop + hunkBounds.top;
+        const absBottom = absTop + hunkBounds.height;
+        if (center >= absTop && center < absBottom) {
+          bestFileIndex = fileIndex;
+          bestHunkIndex = hunkIndex;
+          break;
+        }
+      }
+      if (bestFileIndex >= 0) {
+        break;
+      }
+    }
+
+    if (bestFileIndex < 0 || bestHunkIndex < 0) {
+      return;
+    }
+
+    const targetFile = files[bestFileIndex]!;
+    if (targetFile.id === selectedFileId && bestHunkIndex === selectedHunkIndex) {
+      return;
+    }
+
+    onSelectHunk(targetFile.id, bestHunkIndex, { preserveViewport: true });
+  }, [
+    fileSectionLayouts,
+    files,
+    onSelectHunk,
+    scrollViewport.height,
+    scrollViewport.top,
+    sectionGeometry,
+    selectedFileId,
+    selectedFileTopAlignRequestId,
+    selectedHunkIndex,
+    selectedHunkRevealRequestId,
+  ]);
 
   /** Absolute scroll offset and height of the first inline note in the selected hunk, if any. */
   const selectedNoteBounds = useMemo(() => {
