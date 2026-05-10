@@ -67,6 +67,7 @@ export interface CommonOptions {
   wrapLines?: boolean;
   hunkHeaders?: boolean;
   comments?: boolean;
+  selectionAutoCopy?: boolean;
 }
 
 export interface PersistedViewPreferences {
@@ -76,6 +77,7 @@ export interface PersistedViewPreferences {
   wrapLines: boolean;
   showHunkHeaders: boolean;
   showComments: boolean;
+  selectionAutoCopy: boolean;
 }
 
 export interface HelpCommandInput {
@@ -150,6 +152,7 @@ export interface AppBootstrap {
   initialWrapLines?: boolean;
   initialShowHunkHeaders?: boolean;
   initialShowComments?: boolean;
+  initialSelectionAutoCopy?: boolean;
   /** User comments whose recorded anchor no longer matches the current diff. */
   driftedComments?: DriftedCommentSummary[];
 }

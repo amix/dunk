@@ -117,7 +117,8 @@ vcs = "git"          # git, jj
 exclude_untracked = false
 line_numbers = false
 wrap_lines = true
-comments = false
+comments = true
+selection_auto_copy = true
 ```
 
 `exclude_untracked` affects Git working-tree `hunk diff` sessions only.

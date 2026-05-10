@@ -15,6 +15,7 @@ import {
   type CommentsFile,
   type PersistedComment,
 } from "../core/comments";
+import { copyToClipboard } from "../core/clipboard";
 import { findRepoRoot } from "../core/config";
 import { resolveEditorLaunch, runEditorLaunch } from "../core/editor";
 import { hunkLineRange } from "../core/hunkRange";
@@ -141,6 +142,9 @@ export function App({
   const [sidebarWidth, setSidebarWidth] = useState(34);
   const [resizeDragOriginX, setResizeDragOriginX] = useState<number | null>(null);
   const [resizeStartWidth, setResizeStartWidth] = useState<number | null>(null);
+  const [transientStatus, setTransientStatus] = useState<string | null>(null);
+  const transientStatusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const selectionAutoCopy = bootstrap.initialSelectionAutoCopy ?? true;
 
   const activeTheme = resolveTheme(themeId, renderer.themeMode);
   const review = useReviewController({ files: bootstrap.changeset.files });
@@ -213,6 +217,55 @@ export function App({
 
     setSidebarWidth((current) => clamp(current, SIDEBAR_MIN_WIDTH, maxSidebarWidth));
   }, [maxSidebarWidth, renderSidebar]);
+
+  /** Show a transient status-line message that auto-clears after a short delay. */
+  const flashStatus = useCallback((text: string, durationMs = 2000) => {
+    if (transientStatusTimeoutRef.current) {
+      clearTimeout(transientStatusTimeoutRef.current);
+    }
+
+    setTransientStatus(text);
+    transientStatusTimeoutRef.current = setTimeout(() => {
+      setTransientStatus(null);
+      transientStatusTimeoutRef.current = null;
+    }, durationMs);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (transientStatusTimeoutRef.current) {
+        clearTimeout(transientStatusTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!selectionAutoCopy) {
+      return;
+    }
+
+    const handleSelection = (selection: { getSelectedText?: () => string } | null) => {
+      const text = selection?.getSelectedText?.().trim();
+      if (!text) {
+        return;
+      }
+
+      void copyToClipboard(text).then((copied) => {
+        if (copied) {
+          flashStatus("copied to clipboard");
+        }
+      });
+    };
+
+    const unknownRenderer = renderer as unknown as {
+      on?: (event: string, handler: (selection: unknown) => void) => void;
+      off?: (event: string, handler: (selection: unknown) => void) => void;
+    };
+    unknownRenderer.on?.("selection", handleSelection as (selection: unknown) => void);
+    return () => {
+      unknownRenderer.off?.("selection", handleSelection as (selection: unknown) => void);
+    };
+  }, [flashStatus, renderer, selectionAutoCopy]);
 
   useEffect(() => {
     // Force an intermediate redraw when app geometry or row-wrapping changes so pane relayout
@@ -794,7 +847,7 @@ export function App({
         <StatusBar
           filter={review.filter}
           filterFocused={focusArea === "filter"}
-          noticeText={noticeText ?? undefined}
+          noticeText={transientStatus ?? noticeText ?? undefined}
           terminalWidth={terminal.width}
           theme={activeTheme}
           onFilterInput={review.setFilter}

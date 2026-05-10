@@ -1191,6 +1191,8 @@ export async function loadAppBootstrap(
     initialShowHunkHeaders:
       input.options.hunkHeaders ?? DEFAULT_VIEW_PREFERENCES.showHunkHeaders,
     initialShowComments: input.options.comments ?? DEFAULT_VIEW_PREFERENCES.showComments,
+    initialSelectionAutoCopy:
+      input.options.selectionAutoCopy ?? DEFAULT_VIEW_PREFERENCES.selectionAutoCopy,
     driftedComments: merged.drifted,
   };
 }
