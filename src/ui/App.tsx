@@ -138,6 +138,10 @@ export function App({
     range: [number, number];
     anchor: string;
   } | null>(null);
+  // Hoist the draft body so a reload/remount of the comment editor cannot
+  // silently drop in-flight typing. Reset to "" only on open and on cancel/
+  // submit; everything else is a pass-through.
+  const [commentDraftBody, setCommentDraftBody] = useState("");
   const [confirmPrompt, setConfirmPrompt] = useState<{
     message: string;
     title?: string;
@@ -651,6 +655,7 @@ export function App({
       return;
     }
 
+    setCommentDraftBody("");
     setCommentEditorTarget({
       repoRoot: target.repoRoot,
       filePath: target.filePath,
@@ -662,6 +667,7 @@ export function App({
 
   const closeCommentEditor = useCallback(() => {
     setCommentEditorTarget(null);
+    setCommentDraftBody("");
   }, []);
 
   /** Open the focused hunk in the user's editor at the bottom of its post-image range. */
@@ -717,10 +723,12 @@ export function App({
       } catch (error) {
         console.error("Failed to save comment.", error);
         setCommentEditorTarget(null);
+        setCommentDraftBody("");
         return;
       }
 
       setCommentEditorTarget(null);
+      setCommentDraftBody("");
       triggerRefreshCurrentInput();
     },
     [commentEditorTarget, triggerRefreshCurrentInput],
@@ -734,6 +742,23 @@ export function App({
   useEffect(() => {
     refreshCurrentInputRef.current = refreshCurrentInput;
   }, [refreshCurrentInput]);
+
+  // Mirror "is the comment modal open" into a ref so the watch poll can read
+  // it without re-arming. While set, reload-fires are coalesced into a single
+  // pending flush that runs when the modal closes.
+  const commentAuthoringRef = useRef(false);
+  const pendingPostAuthoringReloadRef = useRef(false);
+  useEffect(() => {
+    const wasAuthoring = commentAuthoringRef.current;
+    const isAuthoring = commentEditorTarget !== null;
+    commentAuthoringRef.current = isAuthoring;
+    if (wasAuthoring && !isAuthoring && pendingPostAuthoringReloadRef.current) {
+      pendingPostAuthoringReloadRef.current = false;
+      void refreshCurrentInputRef.current().catch((error) => {
+        console.error("Failed to flush post-authoring reload.", error);
+      });
+    }
+  }, [commentEditorTarget]);
 
   useEffect(() => {
     if (!watchEnabled) {
@@ -763,15 +788,25 @@ export function App({
         const nextSignature = computeWatchSignature(bootstrap.input);
         if (nextSignature !== lastSignature) {
           lastSignature = nextSignature;
-          refreshing = true;
-          void refreshCurrentInputRef
-            .current()
-            .catch((error) => {
-              console.error("Failed to auto-reload the current diff.", error);
-            })
-            .finally(() => {
-              refreshing = false;
-            });
+          // Comment authoring is foreground work — a half-second of stale
+          // diff is preferable to dropping the in-flight body when the
+          // agent (or anything else) edits the working tree mid-typing.
+          // The signature gets updated either way so the poller doesn't
+          // loop on the same change; the next save/cancel flushes one
+          // refresh to bring the diff back in sync.
+          if (commentAuthoringRef.current) {
+            pendingPostAuthoringReloadRef.current = true;
+          } else {
+            refreshing = true;
+            void refreshCurrentInputRef
+              .current()
+              .catch((error) => {
+                console.error("Failed to auto-reload the current diff.", error);
+              })
+              .finally(() => {
+                refreshing = false;
+              });
+          }
         }
       } catch (error) {
         console.error("Failed to poll watch mode input.", error);
@@ -1022,6 +1057,8 @@ export function App({
             terminalHeight={terminal.height}
             terminalWidth={terminal.width}
             theme={activeTheme}
+            value={commentDraftBody}
+            onChange={setCommentDraftBody}
             onCancel={closeCommentEditor}
             onSubmit={saveComment}
           />
