@@ -2,16 +2,14 @@
 set -Eeuo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-binary_path="${repo_root}/dist/hunk"
-install_dir="${HUNK_INSTALL_DIR:-${HOME}/.local/bin}"
-install_path="${install_dir}/hunk"
-legacy_install_path="${install_dir}/otdiff"
+binary_path="${repo_root}/dist/tunk"
+install_dir="${TUNK_INSTALL_DIR:-${HOME}/.local/bin}"
+install_path="${install_dir}/tunk"
 
 bash "${repo_root}/scripts/build-bin.sh"
 
 mkdir -p "${install_dir}"
 install -m 0755 "${binary_path}" "${install_path}"
-rm -f "${legacy_install_path}"
 
 printf 'Installed %s\n' "${install_path}"
 
