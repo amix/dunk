@@ -30,10 +30,7 @@ describe("agent annotations", () => {
 
     const annotatedFile = {
       ...file,
-      annotations: {
-        path: file.path,
-        annotations: [annotation],
-      },
+      annotations: [annotation],
     };
 
     expect(hunk.additionLines).toBe(1);

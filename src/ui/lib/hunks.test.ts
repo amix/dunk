@@ -75,14 +75,8 @@ describe("annotated hunk navigation", () => {
   test("only includes hunks that have overlapping annotations", () => {
     // dunk 0 new range is [1,1], hunk 1 new range is [17,17].
     // Annotate only hunk 1 in file alpha, and hunk 0 in file beta.
-    const fileA = createTestFile("alpha", "alpha.ts", beforeA, afterA, {
-      path: "alpha.ts",
-      annotations: [{ newRange: [17, 17], summary: "Note on hunk 1" }],
-    });
-    const fileB = createTestFile("beta", "beta.ts", beforeB, afterB, {
-      path: "beta.ts",
-      annotations: [{ newRange: [1, 1], summary: "Note on beta" }],
-    });
+    const fileA = createTestFile("alpha", "alpha.ts", beforeA, afterA, [{ newRange: [17, 17], summary: "Note on hunk 1" }]);
+    const fileB = createTestFile("beta", "beta.ts", beforeB, afterB, [{ newRange: [1, 1], summary: "Note on beta" }]);
 
     expect(fileA.metadata.hunks.length).toBe(2);
     const annotatedCursors = buildAnnotatedHunkCursors([fileA, fileB]);
@@ -95,32 +89,23 @@ describe("annotated hunk navigation", () => {
   });
 
   test("returns an empty list when no files have annotations", () => {
-    const fileA = createTestFile("alpha", "alpha.ts", beforeA, afterA, null);
-    const fileB = createTestFile("beta", "beta.ts", beforeB, afterB, null);
+    const fileA = createTestFile("alpha", "alpha.ts", beforeA, afterA, []);
+    const fileB = createTestFile("beta", "beta.ts", beforeB, afterB, []);
 
     expect(buildAnnotatedHunkCursors([fileA, fileB])).toEqual([]);
   });
 
   test("skips files with agent context but no matching annotations", () => {
     // Annotation range doesn't overlap any hunk (line 10 is in the gap between hunks).
-    const fileA = createTestFile("alpha", "alpha.ts", beforeA, afterA, {
-      path: "alpha.ts",
-      annotations: [{ newRange: [10, 10], summary: "Note in gap, no hunk overlap" }],
-    });
+    const fileA = createTestFile("alpha", "alpha.ts", beforeA, afterA, [{ newRange: [10, 10], summary: "Note in gap, no hunk overlap" }]);
 
     expect(buildAnnotatedHunkCursors([fileA])).toEqual([]);
   });
 
   test("navigates forward and backward through annotated cursors only", () => {
     // Annotate only hunk 1 (new range [17,17]) in alpha, and hunk 0 in beta.
-    const fileA = createTestFile("alpha", "alpha.ts", beforeA, afterA, {
-      path: "alpha.ts",
-      annotations: [{ newRange: [17, 17], summary: "Note on hunk 1 only" }],
-    });
-    const fileB = createTestFile("beta", "beta.ts", beforeB, afterB, {
-      path: "beta.ts",
-      annotations: [{ newRange: [1, 1], summary: "Note on beta" }],
-    });
+    const fileA = createTestFile("alpha", "alpha.ts", beforeA, afterA, [{ newRange: [17, 17], summary: "Note on hunk 1 only" }]);
+    const fileB = createTestFile("beta", "beta.ts", beforeB, afterB, [{ newRange: [1, 1], summary: "Note on beta" }]);
 
     const annotatedCursors = buildAnnotatedHunkCursors([fileA, fileB]);
 
@@ -149,10 +134,7 @@ describe("annotated hunk navigation", () => {
 
   test("jumps from an unannotated hunk to the nearest annotated one", () => {
     // Only hunk 1 (new range [17,17]) is annotated; hunk 0 is not.
-    const fileA = createTestFile("alpha", "alpha.ts", beforeA, afterA, {
-      path: "alpha.ts",
-      annotations: [{ newRange: [17, 17], summary: "Note on hunk 1 only" }],
-    });
+    const fileA = createTestFile("alpha", "alpha.ts", beforeA, afterA, [{ newRange: [17, 17], summary: "Note on hunk 1 only" }]);
 
     const annotatedCursors = buildAnnotatedHunkCursors([fileA]);
 

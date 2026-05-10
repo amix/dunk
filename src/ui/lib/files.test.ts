@@ -70,14 +70,11 @@ describe("files helpers", () => {
       path: "src/ui/commented.ts",
       before: lines("const alpha = 1;", "const beta = 2;", "const gamma = 3;"),
       after: lines("const alpha = 10;", "const beta = 2;", "const gamma = 30;"),
-      annotations: {
-        path: "src/ui/commented.ts",
-        annotations: [
-          { summary: "Note on first hunk", newRange: [1, 1] },
-          { summary: "Another note on first hunk", newRange: [1, 1] },
-          { summary: "Note on second hunk", newRange: [3, 3] },
-        ],
-      },
+      annotations: [
+        { summary: "Note on first hunk", newRange: [1, 1] },
+        { summary: "Another note on first hunk", newRange: [1, 1] },
+        { summary: "Note on second hunk", newRange: [3, 3] },
+      ],
     });
 
     const [entry] = buildSidebarEntries([withComments]).filter((item) => item.kind === "file");
@@ -96,15 +93,12 @@ describe("files helpers", () => {
       path: "src/ui/all-comments.ts",
       before: lines("const alpha = 1;", "const beta = 2;", "const gamma = 3;"),
       after: lines("const alpha = 10;", "const beta = 2;", "const gamma = 30;"),
-      annotations: {
-        path: "src/ui/all-comments.ts",
-        annotations: [
-          { summary: "First note", newRange: [1, 1] },
-          { summary: "Second note", newRange: [1, 1] },
-          // The sidebar count is per-file, so even comments outside a visible hunk still count.
-          { summary: "Third note", newRange: [20, 20] },
-        ],
-      },
+      annotations: [
+        { summary: "First note", newRange: [1, 1] },
+        { summary: "Second note", newRange: [1, 1] },
+        // The sidebar count is per-file, so even comments outside a visible hunk still count.
+        { summary: "Third note", newRange: [20, 20] },
+      ],
     });
 
     const [entry] = buildSidebarEntries([withComments]).filter((item) => item.kind === "file");

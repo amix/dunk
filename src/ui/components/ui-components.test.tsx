@@ -31,19 +31,14 @@ function createTestDiffFile(
   return buildTestDiffFile({
     after,
     annotations: withAgent
-      ? {
-          annotations: [
-            {
-              confidence: "high",
-              newRange: [2, 2],
-              rationale: `Why ${path} changed`,
-              summary: `Annotation for ${path}`,
-              tags: ["review"],
-            },
-          ],
-          path,
-        }
-      : null,
+      ? [
+          {
+            newRange: [2, 2],
+            rationale: `Why ${path} changed`,
+            summary: `Annotation for ${path}`,
+          },
+        ]
+      : [],
     before,
     context: 3,
     id,
@@ -89,7 +84,7 @@ function createHighlightPrefetchWindowFiles() {
   });
 }
 
-function createMultiDunkDiffFile(id: string, path: string) {
+function createMultiHunkDiffFile(id: string, path: string) {
   const before = lines(
     "export const line1 = 1;",
     "export const line2 = 2;",
@@ -123,7 +118,7 @@ function createMultiDunkDiffFile(id: string, path: string) {
 }
 
 /** Build one tall file with two distant changed lines so the diff parser produces two hunks. */
-function createWideTwoDunkDiffFile(id: string, path: string, start = 1) {
+function createWideTwoHunkDiffFile(id: string, path: string, start = 1) {
   const beforeLines = Array.from(
     { length: 80 },
     (_, index) => `export const line${start + index} = ${start + index};`,
@@ -141,7 +136,7 @@ function scrollTopForCenter(centerOffset: number, viewportHeight: number) {
   return Math.max(0, centerOffset - Math.max(0, Math.floor((viewportHeight - 1) / 2)));
 }
 
-function createViewportSizedBottomDunkDiffFile(id: string, path: string) {
+function createViewportSizedBottomHunkDiffFile(id: string, path: string) {
   const beforeLines = Array.from(
     { length: 20 },
     (_, index) => `export const line${index + 1} = ${index + 1};`,
@@ -156,7 +151,7 @@ function createViewportSizedBottomDunkDiffFile(id: string, path: string) {
   return createTestDiffFile(id, path, lines(...beforeLines), lines(...afterLines));
 }
 
-function createWrappedViewportSizedBottomDunkDiffFile(id: string, path: string) {
+function createWrappedViewportSizedBottomHunkDiffFile(id: string, path: string) {
   const beforeLines = Array.from(
     { length: 20 },
     (_, index) => `export const line${index + 1} = ${index + 1};`,
@@ -312,7 +307,7 @@ function createEmptyDiffFile(type: "change" | "rename-pure" | "new" | "deleted")
       hunks: [],
       type,
     } as never,
-    annotations: null,
+    annotations: [],
   };
 }
 
@@ -537,7 +532,7 @@ describe("UI components", () => {
         lines("export const intro = 1;"),
         lines("export const intro = 2;", "export const introExtra = true;"),
       ),
-      createMultiDunkDiffFile("target", "target.ts"),
+      createMultiHunkDiffFile("target", "target.ts"),
     ];
     const props = createDiffPaneProps(files, theme, {
       diffContentWidth: 96,
@@ -781,17 +776,14 @@ describe("UI components", () => {
   test("DiffPane keeps bottom scroll stable when offscreen agent notes are windowed out", async () => {
     const theme = resolveTheme("midnight", null);
     const firstFile = createTallDiffFile("first", "first.ts", 18);
-    firstFile.annotations = {
-      path: firstFile.path,
-      annotations: [
-        {
-          newRange: [2, 2],
-          summary: "Offscreen note should still reserve geometry at EOF.",
-          rationale:
-            "If measurement drops this note after first.ts leaves the viewport, max scroll shrinks.",
-        },
-      ],
-    };
+    firstFile.annotations = [
+      {
+        newRange: [2, 2],
+        summary: "Offscreen note should still reserve geometry at EOF.",
+        rationale:
+          "If measurement drops this note after first.ts leaves the viewport, max scroll shrinks.",
+      },
+    ];
     const files = [firstFile, createTallDiffFile("last", "last.ts", 24)];
     const scrollRef = createRef<ScrollBoxRenderable>();
     const props = createDiffPaneProps(files, theme, {
@@ -907,7 +899,7 @@ describe("UI components", () => {
   test("DiffPane keeps a viewport-sized selected hunk fully visible when it fits", async () => {
     const theme = resolveTheme("midnight", null);
     const props = createDiffPaneProps(
-      [createViewportSizedBottomDunkDiffFile("target", "target.ts")],
+      [createViewportSizedBottomHunkDiffFile("target", "target.ts")],
       theme,
       {
         diffContentWidth: 96,
@@ -945,7 +937,7 @@ describe("UI components", () => {
   test("DiffPane keeps a selected wrapped hunk fully visible when it fits", async () => {
     const theme = resolveTheme("midnight", null);
     const props = createDiffPaneProps(
-      [createWrappedViewportSizedBottomDunkDiffFile("target", "target.ts")],
+      [createWrappedViewportSizedBottomHunkDiffFile("target", "target.ts")],
       theme,
       {
         diffContentWidth: 76,
@@ -982,7 +974,7 @@ describe("UI components", () => {
 
   test("DiffPane keeps a distant selected hunk visible when row windowing narrows one file body", async () => {
     const theme = resolveTheme("midnight", null);
-    const props = createDiffPaneProps([createWideTwoDunkDiffFile("target", "target.ts")], theme, {
+    const props = createDiffPaneProps([createWideTwoHunkDiffFile("target", "target.ts")], theme, {
       diffContentWidth: 96,
       headerLabelWidth: 48,
       selectedFileId: "target",
@@ -1010,16 +1002,13 @@ describe("UI components", () => {
 
   test("DiffPane keeps a selected hunk with inline notes fully visible when it fits", async () => {
     const theme = resolveTheme("midnight", null);
-    const file = createViewportSizedBottomDunkDiffFile("target", "target.ts");
-    file.annotations = {
-      path: file.path,
-      annotations: [
-        {
-          newRange: [14, 16],
-          summary: "Keep the selected hunk visible with its note.",
-        },
-      ],
-    };
+    const file = createViewportSizedBottomHunkDiffFile("target", "target.ts");
+    file.annotations = [
+      {
+        newRange: [14, 16],
+        summary: "Keep the selected hunk visible with its note.",
+      },
+    ];
     const props = createDiffPaneProps([file], theme, {
       diffContentWidth: 96,
       headerLabelWidth: 48,
@@ -1078,15 +1067,12 @@ describe("UI components", () => {
       lines(...beforeLines),
       lines(...afterLines),
     );
-    file.annotations = {
-      path: file.path,
-      annotations: [
-        {
-          newRange: [63, 63],
-          summary: "Note anchored on second hunk.",
-        },
-      ],
-    };
+    file.annotations = [
+      {
+        newRange: [63, 63],
+        summary: "Note anchored on second hunk.",
+      },
+    ];
 
     // Without scrollToNote: hunk top (context before line 60) is near viewport top,
     // but the note card (anchored at line 63) may be below the visible area.
@@ -1206,18 +1192,13 @@ describe("UI components", () => {
 
   test("DiffPane renders all visible hunk notes across the review stream", async () => {
     const bootstrap = createBootstrap();
-    bootstrap.changeset.files[1]!.annotations = {
-      path: "beta.ts",
-      annotations: [
-        {
-          newRange: [1, 1],
-          summary: "Annotation for beta.ts",
-          rationale: "Why beta.ts changed",
-          tags: ["review"],
-          confidence: "high",
-        },
-      ],
-    };
+    bootstrap.changeset.files[1]!.annotations = [
+      {
+        newRange: [1, 1],
+        summary: "Annotation for beta.ts",
+        rationale: "Why beta.ts changed",
+      },
+    ];
 
     const theme = resolveTheme("midnight", null);
     const frame = await captureFrame(
@@ -1304,19 +1285,16 @@ describe("UI components", () => {
     const bootstrap = createBootstrap();
     const theme = resolveTheme("midnight", null);
     const file = bootstrap.changeset.files[0]!;
-    file.annotations = {
-      ...file.annotations!,
-      annotations: [
-        {
-          newRange: [2, 2],
-          rationale: "First rationale.",
-        },
-        {
-          newRange: [2, 2],
-          rationale: "Second rationale.",
-        },
-      ],
-    };
+    file.annotations = [
+      {
+        newRange: [2, 2],
+        rationale: "First rationale.",
+      },
+      {
+        newRange: [2, 2],
+        rationale: "Second rationale.",
+      },
+    ];
 
     const frame = await captureFrame(
       <DiffPane

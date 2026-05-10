@@ -1,14 +1,13 @@
 # dunk
 
-A personal terminal diff viewer with file-driven review comments. Built on [OpenTUI](https://github.com/anomalyco/opentui) and [Pierre diffs](https://www.npmjs.com/package/@pierre/diffs).
+Review diffs in a TUI, leave inline comments, and let a coding agent resolve them through `.dunk/comments.json`.
 
-`dunk` is a hard fork of [hunk](https://github.com/modem-dev/hunk), stripped of the daemon/MCP/session-broker layer and rebuilt around one committed `.dunk/comments.json` per repo. The whole review loop — human + agent — flows through that one file.
+`dunk` is a hard fork of [hunk](https://github.com/modem-dev/hunk): the same OpenTUI / [Pierre](https://www.npmjs.com/package/@pierre/diffs) diff-viewer foundation, without the daemon, MCP, or session-broker layer. A human reviewer marks issues in the diff; dunk writes anchored comments to one committed `.dunk/comments.json`; Claude Code, Codex, or another agent fixes the code and removes resolved entries; watch mode reloads the loop in place.
 
-- multi-file review stream with sidebar navigation
-- inline review comments anchored to file:line, drift-detected via line-context hashing
-- split, stack, and responsive auto layouts
-- watch mode that picks up edits to `.dunk/comments.json` so coding agents and humans can ping-pong on the same review
-- pager + `git difftool` adapters
+- press `a` on a hunk to save an anchored `file` / `line` / `body` comment
+- comments live in `.dunk/comments.json`, so agents can read, fix, and prune them without a service process
+- `--watch` reloads both code changes and comment edits; resolved comments disappear, drifted anchors surface instead of getting lost
+- built on hunk's terminal diff viewer with sidebar navigation, split/stack layouts, pager support, and `git difftool` adapters
 
 ## Install
 

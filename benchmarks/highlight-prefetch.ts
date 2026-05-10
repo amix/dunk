@@ -46,7 +46,7 @@ function createDiffFile(index: number, marker: string): DiffFile {
     language: "typescript",
     stats: { additions: 2, deletions: 2 },
     metadata,
-    annotations: null,
+    annotations: [],
   };
 }
 

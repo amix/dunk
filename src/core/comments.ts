@@ -193,20 +193,19 @@ export function resolveComments(
   });
 }
 
-/** Map an anchored comment to the agent-annotation shape used by the renderer. */
+/** Map an anchored comment to the inline annotation shape used by the renderer. */
 export function commentToAnnotation(comment: AnchoredComment): Annotation {
   return {
     id: `dunk-comment:${comment.id}`,
     summary: comment.body,
     newRange: [comment.line, comment.line],
-    source: "dunk",
   };
 }
 
 /**
- * Merge anchored comments into a Changeset's per-file `agent.annotations` so the
- * existing renderer surface picks them up. Drifted comments are returned
- * separately for top-of-diff rendering.
+ * Merge anchored comments into each DiffFile's inline annotations so the
+ * renderer picks them up. Drifted comments are returned separately for
+ * top-of-diff rendering.
  */
 export function applyCommentsToChangeset(
   changeset: Changeset,
@@ -233,7 +232,7 @@ export function applyCommentsToChangeset(
   };
 }
 
-/** Layer anchored user comments onto a single DiffFile's agent annotations. */
+/** Layer anchored user comments onto a single DiffFile's inline annotations. */
 function mergeFileAnnotations(
   file: DiffFile,
   anchoredByPath: Map<string, AnchoredComment[]>,
@@ -243,13 +242,9 @@ function mergeFileAnnotations(
     return file;
   }
 
-  const annotations = anchored.map(commentToAnnotation);
   return {
     ...file,
-    annotations: {
-      path: file.path,
-      annotations: [...(file.annotations?.annotations ?? []), ...annotations],
-    },
+    annotations: [...file.annotations, ...anchored.map(commentToAnnotation)],
   };
 }
 

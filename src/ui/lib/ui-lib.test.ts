@@ -60,7 +60,7 @@ function createDiffFile(
     language: "typescript",
     stats: { additions: 2, deletions: 2 },
     metadata,
-    annotations: null,
+    annotations: [],
   };
 }
 

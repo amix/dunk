@@ -17,8 +17,7 @@ const windowedFiles = createLargeSplitStreamFiles({ notesPerFile: 0 });
 const noteFiles = createLargeSplitStreamFiles({ notesPerFile: DEFAULT_NOTES_PER_FILE });
 
 function visibleAgentNotesForFile(file: (typeof noteFiles)[number]) {
-  const annotations = file.annotations?.annotations ?? [];
-  return annotations.map((annotation, index) => ({
+  return file.annotations.map((annotation, index) => ({
     id: `annotation:${file.id}:${annotation.id ?? index}`,
     annotation,
   }));

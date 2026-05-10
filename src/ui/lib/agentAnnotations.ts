@@ -35,22 +35,22 @@ function annotationOverlapsHunk(annotation: Annotation, hunk: Hunk) {
 
 /** Return the annotations relevant to the currently selected hunk. */
 export function getSelectedAnnotations(file: DiffFile | undefined, hunk: Hunk | undefined) {
-  if (!file?.annotations || !hunk) {
+  if (!file || !hunk) {
     return [];
   }
 
-  return file.annotations.annotations.filter((annotation) => annotationOverlapsHunk(annotation, hunk));
+  return file.annotations.filter((annotation) => annotationOverlapsHunk(annotation, hunk));
 }
 
-/** Mark which hunks in a file have any agent annotations attached. */
+/** Mark which hunks in a file have any inline annotations attached. */
 export function getAnnotatedHunkIndices(file: DiffFile | undefined) {
   const annotated = new Set<number>();
-  if (!file?.annotations) {
+  if (!file || file.annotations.length === 0) {
     return annotated;
   }
 
   file.metadata.hunks.forEach((hunk, index) => {
-    if (file.annotations?.annotations.some((annotation) => annotationOverlapsHunk(annotation, hunk))) {
+    if (file.annotations.some((annotation) => annotationOverlapsHunk(annotation, hunk))) {
       annotated.add(index);
     }
   });

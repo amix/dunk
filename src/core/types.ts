@@ -3,23 +3,13 @@ import type { FileDiffMetadata } from "@pierre/diffs";
 export type LayoutMode = "auto" | "split" | "stack";
 export type VcsMode = "git" | "jj";
 
-/** One inline annotation rendered alongside a diff hunk. Carries a user comment today. */
+/** One inline annotation rendered alongside a diff hunk. Carries a user comment. */
 export interface Annotation {
   id?: string;
   oldRange?: [number, number];
   newRange?: [number, number];
   summary?: string;
   rationale?: string;
-  tags?: string[];
-  confidence?: "low" | "medium" | "high";
-  source?: string;
-  author?: string;
-  createdAt?: string;
-}
-
-export interface FileAnnotations {
-  path: string;
-  annotations: Annotation[];
 }
 
 export interface DiffFile {
@@ -33,7 +23,7 @@ export interface DiffFile {
     deletions: number;
   };
   metadata: FileDiffMetadata;
-  annotations: FileAnnotations | null;
+  annotations: Annotation[];
   isUntracked?: boolean;
   isBinary?: boolean;
   isTooLarge?: boolean;

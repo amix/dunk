@@ -11,7 +11,7 @@ function createDiffFile(
   path: string,
   before: string,
   after: string,
-  annotations: DiffFile["annotations"] = null,
+  annotations: DiffFile["annotations"] = [],
 ): DiffFile {
   const metadata = parseDiffFromFile(
     { name: path, contents: before, cacheKey: `${id}:before` },

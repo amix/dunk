@@ -244,7 +244,7 @@ function buildDiffFile(
     language: getFiletypeFromFileName(path) ?? undefined,
     stats: stats ?? countDiffStats(normalizedMetadata),
     metadata: normalizedMetadata,
-    annotations: null,
+    annotations: [],
     isUntracked,
     isBinary: isBinary ?? patchLooksBinary(patch),
     isTooLarge,
@@ -1128,9 +1128,11 @@ export async function loadAppBootstrap(
 /**
  * Read `.dunk/comments.json` for the active repo, anchor comments against the
  * current post-image, and fold the anchored ones into the changeset's per-file
- * annotations. Drifted comments are returned separately. Any failure (missing
- * repo, unreadable file) yields the original changeset and an empty drift
- * list rather than aborting the bootstrap.
+ * annotations. Drifted comments are returned separately. A missing repo root
+ * yields the original changeset and an empty drift list. A *malformed*
+ * `.dunk/comments.json` is logged loudly so a bad agent edit doesn't silently
+ * hide every comment — the integration contract for this fork lives in that
+ * file, so swallowing parse errors masks real product breakage.
  */
 function mergeUserComments(
   changeset: Changeset,
@@ -1146,7 +1148,9 @@ function mergeUserComments(
   let commentsFile;
   try {
     commentsFile = readCommentsFile(repoRoot);
-  } catch {
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    console.error(`dunk: could not load .dunk/comments.json — ${detail}`);
     return empty;
   }
 

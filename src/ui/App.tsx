@@ -616,6 +616,15 @@ export function App({
     [commentEditorTarget, triggerRefreshCurrentInput],
   );
 
+  // Hold the current refresher in a ref so view-only state changes (theme,
+  // layout, comment toggle, …) don't tear down and re-arm the watch poll. A
+  // restart resets `lastSignature`, which would silently swallow any source
+  // change that landed during the toggle.
+  const refreshCurrentInputRef = useRef(refreshCurrentInput);
+  useEffect(() => {
+    refreshCurrentInputRef.current = refreshCurrentInput;
+  }, [refreshCurrentInput]);
+
   useEffect(() => {
     if (!watchEnabled) {
       return;
@@ -645,7 +654,8 @@ export function App({
         if (nextSignature !== lastSignature) {
           lastSignature = nextSignature;
           refreshing = true;
-          void refreshCurrentInput()
+          void refreshCurrentInputRef
+            .current()
             .catch((error) => {
               console.error("Failed to auto-reload the current diff.", error);
             })
@@ -665,7 +675,7 @@ export function App({
       cancelled = true;
       clearInterval(interval);
     };
-  }, [bootstrap.input, refreshCurrentInput, watchEnabled]);
+  }, [bootstrap.input, watchEnabled]);
 
   /** Leave the app through the shared shutdown path. */
   const requestQuit = useCallback(() => {

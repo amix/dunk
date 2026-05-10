@@ -209,14 +209,11 @@ function createRapidViewportLoopBootstrap(): AppBootstrap {
       after: lines(...afterLines),
       context: 3,
     });
-    file.annotations = {
-      path: file.path,
-      annotations: [
-        { newRange: [start, start], summary: `note start ${fileIndex}` },
-        { newRange: [start + 30, start + 30], summary: `note middle ${fileIndex}` },
-        { newRange: [start + 60, start + 60], summary: `note late ${fileIndex}` },
-      ],
-    };
+    file.annotations = [
+      { newRange: [start, start], summary: `note start ${fileIndex}` },
+      { newRange: [start + 30, start + 30], summary: `note middle ${fileIndex}` },
+      { newRange: [start + 60, start + 60], summary: `note late ${fileIndex}` },
+    ];
     return file;
   });
 
@@ -962,16 +959,13 @@ describe("App interactions", () => {
   test("comments are visible by default across every visible review file", async () => {
     const bootstrap = createBootstrap();
     bootstrap.initialShowComments = true;
-    bootstrap.changeset.files[1]!.annotations = {
-      path: "beta.ts",
-      annotations: [
-        {
-          newRange: [1, 1],
-          summary: "Annotation for beta.ts",
-          rationale: "Why beta.ts changed",
-        },
-      ],
-    };
+    bootstrap.changeset.files[1]!.annotations = [
+      {
+        newRange: [1, 1],
+        summary: "Annotation for beta.ts",
+        rationale: "Why beta.ts changed",
+      },
+    ];
 
     const setup = await testRender(<AppHost bootstrap={bootstrap} />, { width: 240, height: 32 });
 

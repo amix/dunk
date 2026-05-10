@@ -1,5 +1,5 @@
 import { parseDiffFromFile } from "@pierre/diffs";
-import type { Annotation, FileAnnotations, DiffFile } from "../../src/core/types";
+import type { Annotation, DiffFile } from "../../src/core/types";
 
 function collectChangeStats(metadata: DiffFile["metadata"]) {
   let additions = 0;
@@ -21,24 +21,15 @@ export function lines(...values: string[]) {
   return `${values.join("\n")}\n`;
 }
 
-export function createTestFileAnnotations(
-  path: string,
-  {
-    annotations = [
-      {
-        newRange: [2, 2],
-        summary: `Annotation for ${path}`,
-        rationale: `Why ${path} changed`,
-      },
-    ],
-  }: {
-    annotations?: Annotation[];
-  } = {},
-): FileAnnotations {
-  return {
-    path,
-    annotations,
-  };
+/** Build a tiny fixture annotation for `path`. */
+export function createTestAnnotations(path: string): Annotation[] {
+  return [
+    {
+      newRange: [2, 2],
+      summary: `Annotation for ${path}`,
+      rationale: `Why ${path} changed`,
+    },
+  ];
 }
 
 export function createTestDiffFile({
@@ -49,7 +40,7 @@ export function createTestDiffFile({
   path = "example.ts",
   previousPath,
   context = 0,
-  annotations = null,
+  annotations = [],
 }: {
   after?: string;
   before?: string;
@@ -58,7 +49,7 @@ export function createTestDiffFile({
   path?: string;
   previousPath?: string;
   context?: number;
-  annotations?: DiffFile["annotations"] | boolean;
+  annotations?: Annotation[] | boolean;
 } = {}): DiffFile {
   const metadata = parseDiffFromFile(
     { cacheKey: `${id}:before`, contents: before, name: path },
@@ -69,11 +60,7 @@ export function createTestDiffFile({
 
   return {
     annotations:
-      annotations === true
-        ? createTestFileAnnotations(path)
-        : annotations === false
-          ? null
-          : annotations,
+      annotations === true ? createTestAnnotations(path) : annotations === false ? [] : annotations,
     id,
     language,
     metadata,

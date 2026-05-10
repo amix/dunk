@@ -254,14 +254,13 @@ export function DiffPane({
     }
 
     files.forEach((file) => {
-      const annotations = file.annotations?.annotations ?? [];
-      if (annotations.length === 0) {
+      if (file.annotations.length === 0) {
         return;
       }
 
       next.set(
         file.id,
-        annotations.map((annotation, index) => ({
+        file.annotations.map((annotation, index) => ({
           id: `annotation:${file.id}:${annotation.id ?? index}`,
           annotation,
         })),

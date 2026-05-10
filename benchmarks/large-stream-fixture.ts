@@ -66,8 +66,6 @@ export function createLargeSplitDiffFile(
     true,
   );
 
-  const annotations = createAgentAnnotations(index, notesPerFile);
-
   return {
     id: `stream:${index}`,
     path,
@@ -75,7 +73,7 @@ export function createLargeSplitDiffFile(
     language: "typescript",
     stats: { additions: 48, deletions: 48 },
     metadata,
-    annotations: annotations.length > 0 ? { path, annotations } : null,
+    annotations: createAgentAnnotations(index, notesPerFile),
   };
 }
 

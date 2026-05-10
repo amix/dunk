@@ -111,7 +111,7 @@ export function buildSidebarEntries(files: DiffFile[]): SidebarEntry[] {
       }
     }
 
-    const agentCommentCount = file.annotations?.annotations.length ?? 0;
+    const agentCommentCount = file.annotations.length;
 
     entries.push({
       kind: "file",
