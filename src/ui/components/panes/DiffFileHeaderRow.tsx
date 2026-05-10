@@ -33,16 +33,19 @@ export function DiffFileHeaderRow({
         justifyContent: "space-between",
         paddingLeft: 1,
         paddingRight: 1,
-        backgroundColor: theme.panel,
+        backgroundColor: theme.accentMuted,
       }}
       onMouseUp={onSelect}
     >
-      {/* Clicking the file header jumps the main stream selection without collapsing to a single-file view. */}
-      <box style={{ flexDirection: "row" }}>
-        <text fg={theme.text}>
+      <box style={{ flexDirection: "row", backgroundColor: theme.accentMuted }}>
+        <text fg={theme.text} bg={theme.accentMuted}>
           {fitText(filename, Math.max(1, headerLabelWidth - (stateLabel?.length ?? 0)))}
         </text>
-        {stateLabel && <text fg={theme.muted}>{stateLabel}</text>}
+        {stateLabel && (
+          <text fg={theme.text} bg={theme.accentMuted}>
+            {stateLabel}
+          </text>
+        )}
       </box>
       <box
         style={{
@@ -50,11 +53,18 @@ export function DiffFileHeaderRow({
           height: 1,
           flexDirection: "row",
           justifyContent: "flex-end",
+          backgroundColor: theme.accentMuted,
         }}
       >
-        <text fg={theme.badgeAdded}>{additionsText}</text>
-        <text fg={theme.muted}> </text>
-        <text fg={theme.badgeRemoved}>{deletionsText}</text>
+        <text fg={theme.badgeAdded} bg={theme.accentMuted}>
+          {additionsText}
+        </text>
+        <text fg={theme.text} bg={theme.accentMuted}>
+          {" "}
+        </text>
+        <text fg={theme.badgeRemoved} bg={theme.accentMuted}>
+          {deletionsText}
+        </text>
       </box>
     </box>
   );
