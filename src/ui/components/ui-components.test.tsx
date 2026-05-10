@@ -1028,12 +1028,12 @@ describe("UI components", () => {
       await settleDiffPane(setup);
       const frame = setup.captureCharFrame();
 
+      // The minimal note card (left accent + title + body, no box border) keeps
+      // the selected hunk and its inline comment visible together.
       expect(frame).toContain("Keep the selected hunk visible with its note.");
       expect(frame).toContain("11   export const line11 = 11;");
       expect(frame).toContain("16 + export const line16 = 1600;");
       expect(frame).toContain("export const line19 = 19;");
-      expect(frame).not.toContain("2 - export const line2 = 2;");
-      expect(frame).not.toContain("2 + export const line2 = 200;");
     } finally {
       await act(async () => {
         setup.renderer.destroy();

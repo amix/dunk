@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { DiffFile, LayoutMode } from "../../core/types";
-import { AgentInlineNote, AgentInlineNoteGuideCap } from "../components/panes/AgentInlineNote";
+import { AgentInlineNote } from "../components/panes/AgentInlineNote";
 import type { VisibleAgentNote } from "../lib/agentAnnotations";
 import type { DiffSectionGeometry } from "../lib/diffSectionGeometry";
 import { reviewRowId } from "../lib/ids";
@@ -160,21 +160,11 @@ export function PierreDiffView({
             <box key={plannedRow.key} id={rowId} style={{ width: "100%", flexDirection: "column" }}>
               <AgentInlineNote
                 annotation={plannedRow.annotation}
-                anchorSide={plannedRow.anchorSide}
-                layout={layout}
                 noteCount={plannedRow.noteCount}
                 noteIndex={plannedRow.noteIndex}
                 theme={theme}
                 width={width}
               />
-            </box>
-          );
-        }
-
-        if (plannedRow.kind === "note-guide-cap") {
-          return (
-            <box key={plannedRow.key} id={rowId} style={{ width: "100%", flexDirection: "column" }}>
-              <AgentInlineNoteGuideCap side={plannedRow.side} theme={theme} width={width} />
             </box>
           );
         }
@@ -205,7 +195,6 @@ export function PierreDiffView({
                 annotatedHunkIndices.has(plannedRow.row.hunkIndex)
               }
               anchorId={plannedRow.anchorId}
-              noteGuideSide={plannedRow.noteGuideSide}
               onOpenAgentNotesAtHunk={onOpenAgentNotesAtHunk}
             />
           </box>

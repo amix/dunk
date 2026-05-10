@@ -39,14 +39,9 @@ export function plannedReviewRowHeight(
   if (row.kind === "inline-note") {
     return measureAgentInlineNoteHeight({
       annotation: row.annotation,
-      anchorSide: row.anchorSide,
       layout,
       width,
     });
-  }
-
-  if (row.kind === "note-guide-cap") {
-    return 1;
   }
 
   if (row.row.type === "hunk-header") {

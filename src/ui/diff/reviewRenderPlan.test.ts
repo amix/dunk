@@ -69,18 +69,8 @@ function inlineNoteAnchorRow(plannedRows: PlannedReviewRow[]) {
   return undefined;
 }
 
-function guidedSplitLineNumbers(plannedRows: PlannedReviewRow[], side: "old" | "new") {
-  return plannedRows.flatMap((row) => {
-    if (row.kind !== "diff-row" || row.noteGuideSide !== side || row.row.type !== "split-line") {
-      return [];
-    }
-
-    return [side === "new" ? row.row.right.lineNumber : row.row.left.lineNumber];
-  });
-}
-
 describe("review render plan", () => {
-  test("inserts an inline note before the anchor row and continues the guide through the covered range", () => {
+  test("docks the inline note at the hunk's last line row", () => {
     const theme = resolveTheme("midnight", null);
     const file = createDiffFile(
       "alpha",
@@ -109,7 +99,6 @@ describe("review render plan", () => {
     const note = firstInlineNote(plannedRows);
     expect(note?.kind).toBe("inline-note");
     if (note?.kind === "inline-note") {
-      expect(note.anchorSide).toBe("new");
       expect(note.noteCount).toBe(1);
       expect(note.noteIndex).toBe(0);
     }
@@ -122,14 +111,6 @@ describe("review render plan", () => {
         // Notes anchor at the hunk's last line; the diff adds lines 1-3, so 3 is the bottom.
         expect(anchoredRow.row.right.lineNumber).toBe(3);
       }
-    }
-
-    expect(guidedSplitLineNumbers(plannedRows, "new")).toEqual([2, 3]);
-
-    const cap = plannedRows.find((row) => row.kind === "note-guide-cap");
-    expect(cap?.kind).toBe("note-guide-cap");
-    if (cap?.kind === "note-guide-cap") {
-      expect(cap.side).toBe("new");
     }
   });
 
@@ -161,9 +142,6 @@ describe("review render plan", () => {
 
     const note = firstInlineNote(plannedRows);
     expect(note?.kind).toBe("inline-note");
-    if (note?.kind === "inline-note") {
-      expect(note.anchorSide).toBe("old");
-    }
 
     const anchoredRow = inlineNoteAnchorRow(plannedRows);
     expect(anchoredRow?.kind).toBe("diff-row");
@@ -174,14 +152,6 @@ describe("review render plan", () => {
         expect(anchoredRow.row.left.lineNumber).toBe(2);
         expect(anchoredRow.row.right.lineNumber).toBe(1);
       }
-    }
-
-    expect(guidedSplitLineNumbers(plannedRows, "old")).toEqual([1]);
-
-    const cap = plannedRows.find((row) => row.kind === "note-guide-cap");
-    expect(cap?.kind).toBe("note-guide-cap");
-    if (cap?.kind === "note-guide-cap") {
-      expect(cap.side).toBe("old");
     }
   });
 
@@ -268,14 +238,6 @@ describe("review render plan", () => {
 
     const note = firstInlineNote(plannedRows);
     expect(note?.kind).toBe("inline-note");
-    if (note?.kind === "inline-note") {
-      expect(note.anchorSide).toBeUndefined();
-    }
-
-    expect(plannedRows.some((row) => row.kind === "note-guide-cap")).toBe(false);
-    expect(
-      plannedRows.some((row) => row.kind === "diff-row" && row.noteGuideSide !== undefined),
-    ).toBe(false);
 
     const anchoredRow = inlineNoteAnchorRow(plannedRows);
     expect(anchoredRow?.kind).toBe("diff-row");

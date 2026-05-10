@@ -4,15 +4,11 @@ import { diffHunkId } from "../lib/ids";
 import type { DiffRow } from "./pierre";
 
 const EMPTY_VISIBLE_AGENT_NOTES: VisibleAgentNote[] = [];
-const EMPTY_ROW_KEYS = new Set<string>();
 
 type DiffLineRow = Extract<DiffRow, { type: "split-line" | "stack-line" }>;
 
 interface InlineVisibleNotePlacement {
   anchorKey: string;
-  anchorSide?: "old" | "new";
-  endGuideAfterKey?: string;
-  guidedRowKeys: Set<string>;
   hunkIndex: number;
   note: VisibleAgentNote;
   noteCount: number;
@@ -29,7 +25,6 @@ export type PlannedReviewRow =
       hunkIndex: number;
       row: DiffRow;
       anchorId?: string;
-      noteGuideSide?: "old" | "new";
     }
   | {
       kind: "inline-note";
@@ -39,17 +34,8 @@ export type PlannedReviewRow =
       hunkIndex: number;
       annotationId: string;
       annotation: Annotation;
-      anchorSide?: "old" | "new";
       noteCount: number;
       noteIndex: number;
-    }
-  | {
-      kind: "note-guide-cap";
-      key: string;
-      stableKey: string;
-      fileId: string;
-      hunkIndex: number;
-      side: "old" | "new";
     };
 
 function lineRows(rows: DiffRow[]) {
@@ -229,9 +215,9 @@ function buildLineRowIndex(rows: DiffRow[]): LineRowIndex {
 /**
  * Resolve the rendered diff row before which the inline note should appear.
  * Range-less notes intentionally anchor beside the first code row in the file,
- * not above hunk header metadata.
+ * Range-less notes fall back to the first visible line row.
  */
-function findInlineNoteAnchorRow(index: LineRowIndex, annotation: Annotation) {
+function resolveNoteHunkAnchor(index: LineRowIndex, annotation: Annotation): DiffLineRow | DiffRow | undefined {
   const anchor = annotationAnchor(annotation);
   if (anchor) {
     const map = anchor.side === "new" ? index.byNewLine : index.byOldLine;
@@ -244,34 +230,6 @@ function findInlineNoteAnchorRow(index: LineRowIndex, annotation: Annotation) {
   return index.rows[0] ?? index.firstHeaderRow;
 }
 
-/** Collect every line row whose old- or new-side number falls inside the annotation's range. */
-function collectCoveredRows(index: LineRowIndex, annotation: Annotation) {
-  const covered: DiffLineRow[] = [];
-  const seen = new Set<string>();
-
-  const addRange = (range: [number, number], map: Map<number, DiffLineRow>) => {
-    for (let line = range[0]; line <= range[1]; line += 1) {
-      const row = map.get(line);
-      if (row && !seen.has(row.key)) {
-        seen.add(row.key);
-        covered.push(row);
-      }
-    }
-  };
-
-  if (annotation.oldRange) {
-    addRange(annotation.oldRange, index.byOldLine);
-  }
-  if (annotation.newRange) {
-    addRange(annotation.newRange, index.byNewLine);
-  }
-
-  // Preserve render-order so the trailing guide cap lands on the right row.
-  return covered.sort(
-    (a, b) => (index.positionByKey.get(a.key) ?? 0) - (index.positionByKey.get(b.key) ?? 0),
-  );
-}
-
 function buildInlineVisibleNotePlacements(rows: DiffRow[], visibleAgentNotes: VisibleAgentNote[]) {
   const placementsByAfterKey = new Map<string, InlineVisibleNotePlacement[]>();
   if (visibleAgentNotes.length === 0) {
@@ -281,30 +239,20 @@ function buildInlineVisibleNotePlacements(rows: DiffRow[], visibleAgentNotes: Vi
   const index = buildLineRowIndex(rows);
 
   for (const note of visibleAgentNotes) {
-    // Resolve the original anchor only for guide-rail placement (the side rail
-    // still highlights the annotated range). The note card itself always sits
-    // at the hunk bottom — anchoring at the changed line makes the card jump
-    // around inside the hunk depending on which line is touched.
-    const guideAnchorRow = findInlineNoteAnchorRow(index, note.annotation);
-    if (!guideAnchorRow) {
+    // Map the annotation to its owning hunk so the card can dock at the
+    // hunk's last line row. Comments are always hunk-anchored, so we don't
+    // try to highlight a sub-range or dock per-side.
+    const fallbackAnchorRow = resolveNoteHunkAnchor(index, note.annotation);
+    if (!fallbackAnchorRow) {
       continue;
     }
 
-    const hunkIndex = guideAnchorRow.hunkIndex;
-    const cardAnchorRow = index.lastLineRowByHunk.get(hunkIndex) ?? guideAnchorRow;
-    const anchorSide = annotationAnchor(note.annotation)?.side;
-    const coveredRows = collectCoveredRows(index, note.annotation);
-    const fallbackGuideRow = anchorSide ? guideAnchorRow : undefined;
-    const guideRows =
-      coveredRows.length > 0 ? coveredRows : fallbackGuideRow ? [fallbackGuideRow] : [];
+    const hunkIndex = fallbackAnchorRow.hunkIndex;
+    const cardAnchorRow = index.lastLineRowByHunk.get(hunkIndex) ?? fallbackAnchorRow;
     const anchorPlacements = placementsByAfterKey.get(cardAnchorRow.key) ?? [];
 
     anchorPlacements.push({
       anchorKey: cardAnchorRow.key,
-      anchorSide,
-      endGuideAfterKey: guideRows.at(-1)?.key,
-      guidedRowKeys:
-        guideRows.length > 0 ? new Set(guideRows.map((row) => row.key)) : EMPTY_ROW_KEYS,
       hunkIndex,
       note,
       noteCount: 1,
@@ -321,44 +269,6 @@ function buildInlineVisibleNotePlacements(rows: DiffRow[], visibleAgentNotes: Vi
   }
 
   return placementsByAfterKey;
-}
-
-function buildNoteGuideSideByRowKey(placementsByAfterKey: Map<string, InlineVisibleNotePlacement[]>) {
-  const guideSideByRowKey = new Map<string, "old" | "new">();
-
-  for (const placements of placementsByAfterKey.values()) {
-    for (const placement of placements) {
-      if (!placement.anchorSide) {
-        continue;
-      }
-
-      for (const rowKey of placement.guidedRowKeys) {
-        if (!guideSideByRowKey.has(rowKey)) {
-          guideSideByRowKey.set(rowKey, placement.anchorSide);
-        }
-      }
-    }
-  }
-
-  return guideSideByRowKey;
-}
-
-function buildGuideCapsByRowKey(placementsByAfterKey: Map<string, InlineVisibleNotePlacement[]>) {
-  const guideCapsByRowKey = new Map<string, Set<"old" | "new">>();
-
-  for (const placements of placementsByAfterKey.values()) {
-    for (const placement of placements) {
-      if (!placement.anchorSide || !placement.endGuideAfterKey) {
-        continue;
-      }
-
-      const rowCaps = guideCapsByRowKey.get(placement.endGuideAfterKey) ?? new Set<"old" | "new">();
-      rowCaps.add(placement.anchorSide);
-      guideCapsByRowKey.set(placement.endGuideAfterKey, rowCaps);
-    }
-  }
-
-  return guideCapsByRowKey;
 }
 
 function rowCanAnchorHunk(row: DiffRow, showHunkHeaders: boolean) {
@@ -388,8 +298,6 @@ export function buildReviewRenderPlan({
   selectedHunkIndex?: number;
 }) {
   const placementsByAfterKey = buildInlineVisibleNotePlacements(rows, visibleAgentNotes);
-  const noteGuideSideByRowKey = buildNoteGuideSideByRowKey(placementsByAfterKey);
-  const guideCapsByRowKey = buildGuideCapsByRowKey(placementsByAfterKey);
   const plannedRows: PlannedReviewRow[] = [];
   const anchoredHunks = new Set<number>();
 
@@ -414,22 +322,7 @@ export function buildReviewRenderPlan({
       hunkIndex: row.hunkIndex,
       row,
       anchorId,
-      noteGuideSide: noteGuideSideByRowKey.get(row.key),
     });
-
-    const guideCaps = guideCapsByRowKey.get(row.key);
-    if (guideCaps) {
-      Array.from(guideCaps).forEach((side) => {
-        plannedRows.push({
-          kind: "note-guide-cap",
-          key: `note-guide-cap:${row.key}:${side}`,
-          stableKey: `note-guide-cap:${side}:${diffRowStableKeyForSide(row, side) ?? diffStableKey}`,
-          fileId,
-          hunkIndex: row.hunkIndex,
-          side,
-        });
-      });
-    }
 
     // Notes are anchored after the hunk's last line row, not before it: the
     // card sits at the bottom of every hunk so its position is predictable
@@ -444,7 +337,6 @@ export function buildReviewRenderPlan({
         hunkIndex: placement.hunkIndex,
         annotationId: placement.note.id,
         annotation: placement.note.annotation,
-        anchorSide: placement.anchorSide,
         noteCount: placement.noteCount,
         noteIndex: placement.noteIndex,
       });
