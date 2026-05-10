@@ -4,22 +4,23 @@ Working list for the fork. Order matters: the Codex review (`.expert/letter-…r
 
 ## Goal
 
-A *smaller* terminal diff + notes tool than upstream `hunk`. Sharing happens by committing a `.hunk/` directory through normal git, not via a daemon.
+A *smaller* terminal diff + notes tool than upstream `hunk`. Sharing happens by committing a single `.tunk/comments.json` file through normal git, not via a daemon.
 
 ## Execution order
 
-1. **`.hunk/` note schema + anchor format** (see `docs/notes-schema.md`). Decide schema, anchor identity, atomic-write behavior, conflict story before any UI work.
-2. **Remove session/MCP/daemon/broker code and agent-note ingestion.** Confirm reload/watch has a non-session path before pulling. Audit `useHunkSessionBridge` for hidden coupling (live comments, jump-to-location, note visibility, reload callbacks).
-3. **Simplify hunk navigation pipeline.** Port the simplified version from `/Users/amix/Desktop/GitHub/hunk-amix`. Notes depend on a stable "current hunk."
-4. **User notes CRUD** on the new model. Keys:
-   - `n` adds a note for the current hunk. **Open in a focused modal first** (inline TUI editing collides with global shortcuts; revisit inline polish later).
-   - `d` deletes the focused note.
-   - `D` deletes **all notes on the current hunk** (not the whole file — too destructive).
-   - Drifted notes pin to the top of the diff, darker background. Start with **exact-match + pinned** drift detection only; no fuzzy matching.
-5. **`e` opens current file at current line** via `$VISUAL`/`$EDITOR` with flag conventions for nvim, vim, code, cursor, zed, subl. Suspend tunk for terminal editors; spawn detached for GUI editors.
-6. **`J` / `K` for hunk navigation** (replace `[` / `]`). `gg` top, `Shift-G` bottom.
-7. **Layout polish**: drop residual top margin from the removed menu; subtle "Press ? for help" hint on the otherwise-idle status line.
-8. **Selection auto-copy** — last, and reconsider. Fights native terminal selection on most terminals; platform-sensitive. May be the wrong feature.
+1. **`.tunk/comments.json` schema** (see `docs/notes-schema.md`). One committed file, integer ids, simple anchor (line + 16-hex content hash). No per-note files, no ULID, no sophisticated drift recovery.
+2. **Rename `.hunk/` → `.tunk/` everywhere.** This includes the existing local view config (`.tunk/config.toml`) and cache (`.tunk/latest.json`). Update `.gitignore` so `.tunk/comments.json` is tracked but config/cache stay local-only.
+3. **Remove session/MCP/daemon/broker code and agent-note ingestion.** Confirm reload/watch has a non-session path before pulling. Audit `useHunkSessionBridge` for hidden coupling (live comments, jump-to-location, note visibility, reload callbacks).
+4. **Simplify hunk navigation pipeline.** Port the simplified version from `/Users/amix/Desktop/GitHub/hunk-amix`. Notes depend on a stable "current hunk."
+5. **User comments CRUD** on the new file model. Keys:
+   - `n` adds a comment for the current hunk. **Open in a focused modal first** (inline TUI editing collides with global shortcuts; revisit inline polish later).
+   - `d` deletes the focused comment.
+   - `D` deletes **all comments at the current location** — i.e. all comments on the focused hunk, *or* all drifted comments if the drifted-comments stack is focused. Never a whole-file wipe.
+   - Drifted comments render in a stack at the top of the diff with a darker background. The same `d` / `D` keys dismiss them — so cleaning up after a refactor is just "select drifted, hit `D`". Exact-match + pinned only; no fuzzy matching.
+6. **`e` opens current file at current line** via `$VISUAL`/`$EDITOR` with flag conventions for nvim, vim, code, cursor, zed, subl. Suspend tunk for terminal editors; spawn detached for GUI editors.
+7. **`J` / `K` for hunk navigation** (replace `[` / `]`). `gg` top, `Shift-G` bottom.
+8. **Layout polish**: drop residual top margin from the removed menu; subtle "Press ? for help" hint on the otherwise-idle status line.
+9. **Selection auto-copy** — last, and reconsider. Fights native terminal selection on most terminals; platform-sensitive. May be the wrong feature.
 
 ## Rethinks (locked in from review)
 
