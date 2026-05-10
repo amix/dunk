@@ -153,6 +153,7 @@ export function DiffPane({
   onOpenAgentNotesAtHunk,
   onScrollCodeHorizontally = () => {},
   onSelectFile,
+  onSelectHunk,
 }: {
   codeHorizontalOffset?: number;
   diffContentWidth: number;
@@ -180,6 +181,7 @@ export function DiffPane({
   onOpenAgentNotesAtHunk: (fileId: string, hunkIndex: number) => void;
   onScrollCodeHorizontally?: (delta: number) => void;
   onSelectFile: (fileId: string) => void;
+  onSelectHunk?: (fileId: string, hunkIndex: number) => void;
 }) {
   const renderer = useRenderer();
   const mouseWheelScrollAcceleration = useMemo(
@@ -1137,6 +1139,11 @@ export function DiffPane({
                         onOpenAgentNotesAtHunk(file.id, hunkIndex)
                       }
                       onSelect={() => onSelectFile(file.id)}
+                      onSelectHunk={
+                        onSelectHunk
+                          ? (hunkIndex) => onSelectHunk(file.id, hunkIndex)
+                          : undefined
+                      }
                     />
                   );
                 })}

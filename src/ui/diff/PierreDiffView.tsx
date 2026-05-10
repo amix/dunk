@@ -23,6 +23,7 @@ export function PierreDiffView({
   file,
   layout,
   onOpenAgentNotesAtHunk,
+  onSelectHunk,
   showLineNumbers = true,
   showHunkHeaders = true,
   wrapLines = false,
@@ -40,6 +41,7 @@ export function PierreDiffView({
   file: DiffFile | undefined;
   layout: Exclude<LayoutMode, "auto">;
   onOpenAgentNotesAtHunk?: (hunkIndex: number) => void;
+  onSelectHunk?: (hunkIndex: number) => void;
   showLineNumbers?: boolean;
   showHunkHeaders?: boolean;
   wrapLines?: boolean;
@@ -177,8 +179,17 @@ export function PierreDiffView({
           );
         }
 
+        const rowHunkIndex = plannedRow.row.hunkIndex;
+        const handleRowMouseUp =
+          onSelectHunk && rowHunkIndex >= 0 ? () => onSelectHunk(rowHunkIndex) : undefined;
+
         return (
-          <box key={plannedRow.key} id={rowId} style={{ width: "100%", flexDirection: "column" }}>
+          <box
+            key={plannedRow.key}
+            id={rowId}
+            style={{ width: "100%", flexDirection: "column" }}
+            onMouseUp={handleRowMouseUp}
+          >
             <DiffRowView
               row={plannedRow.row}
               width={width}

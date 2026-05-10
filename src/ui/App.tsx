@@ -875,6 +875,9 @@ export function App({
             scrollCodeHorizontally(delta * FAST_CODE_HORIZONTAL_SCROLL_COLUMNS);
           }}
           onSelectFile={jumpToFile}
+          onSelectHunk={(fileId, hunkIndex) =>
+            review.selectHunk(fileId, hunkIndex, { preserveViewport: true })
+          }
         />
       </box>
 
