@@ -37,8 +37,8 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # runtime output
 tmp
-.hunk/latest.json
-.hunk/config.toml
+.tunk/latest.json
+.tunk/config.toml
 .pi/
 autoresearch.jsonl
 autoresearch.ideas.md

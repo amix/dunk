@@ -148,7 +148,7 @@ export function resolveConfiguredCliInput(
   { cwd = process.cwd(), env = process.env }: ConfigResolutionOptions = {},
 ): HunkConfigResolution {
   const repoRoot = findRepoRoot(cwd);
-  const repoConfigPath = repoRoot ? join(repoRoot, ".hunk", "config.toml") : undefined;
+  const repoConfigPath = repoRoot ? join(repoRoot, ".tunk", "config.toml") : undefined;
   const userConfigPath = resolveGlobalConfigPath(env);
 
   let resolvedOptions: CommonOptions = {

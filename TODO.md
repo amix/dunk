@@ -35,7 +35,7 @@ When tunk surfaces review comments to an LLM (skill, JSON export, MCP-style brid
 ## Top risks to watch
 
 1. **Hidden session coupling.** `useHunkSessionBridge` in `App.tsx` owns live comments *and* reload callbacks; verify the local reload/watch path stands on its own before deletion.
-2. **Tracked `.hunk/` can leak.** Avoid storing snippets verbatim, usernames-by-default, timestamps with seconds, or local paths. Default to opt-in author and minimal deterministic fields.
+2. **Tracked `.tunk/comments.json` can leak.** Avoid storing snippets verbatim, usernames-by-default, timestamps with seconds, or local paths. Default to opt-in author and minimal deterministic fields.
 3. **Input-mode collisions.** Note editing, `gg`/`G`/`J`/`K`/`d`/`D`, filter focus, help, and quit all share one keyboard layer. Introduce an explicit "note editing" mode before binding destructive shortcuts.
 
 ## Process notes
