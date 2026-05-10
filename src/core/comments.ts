@@ -198,12 +198,51 @@ export function resolveComments(
       return { ...comment, state: "drifted", reason: "out-of-range" } as DriftedComment;
     }
 
-    if (computeAnchor(lines, comment.line) !== comment.anchor) {
-      return { ...comment, state: "drifted", reason: "anchor-mismatch" } as DriftedComment;
+    if (computeAnchor(lines, comment.line) === comment.anchor) {
+      return { ...comment, state: "anchored" } as AnchoredComment;
     }
 
-    return { ...comment, state: "anchored" } as AnchoredComment;
+    // Bounded fuzzy relocation: a small neighbor edit (whitespace, a comment
+    // change one row above) is enough to invalidate the anchor hash even
+    // though the targeted line is still right there. Walk a 20-line window
+    // around the recorded position; if exactly one nearby line hashes to
+    // the original anchor, re-pin to it instead of declaring drift.
+    const relocatedLine = relocateAnchor(lines, comment.line, comment.anchor);
+    if (relocatedLine !== null) {
+      return { ...comment, line: relocatedLine, state: "anchored" } as AnchoredComment;
+    }
+
+    return { ...comment, state: "drifted", reason: "anchor-mismatch" } as DriftedComment;
   });
+}
+
+/**
+ * Try to locate a unique line within ±RELOCATE_RADIUS of `originalLine` whose
+ * surrounding context hashes to the original anchor. Returns the matched line
+ * number or null if zero or more than one candidate matches.
+ *
+ * Keeping the match unique avoids re-pinning to the wrong copy when a file
+ * has near-duplicate lines (e.g., several `};` close-braces nearby).
+ */
+function relocateAnchor(lines: string[], originalLine: number, anchor: string): number | null {
+  const RELOCATE_RADIUS = 10;
+  const lo = Math.max(1, originalLine - RELOCATE_RADIUS);
+  const hi = Math.min(lines.length, originalLine + RELOCATE_RADIUS);
+
+  let matchedLine: number | null = null;
+  for (let candidate = lo; candidate <= hi; candidate += 1) {
+    if (candidate === originalLine) {
+      continue;
+    }
+    if (computeAnchor(lines, candidate) === anchor) {
+      if (matchedLine !== null) {
+        // Multiple matches — ambiguous, refuse to guess.
+        return null;
+      }
+      matchedLine = candidate;
+    }
+  }
+  return matchedLine;
 }
 
 /** Map an anchored comment to the inline annotation shape used by the renderer. */
