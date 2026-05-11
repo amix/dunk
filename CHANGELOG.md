@@ -8,6 +8,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.12.1] - 2026-05-11
+
+### Fixed
+
+- Prebuilt npm release pipeline. `scripts/build-prebuilt-artifact.ts` was still looking for the binary at the pre-rename path (`dist/dunkdiff`) while `scripts/build-bin.sh` writes to `dist/dunk`, so every release run since the rename failed at the host-build step and nothing reached npm. `npm i -g dunkdiff` now resolves once this version publishes.
+
 ## [0.12.0] - 2026-05-11
 
 First `dunkdiff` release after the hard-fork rename. Bundles the agent-facing CLI, on-disk comments model, startup perf work, and a polished comment UI.
@@ -39,5 +45,6 @@ First `dunkdiff` release after the hard-fork rename. Bundles the agent-facing CL
 - `--agent-context` CLI flag and the `AgentContext` sidecar JSON model.
 - Dead `AgentCard` floating-popover surface — the inline `CommentCard` has been the canonical surface for a while.
 
-[Unreleased]: https://github.com/amix/dunk/compare/v0.12.0...HEAD
+[Unreleased]: https://github.com/amix/dunk/compare/v0.12.1...HEAD
+[0.12.1]: https://github.com/amix/dunk/compare/v0.12.0...v0.12.1
 [0.12.0]: https://github.com/amix/dunk/releases/tag/v0.12.0
