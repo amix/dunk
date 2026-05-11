@@ -22,7 +22,6 @@ export function PierreDiffView({
   codeHorizontalOffset = 0,
   file,
   layout,
-  onOpenAgentNotesAtHunk,
   onSelectHunk,
   showLineNumbers = true,
   showHunkHeaders = true,
@@ -31,6 +30,7 @@ export function PierreDiffView({
   visibleAgentNotes = EMPTY_VISIBLE_AGENT_NOTES,
   width,
   selectedHunkIndex,
+  muteHunkSelectionHighlight = false,
   sectionGeometry,
   shouldLoadHighlight = true,
   scrollable = true,
@@ -40,7 +40,6 @@ export function PierreDiffView({
   codeHorizontalOffset?: number;
   file: DiffFile | undefined;
   layout: Exclude<LayoutMode, "auto">;
-  onOpenAgentNotesAtHunk?: (hunkIndex: number) => void;
   onSelectHunk?: (hunkIndex: number) => void;
   showLineNumbers?: boolean;
   showHunkHeaders?: boolean;
@@ -49,6 +48,8 @@ export function PierreDiffView({
   visibleAgentNotes?: VisibleAgentNote[];
   width: number;
   selectedHunkIndex: number;
+  /** Render rows without the selected-rail highlight while still using `selectedHunkIndex` for measurement. */
+  muteHunkSelectionHighlight?: boolean;
   sectionGeometry?: DiffSectionGeometry;
   shouldLoadHighlight?: boolean;
   scrollable?: boolean;
@@ -189,13 +190,14 @@ export function PierreDiffView({
               wrapLines={wrapLines}
               codeHorizontalOffset={codeHorizontalOffset}
               theme={theme}
-              selected={plannedRow.row.hunkIndex === selectedHunkIndex}
+              selected={
+                !muteHunkSelectionHighlight && plannedRow.row.hunkIndex === selectedHunkIndex
+              }
               annotated={
                 plannedRow.row.type === "hunk-header" &&
                 annotatedHunkIndices.has(plannedRow.row.hunkIndex)
               }
               anchorId={plannedRow.anchorId}
-              onOpenAgentNotesAtHunk={onOpenAgentNotesAtHunk}
             />
           </box>
         );

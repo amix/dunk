@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { parseDiffFromFile } from "@pierre/diffs";
 import type { KeyEvent } from "@opentui/core";
 import type { DiffFile } from "../../core/types";
-import { buildAgentPopoverContent, resolveAgentPopoverPlacement, wrapText } from "./agentPopover";
+import { wrapText } from "./agentPopover";
 import {
   isEscapeKey,
   isHalfPageDownKey,
@@ -104,47 +104,9 @@ describe("ui helpers", () => {
     expect(padText("hello", 4, ".")).toBe("hel.");
   });
 
-  test("agent popover helpers wrap text and right-align the card within the viewport", () => {
+  test("wrapText soft-wraps prose and breaks long tokens", () => {
     expect(wrapText("alpha beta gamma", 8)).toEqual(["alpha", "beta", "gamma"]);
     expect(wrapText("supercalifragilistic", 6)).toEqual(["superc", "alifra", "gilist", "ic"]);
-
-    const content = buildAgentPopoverContent({
-      summary: "Guard missing socket path",
-      rationale: "Prevents noisy reconnect errors during first launch.",
-      locationLabel: "startup.ts +43-44",
-      noteIndex: 0,
-      noteCount: 2,
-      width: 34,
-    });
-
-    expect(content.title).toBe("Comment 1/2");
-    expect(content.summaryLines.length).toBeGreaterThan(0);
-    expect(content.rationaleLines.length).toBeGreaterThan(0);
-    expect(content.height).toBe(9);
-
-    expect(
-      resolveAgentPopoverPlacement({
-        anchorColumn: 12,
-        anchorRowTop: 4,
-        anchorRowHeight: 1,
-        contentHeight: 20,
-        noteWidth: 18,
-        noteHeight: 7,
-        viewportWidth: 60,
-      }),
-    ).toMatchObject({ left: 42, top: 4, side: "right" });
-
-    expect(
-      resolveAgentPopoverPlacement({
-        anchorColumn: 48,
-        anchorRowTop: 16,
-        anchorRowHeight: 1,
-        contentHeight: 20,
-        noteWidth: 18,
-        noteHeight: 7,
-        viewportWidth: 60,
-      }),
-    ).toMatchObject({ left: 42, top: 13, side: "left" });
   });
 
   test("resizeSidebarWidth clamps drag updates into the allowed sidebar range", () => {

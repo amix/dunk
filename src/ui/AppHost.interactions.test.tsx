@@ -846,13 +846,15 @@ describe("App interactions", () => {
       await flush(setup);
 
       const frame = setup.captureCharFrame();
-      expect(frame).toContain("Comment");
+      expect(frame).toContain("Annotation");
       expect(frame).toContain("Annotation for prefs.ts");
       expect(frame).toContain("Why prefs.ts changed");
       expect(frame).not.toContain("@@ -1,1 +1,2 @@");
       expect(frame).not.toContain("1 - export const message");
       // Notes anchor at the hunk bottom now, so the card sits below the last hunk row.
-      expect(frame.indexOf("Comment")).toBeGreaterThan(frame.indexOf("export const added = true;"));
+      expect(frame.indexOf("Annotation")).toBeGreaterThan(
+        frame.indexOf("export const added = true;"),
+      );
     } finally {
       await act(async () => {
         setup.renderer.destroy();

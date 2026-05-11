@@ -13,7 +13,6 @@ const { AppHost } = await import("../AppHost");
 const { buildSidebarEntries } = await import("../lib/files");
 const { HelpDialog } = await import("./chrome/HelpDialog");
 const { SidebarPane } = await import("./panes/SidebarPane");
-const { AgentCard } = await import("./panes/AgentCard");
 const { CommentCard } = await import("./panes/CommentCard");
 const { DiffPane } = await import("./panes/DiffPane");
 const { StatusBar } = await import("./chrome/StatusBar");
@@ -212,7 +211,6 @@ function createDiffPaneProps(
     wrapToggleScrollTop: null,
     theme,
     width: 76,
-    onOpenAgentNotesAtHunk: () => {},
     onSelectFile: () => {},
     ...overrides,
   };
@@ -468,7 +466,6 @@ describe("UI components", () => {
         wrapToggleScrollTop={null}
         theme={theme}
         width={76}
-        onOpenAgentNotesAtHunk={() => {}}
         onSelectFile={() => {}}
       />,
       80,
@@ -479,7 +476,8 @@ describe("UI components", () => {
     expect(frame).toContain("beta.ts");
     expect(frame).toContain("@@ -1,1 +1,2 @@");
     expect(frame).toContain("@@ -1,1 +1,1 @@");
-    expect(frame).toContain("[Comment]");
+    // The inline card under alpha.ts's hunk is the canonical comment surface.
+    expect(frame).toContain("Annotation for alpha.ts");
     expect(frame.indexOf("alpha.ts")).toBeLessThan(frame.indexOf("beta.ts"));
   });
 
@@ -1123,38 +1121,12 @@ describe("UI components", () => {
     }
   });
 
-  test("AgentCard removes top and bottom padding while keeping the footer inside the frame", async () => {
-    const theme = resolveTheme("midnight", null);
-    const frame = await captureFrame(
-      <AgentCard
-        locationLabel="alpha.ts +2"
-        rationale="Why alpha.ts changed"
-        summary="Annotation for alpha.ts"
-        theme={theme}
-        width={34}
-        onClose={() => {}}
-      />,
-      40,
-      12,
-    );
-
-    const lines = frame
-      .split("\n")
-      .slice(0, 8)
-      .map((line) => line.trimEnd());
-    expect(lines[0]).toBe("┌────────────────────────────────┐");
-    expect(lines[1]).toContain("Comment");
-    expect(lines[2]).toContain("Annotation for alpha.ts");
-    expect(lines[4]).toContain("Why alpha.ts changed");
-    expect(lines[6]).toContain("alpha.ts +2");
-    expect(lines[7]).toBe("└────────────────────────────────┘");
-  });
-
-  test("CommentCard renders title, body, and close affordance with a left accent bar", async () => {
+  test("CommentCard renders #id metadata, body, and close affordance with a left accent bar", async () => {
     const theme = resolveTheme("midnight", null);
     const frame = await captureFrame(
       <CommentCard
         annotation={{
+          id: "dunk-comment:42",
           summary: "Summary line",
           rationale: "Rationale line.",
         }}
@@ -1167,9 +1139,9 @@ describe("UI components", () => {
     );
 
     const lines = frame.split("\n");
-    // First three rows: title (with accent + [x]), summary, rationale.
+    // First three rows: muted `#42` metadata (with accent bar + close affordance), then body lines.
     expect(lines[0]).toContain("▎");
-    expect(lines[0]).toContain("Comment");
+    expect(lines[0]).toContain("#42");
     expect(lines[0]).toContain("[x]");
     expect(lines[1]).toContain("Summary line");
     expect(lines[2]).toContain("Rationale line.");
@@ -1203,20 +1175,21 @@ describe("UI components", () => {
         wrapToggleScrollTop={null}
         theme={theme}
         width={92}
-        onOpenAgentNotesAtHunk={() => {}}
         onSelectFile={() => {}}
       />,
       96,
       28,
     );
 
-    expect(frame).toContain("Comment");
     expect(frame).toContain("Annotation for alpha.ts");
     expect(frame).toContain("Why alpha.ts changed");
-    expect(frame.indexOf("Comment")).toBeLessThan(frame.indexOf("2 + export const add = true;"));
-    expect(frame).toContain("Comment");
     expect(frame).toContain("Annotation for beta.ts");
     expect(frame).toContain("Why beta.ts changed");
+    // Inline cards render *below* their hunk, so the comment body should
+    // appear after the last hunk line in the frame string.
+    expect(frame.indexOf("Annotation for alpha.ts")).toBeGreaterThan(
+      frame.indexOf("2 + export const add = true;"),
+    );
     expect(frame).not.toContain("alpha.ts note");
     expect(frame).not.toContain("review");
     expect(frame).not.toContain("confidence");
@@ -1242,7 +1215,6 @@ describe("UI components", () => {
         wrapToggleScrollTop={null}
         theme={theme}
         width={92}
-        onOpenAgentNotesAtHunk={() => {}}
         onSelectFile={() => {}}
       />,
       96,
@@ -1250,15 +1222,16 @@ describe("UI components", () => {
     );
 
     const lines = frame.split("\n");
-    // The note card sits at the hunk bottom. The "[Comment]" badge appears
-    // ON the changed row; the Comment *title* row appears AFTER the last
-    // hunk row, alongside an accent bar.
+    // The card sits at the hunk bottom. The first card row after the last hunk
+    // row carries the `▎` accent bar, and the body rows below it carry the
+    // summary and rationale prose.
     const lastHunkRowIndex = lines.findIndex((line) => line.includes("export const add = true;"));
-    const noteTitleIndex = lines.findIndex(
-      (line, idx) => idx > lastHunkRowIndex && line.includes("▎") && line.includes("Comment"),
+    const accentBarIndex = lines.findIndex(
+      (line, idx) => idx > lastHunkRowIndex && line.includes("▎"),
     );
     expect(lastHunkRowIndex).toBeGreaterThanOrEqual(0);
-    expect(noteTitleIndex).toBeGreaterThan(lastHunkRowIndex);
+    expect(accentBarIndex).toBeGreaterThan(lastHunkRowIndex);
+    expect(frame).toContain("Annotation for alpha.ts");
 
     // The hunk's two changed rows still render at the same column.
     const changedLine = lines.find((line) => line.includes("export const alpha = 2;"));
@@ -1300,17 +1273,21 @@ describe("UI components", () => {
         wrapToggleScrollTop={null}
         theme={theme}
         width={92}
-        onOpenAgentNotesAtHunk={() => {}}
         onSelectFile={() => {}}
       />,
       96,
       24,
     );
 
-    expect(frame).toContain("Comment 1/2");
-    expect(frame).toContain("Comment 2/2");
     expect(frame).toContain("First rationale.");
     expect(frame).toContain("Second rationale.");
+    // Two distinct cards mean at least two accent-barred rows below the hunk.
+    const lines = frame.split("\n");
+    const lastHunkRowIndex = lines.findIndex((line) => line.includes("export const alpha = 2;"));
+    const accentRowsBelowHunk = lines
+      .slice(lastHunkRowIndex + 1)
+      .filter((line) => line.includes("▎")).length;
+    expect(accentRowsBelowHunk).toBeGreaterThanOrEqual(2);
   });
 
   test("StatusBar renders filter mode affordance", async () => {
@@ -1421,7 +1398,7 @@ describe("UI components", () => {
       "a               add comment on this hunk",
       "{ / }           previous / next comment",
       "d               delete one comment on this hunk",
-      "D               delete all comments in this diff (confir",
+      "D               clear all drifted comments (confirm)",
       "e               open this file in $EDITOR at the hunk",
       "Review",
       "/               focus file filter",
@@ -1499,7 +1476,6 @@ describe("UI components", () => {
         wrapToggleScrollTop={null}
         theme={theme}
         width={76}
-        onOpenAgentNotesAtHunk={() => {}}
         onSelectFile={() => {}}
       />,
       80,
@@ -1529,7 +1505,6 @@ describe("UI components", () => {
         wrapToggleScrollTop={null}
         theme={theme}
         width={76}
-        onOpenAgentNotesAtHunk={() => {}}
         onSelectFile={() => {}}
       />,
       80,
@@ -1562,7 +1537,6 @@ describe("UI components", () => {
         wrapToggleScrollTop={null}
         theme={theme}
         width={52}
-        onOpenAgentNotesAtHunk={() => {}}
         onSelectFile={() => {}}
       />,
       56,
@@ -1595,7 +1569,6 @@ describe("UI components", () => {
         wrapToggleScrollTop={null}
         theme={theme}
         width={76}
-        onOpenAgentNotesAtHunk={() => {}}
         onSelectFile={() => {}}
       />,
       80,
@@ -1748,12 +1721,13 @@ describe("UI components", () => {
     );
 
     expect(frame).not.toContain("@@ -1,1 +1,2 @@");
-    expect(frame).toContain("Comment");
     expect(frame).toContain("Falls back to the first visible");
     expect(frame).toContain("row.");
     // Range-less notes now anchor at the hunk bottom too, so the card sits
     // after the last hunk row rather than above the first one.
-    expect(frame.indexOf("Comment")).toBeGreaterThan(frame.indexOf("1 - export const value = 1;"));
+    expect(frame.indexOf("Falls back")).toBeGreaterThan(
+      frame.indexOf("1 - export const value = 1;"),
+    );
   });
 
   test("PierreDiffView shows contextual messages when there is no selected file or no textual hunks", async () => {
@@ -2027,7 +2001,9 @@ describe("UI components", () => {
     expect(frame).toContain("beta.ts");
     expect(frame).toContain("@@ -1,1 +1,2 @@");
     expect(frame).toContain("@@ -1,1 +1,1 @@");
-    expect(frame).toContain("[Comment]");
+    // The single bootstrap annotation renders as an inline comment card with
+    // its rationale visible beneath the alpha.ts hunk.
+    expect(frame).toContain("Annotation for alpha.ts");
     expect(frame).not.toContain("Changeset summary");
   });
 });

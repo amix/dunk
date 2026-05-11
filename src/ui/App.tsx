@@ -9,10 +9,8 @@ import {
   commentsForHunkRange,
   computeAnchorForFile,
   mutateCommentsFile,
-  readCommentsFile as readCommentsFileFromRepo,
   withAddedComment,
   withRemovedComment,
-  withRemovedCommentsForFiles,
   type CommentsFile,
   type PersistedComment,
 } from "../core/comments";
@@ -447,14 +445,6 @@ export function App({
     setShowHunkHeaders((current) => !current);
   };
 
-  /** Jump to an annotated hunk without changing the global note visibility toggle. */
-  const openAgentNotesAtHunk = useCallback(
-    (fileId: string, hunkIndex: number) => {
-      review.selectHunk(fileId, hunkIndex);
-    },
-    [review.selectHunk],
-  );
-
   const canRefreshCurrentInput = canReloadInput(bootstrap.input);
   const watchEnabled = Boolean(bootstrap.input.options.watch && canRefreshCurrentInput);
 
@@ -593,64 +583,53 @@ export function App({
     triggerRefreshCurrentInput,
   ]);
 
-  /** Delete every comment whose file appears in the current diff, after a Y/N confirm. */
-  const deleteAllVisibleComments = useCallback(() => {
+  /**
+   * Delete every comment currently surfaced in the drift banner, after a
+   * confirm. Anchored comments are intentional review items — they're not
+   * what users want to mass-clear. The pile that actually accumulates and
+   * needs sweeping is drift: comments whose anchor stopped matching the
+   * diff. `D` is the one-keystroke way to clean that pile.
+   */
+  const deleteAllDriftedComments = useCallback(() => {
     if (!repoRoot) {
       return;
     }
 
-    const visiblePaths = new Set<string>();
-    for (const file of bootstrap.changeset.files) {
-      visiblePaths.add(file.path);
-      if (file.previousPath) {
-        visiblePaths.add(file.previousPath);
-      }
-    }
-
-    let pendingCount = 0;
-    try {
-      const current = readCommentsFileFromRepo(repoRoot);
-      pendingCount = current.comments.filter((comment) => visiblePaths.has(comment.file)).length;
-    } catch {
-      pendingCount = 0;
-    }
-
-    if (pendingCount === 0) {
-      flashStatus("no comments in this diff");
+    const driftedIds = (bootstrap.driftedComments ?? []).map((entry) => entry.id);
+    if (driftedIds.length === 0) {
+      flashStatus("no drifted comments to clear");
       return;
     }
 
     setConfirmPrompt({
-      title: "Delete all comments",
-      message: `Delete all ${pendingCount} comment${pendingCount === 1 ? "" : "s"} in this diff?`,
+      title: "Clear drifted comments",
+      message: `Delete ${driftedIds.length} drifted comment${driftedIds.length === 1 ? "" : "s"}?`,
       onConfirm: () => {
         setConfirmPrompt(null);
-        // Rebuild path set at confirm time so a file-watcher reload while the dialog is
-        // open does not leave the operation targeting a stale changeset.
-        const finalPaths = new Set<string>();
-        for (const file of bootstrap.changeset.files) {
-          finalPaths.add(file.path);
-          if (file.previousPath) {
-            finalPaths.add(file.previousPath);
-          }
-        }
-
-        try {
-          mutateCommentsFile(repoRoot, (current) =>
-            withRemovedCommentsForFiles(current, finalPaths),
-          );
-        } catch (error) {
-          console.error("Failed to delete comments in the current diff.", error);
+        // Re-read the drift ids at confirm time so a watch reload during the
+        // dialog can't leave us targeting a stale set. Anchored comments that
+        // share an id with a since-resolved drift entry are untouched because
+        // ids are stable per .dunk/comments.json entry.
+        const finalIds = new Set((bootstrap.driftedComments ?? []).map((entry) => entry.id));
+        if (finalIds.size === 0) {
           return;
         }
 
-        // Clearing every comment in the current diff also empties the drifted
-        // banner — drop the focus so J/K resumes inside the review stream.
+        try {
+          mutateCommentsFile(repoRoot, (current) => ({
+            ...current,
+            comments: current.comments.filter((comment) => !finalIds.has(comment.id)),
+          }));
+        } catch (error) {
+          console.error("Failed to delete drifted comments.", error);
+          return;
+        }
+
         setSelectedDriftIndex(null);
         triggerRefreshCurrentInput();
       },
     });
-  }, [bootstrap.changeset.files, flashStatus, repoRoot, triggerRefreshCurrentInput]);
+  }, [bootstrap.driftedComments, flashStatus, repoRoot, triggerRefreshCurrentInput]);
 
   /** Open the comment-authoring modal for the bottom line of the focused hunk. */
   const openCommentEditor = useCallback(() => {
@@ -1004,7 +983,7 @@ export function App({
     commentEditorActive: Boolean(commentEditorTarget),
     confirmActive: Boolean(confirmPrompt),
     cycleTheme,
-    deleteAllVisibleComments,
+    deleteAllDriftedComments,
     deleteFocusedComment,
     focusArea,
     focusFilter,
@@ -1092,6 +1071,7 @@ export function App({
           selectedIndex={selectedDriftIndex}
           terminalWidth={terminal.width}
           theme={activeTheme}
+          onSelect={setSelectedDriftIndex}
         />
       ) : null}
 
@@ -1150,9 +1130,13 @@ export function App({
           layout={resolvedLayout}
           scrollRef={diffScrollRef}
           selectedFileId={selectedFile?.id}
+          selectedHunkIndex={selectedHunkIndex}
           // Mute the in-pane hunk-selected rail when drift focus owns
-          // navigation so the user only sees one selection at a time.
-          selectedHunkIndex={selectedDriftIndex !== null ? -1 : selectedHunkIndex}
+          // navigation so the user only sees one selection at a time. The
+          // underlying index stays accurate so the reveal effect does not
+          // re-fire (and visibly snap) when drift focus releases back to
+          // the hunk.
+          muteHunkSelectionHighlight={selectedDriftIndex !== null}
           scrollToNote={review.scrollToNote}
           separatorWidth={diffSeparatorWidth}
           showLineNumbers={showLineNumbers}
@@ -1165,7 +1149,6 @@ export function App({
           selectedHunkRevealRequestId={review.selectedHunkRevealRequestId}
           theme={activeTheme}
           width={diffPaneWidth}
-          onOpenAgentNotesAtHunk={openAgentNotesAtHunk}
           onScrollCodeHorizontally={(delta) => {
             scrollCodeHorizontally(delta * FAST_CODE_HORIZONTAL_SCROLL_COLUMNS);
           }}

@@ -35,7 +35,7 @@ export function HelpDialog({
         ["a", "add comment on this hunk"],
         ["{ / }", "previous / next comment"],
         ["d", "delete one comment on this hunk"],
-        ["D", "delete all comments in this diff (confirm)"],
+        ["D", "clear all drifted comments (confirm)"],
         ["e", "open this file in $EDITOR at the hunk"],
       ],
     },

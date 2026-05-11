@@ -24,7 +24,7 @@ export interface UseAppKeyboardShortcutsOptions {
   commentEditorActive: boolean;
   confirmActive: boolean;
   cycleTheme: () => void;
-  deleteAllVisibleComments: () => void;
+  deleteAllDriftedComments: () => void;
   deleteFocusedComment: () => void;
   focusArea: FocusArea;
   focusFilter: () => void;
@@ -56,7 +56,7 @@ export function useAppKeyboardShortcuts({
   commentEditorActive,
   confirmActive,
   cycleTheme,
-  deleteAllVisibleComments,
+  deleteAllDriftedComments,
   deleteFocusedComment,
   focusArea,
   focusFilter,
@@ -344,7 +344,7 @@ export function useAppKeyboardShortcuts({
     }
 
     if (key.sequence === "D") {
-      deleteAllVisibleComments();
+      deleteAllDriftedComments();
       return;
     }
 

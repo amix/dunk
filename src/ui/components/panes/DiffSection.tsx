@@ -16,6 +16,7 @@ interface DiffSectionProps {
   headerStatsWidth: number;
   layout: Exclude<LayoutMode, "auto">;
   selectedHunkIndex: number;
+  muteHunkSelectionHighlight?: boolean;
   shouldLoadHighlight: boolean;
   sectionGeometry?: DiffSectionGeometry;
   separatorWidth: number;
@@ -28,7 +29,6 @@ interface DiffSectionProps {
   visibleAgentNotes: VisibleAgentNote[];
   visibleBodyBounds?: VisibleBodyBounds;
   viewWidth: number;
-  onOpenAgentNotesAtHunk: (hunkIndex: number) => void;
   onSelect: () => void;
   onSelectHunk?: (hunkIndex: number) => void;
 }
@@ -41,6 +41,7 @@ function DiffSectionComponent({
   headerStatsWidth,
   layout,
   selectedHunkIndex,
+  muteHunkSelectionHighlight = false,
   shouldLoadHighlight,
   sectionGeometry,
   separatorWidth,
@@ -53,7 +54,6 @@ function DiffSectionComponent({
   visibleAgentNotes,
   visibleBodyBounds,
   viewWidth,
-  onOpenAgentNotesAtHunk,
   onSelect,
   onSelectHunk,
 }: DiffSectionProps) {
@@ -104,9 +104,9 @@ function DiffSectionComponent({
         width={viewWidth}
         annotatedHunkIndices={annotatedHunkIndices}
         visibleAgentNotes={visibleAgentNotes}
-        onOpenAgentNotesAtHunk={onOpenAgentNotesAtHunk}
         onSelectHunk={onSelectHunk}
         selectedHunkIndex={selectedHunkIndex}
+        muteHunkSelectionHighlight={muteHunkSelectionHighlight}
         sectionGeometry={sectionGeometry}
         shouldLoadHighlight={shouldLoadHighlight}
         // The parent review stream owns scrolling across files.
@@ -127,6 +127,7 @@ export const DiffSection = memo(DiffSectionComponent, (previous, next) => {
     previous.headerStatsWidth === next.headerStatsWidth &&
     previous.layout === next.layout &&
     previous.selectedHunkIndex === next.selectedHunkIndex &&
+    previous.muteHunkSelectionHighlight === next.muteHunkSelectionHighlight &&
     previous.shouldLoadHighlight === next.shouldLoadHighlight &&
     previous.sectionGeometry === next.sectionGeometry &&
     previous.separatorWidth === next.separatorWidth &&

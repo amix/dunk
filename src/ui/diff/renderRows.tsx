@@ -554,51 +554,25 @@ export function diffMessage(file: DiffFile) {
   return "No textual hunks to render for this file.";
 }
 
-/** Render collapsed and hunk-header rows, including the optional AI badge target. */
+/**
+ * Render collapsed and hunk-header rows.
+ *
+ * Hunks that carry one or more comments used to render a `[Comment]` badge
+ * on the right side of the header. The card rendered beneath the hunk is
+ * the canonical comment surface, so the badge was a redundant third
+ * representation — dropped here for visual consistency.
+ */
 function renderHeaderRow(
   row: Extract<DiffRow, { type: "collapsed" | "hunk-header" }>,
   width: number,
   theme: AppTheme,
   selected: boolean,
-  annotated: boolean,
   anchorId?: string,
-  onOpenAgentNotesAtHunk?: (hunkIndex: number) => void,
 ) {
-  const badgeText = annotated ? "[Comment]" : "";
-  const badgeWidth = annotated ? badgeText.length + 1 : 0;
   const label =
     row.type === "collapsed"
-      ? fitText(`··· ${row.text} ···`, Math.max(0, width - 1 - badgeWidth))
-      : fitText(row.text, Math.max(0, width - 1 - badgeWidth));
-
-  if (!annotated) {
-    return (
-      <box
-        key={row.key}
-        id={anchorId}
-        style={{
-          width: "100%",
-          height: 1,
-          backgroundColor: theme.panelAlt,
-        }}
-      >
-        <text>
-          <span
-            fg={selected ? neutralRailColor(theme) : dimRailColor(neutralRailColor(theme), theme)}
-            bg={theme.panelAlt}
-          >
-            {marker()}
-          </span>
-          <span
-            fg={row.type === "collapsed" ? theme.muted : theme.badgeNeutral}
-            bg={theme.panelAlt}
-          >
-            {label}
-          </span>
-        </text>
-      </box>
-    );
-  }
+      ? fitText(`··· ${row.text} ···`, Math.max(0, width - 1))
+      : fitText(row.text, Math.max(0, width - 1));
 
   return (
     <box
@@ -607,32 +581,20 @@ function renderHeaderRow(
       style={{
         width: "100%",
         height: 1,
-        flexDirection: "row",
         backgroundColor: theme.panelAlt,
       }}
     >
-      <box style={{ width: Math.max(0, width - badgeWidth), height: 1 }}>
-        <text>
-          <span
-            fg={selected ? neutralRailColor(theme) : dimRailColor(neutralRailColor(theme), theme)}
-            bg={theme.panelAlt}
-          >
-            {marker()}
-          </span>
-          <span
-            fg={row.type === "collapsed" ? theme.muted : theme.badgeNeutral}
-            bg={theme.panelAlt}
-          >
-            {label}
-          </span>
-        </text>
-      </box>
-      <box
-        style={{ width: badgeWidth, height: 1 }}
-        onMouseUp={() => onOpenAgentNotesAtHunk?.(row.hunkIndex)}
-      >
-        <text fg={theme.noteTitleText} bg={theme.noteTitleBackground}>{` ${badgeText}`}</text>
-      </box>
+      <text>
+        <span
+          fg={selected ? neutralRailColor(theme) : dimRailColor(neutralRailColor(theme), theme)}
+          bg={theme.panelAlt}
+        >
+          {marker()}
+        </span>
+        <span fg={row.type === "collapsed" ? theme.muted : theme.badgeNeutral} bg={theme.panelAlt}>
+          {label}
+        </span>
+      </text>
     </box>
   );
 }
@@ -715,24 +677,13 @@ function renderRow(
   annotated: boolean,
   anchorId?: string,
   noteGuideSide?: "old" | "new",
-  onOpenAgentNotesAtHunk?: (hunkIndex: number) => void,
 ) {
   let baseRow: ReactNode;
 
   if (row.type === "collapsed") {
-    baseRow = renderHeaderRow(
-      row,
-      width,
-      theme,
-      selected,
-      annotated,
-      anchorId,
-      onOpenAgentNotesAtHunk,
-    );
+    baseRow = renderHeaderRow(row, width, theme, selected, anchorId);
   } else if (row.type === "hunk-header") {
-    baseRow = showHunkHeaders
-      ? renderHeaderRow(row, width, theme, selected, annotated, anchorId, onOpenAgentNotesAtHunk)
-      : null;
+    baseRow = showHunkHeaders ? renderHeaderRow(row, width, theme, selected, anchorId) : null;
   } else if (row.type === "split-line") {
     const guideOnOldSide = noteGuideSide === "old";
     const guideOnNewSide = noteGuideSide === "new";
@@ -947,7 +898,6 @@ interface DiffRowViewProps {
   annotated: boolean;
   anchorId?: string;
   noteGuideSide?: "old" | "new";
-  onOpenAgentNotesAtHunk?: (hunkIndex: number) => void;
 }
 
 /** Render one diff row, memoized to avoid unnecessary rerenders. */
@@ -965,7 +915,6 @@ export const DiffRowView = memo(
     annotated,
     anchorId,
     noteGuideSide,
-    onOpenAgentNotesAtHunk,
   }: DiffRowViewProps) {
     return renderRow(
       row,
@@ -980,7 +929,6 @@ export const DiffRowView = memo(
       annotated,
       anchorId,
       noteGuideSide,
-      onOpenAgentNotesAtHunk,
     );
   },
   (previous, next) => {

@@ -75,7 +75,7 @@ git diff --no-color | dunk patch - # review a patch from stdin
 
 5. Handle drifted comments.
 
-   If a file changes too much for an anchor to be matched, `dunk` shows the comment as **drifted** at the top of the diff. Press `d` to clear a drifted comment or `D` to delete all.
+   If a file changes too much for an anchor to be matched, `dunk` shows the comment as **drifted** at the top of the diff. Press `d` to clear the focused drifted comment or `D` to clear all drifted comments (anchored review comments are never touched).
 
 A sample agent skill lives at `skills/dunk-review/SKILL.md`. You can also find it with:
 

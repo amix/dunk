@@ -134,6 +134,7 @@ export function DiffPane({
   scrollRef,
   selectedFileId,
   selectedHunkIndex,
+  muteHunkSelectionHighlight = false,
   scrollToNote = false,
   separatorWidth,
   pagerMode = false,
@@ -147,7 +148,6 @@ export function DiffPane({
   selectedHunkRevealRequestId,
   theme,
   width,
-  onOpenAgentNotesAtHunk,
   onScrollCodeHorizontally = () => {},
   onSelectFile,
   onSelectHunk,
@@ -161,6 +161,14 @@ export function DiffPane({
   scrollRef: RefObject<ScrollBoxRenderable | null>;
   selectedFileId?: string;
   selectedHunkIndex: number;
+  /**
+   * When `true`, the visual hunk-selection rail is suppressed even though
+   * `selectedHunkIndex` still points at a real hunk. Used while drift focus
+   * owns the user's selection so the in-pane highlight doesn't compete with
+   * the focused drift card. Reveal math keeps using the real index, so
+   * leaving drift focus does not snap-scroll the diff.
+   */
+  muteHunkSelectionHighlight?: boolean;
   scrollToNote?: boolean;
   separatorWidth: number;
   pagerMode?: boolean;
@@ -174,7 +182,6 @@ export function DiffPane({
   selectedHunkRevealRequestId?: number;
   theme: AppTheme;
   width: number;
-  onOpenAgentNotesAtHunk: (fileId: string, hunkIndex: number) => void;
   onScrollCodeHorizontally?: (delta: number) => void;
   onSelectFile: (fileId: string) => void;
   onSelectHunk?: (
@@ -1263,6 +1270,7 @@ export function DiffPane({
                       headerStatsWidth={headerStatsWidth}
                       layout={layout}
                       selectedHunkIndex={file.id === selectedFileId ? selectedHunkIndex : -1}
+                      muteHunkSelectionHighlight={muteHunkSelectionHighlight}
                       shouldLoadHighlight={highlightPrefetchFileIds.has(file.id)}
                       sectionGeometry={sectionGeometry[index]}
                       separatorWidth={separatorWidth}
@@ -1277,9 +1285,6 @@ export function DiffPane({
                         visibleAgentNotesByFile.get(file.id) ?? EMPTY_VISIBLE_AGENT_NOTES
                       }
                       visibleBodyBounds={visibleBodyBoundsByFile.get(file.id)}
-                      onOpenAgentNotesAtHunk={(hunkIndex) =>
-                        onOpenAgentNotesAtHunk(file.id, hunkIndex)
-                      }
                       onSelect={() => onSelectFile(file.id)}
                       onSelectHunk={
                         onSelectHunk ? (hunkIndex) => onSelectHunk(file.id, hunkIndex) : undefined

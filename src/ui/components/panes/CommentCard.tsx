@@ -9,12 +9,36 @@ import type { AppTheme } from "../../themes";
  * comments that no longer match the rendered hunks; the visual surface is the
  * same so the user sees one primitive everywhere.
  *
- * A single colored bar in the gutter signals "this is a comment", the title
- * sits flush with that bar, and the body wraps underneath.
+ * The card is body-first: a quiet `#id` (and a "1 of N" tail when the hunk
+ * has multiple comments) sits as muted metadata above the prose, so the
+ * comment text itself carries the visual weight. The left `▎` bar runs the
+ * full height of the card so wrapped prose reads as one object.
  */
 
-function commentCardTitle(commentIndex: number, commentCount: number) {
-  return commentCount > 1 ? `Comment ${commentIndex + 1}/${commentCount}` : "Comment";
+/** Parse `dunk-comment:42` style ids back into their numeric handle, if shaped that way. */
+function parseCommentId(annotationId: string | undefined): number | null {
+  if (!annotationId?.startsWith("dunk-comment:")) {
+    return null;
+  }
+  const parsed = Number.parseInt(annotationId.slice("dunk-comment:".length), 10);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+/**
+ * Build the muted metadata header for one card: `#id · 1 of N` when a hunk
+ * has multiple comments, just `#id` when single, or "" when the annotation
+ * has no parseable id (defensive — never observed in practice).
+ */
+function buildMetadataLabel(
+  annotationId: string | undefined,
+  commentIndex: number,
+  commentCount: number,
+) {
+  const id = parseCommentId(annotationId);
+  if (id === null) {
+    return "";
+  }
+  return commentCount > 1 ? `#${id} · ${commentIndex + 1} of ${commentCount}` : `#${id}`;
 }
 
 const ACCENT_BAR_WIDTH = 1;
@@ -78,38 +102,52 @@ export function CommentCard({
   width: number;
 }) {
   const { bodyWidth, lines } = buildBodyLines(annotation, width);
-  const titleText = commentCardTitle(commentIndex, commentCount);
+  const metadataLabel = buildMetadataLabel(annotation.id, commentIndex, commentCount);
   const closeText = onClose ? "[x]" : "";
-  const titleWidth = Math.max(1, bodyWidth - (closeText ? closeText.length + 1 : 0));
+  const metadataWidth = Math.max(1, bodyWidth - (closeText ? closeText.length + 1 : 0));
 
   return (
-    <box style={{ width: "100%", flexDirection: "column", backgroundColor: theme.panel }}>
+    <box style={{ width: "100%", flexDirection: "column", backgroundColor: theme.noteBackground }}>
+      {/* Metadata row is always rendered so planning geometry can predict the card
+          height without knowing whether an id is present. When there is nothing
+          to show in the row it stays as a blank `▎` band, giving the card a
+          consistent top edge. */}
       <CommentRow theme={theme} width={width}>
-        <box style={{ width: titleWidth, height: 1, backgroundColor: theme.panel }}>
-          <text fg={theme.accent} bg={theme.panel}>
-            {padText(titleText, titleWidth)}
+        <box style={{ width: metadataWidth, height: 1, backgroundColor: theme.noteBackground }}>
+          <text fg={theme.muted} bg={theme.noteBackground}>
+            {padText(metadataLabel, metadataWidth)}
           </text>
         </box>
         {closeText ? (
           <box
             onMouseUp={onClose}
-            style={{ width: closeText.length + 1, height: 1, backgroundColor: theme.panel }}
+            style={{
+              width: closeText.length + 1,
+              height: 1,
+              backgroundColor: theme.noteBackground,
+            }}
           >
-            <text fg={theme.muted} bg={theme.panel}>{` ${closeText}`}</text>
+            <text fg={theme.muted} bg={theme.noteBackground}>{` ${closeText}`}</text>
           </box>
         ) : null}
       </CommentRow>
 
       {lines.map((line, index) => (
         <CommentRow key={`${line.kind}:${index}`} theme={theme} width={width}>
-          <box style={{ width: bodyWidth, height: 1, backgroundColor: theme.panel }}>
-            <text fg={line.kind === "summary" ? theme.text : theme.muted} bg={theme.panel}>
+          <box style={{ width: bodyWidth, height: 1, backgroundColor: theme.noteBackground }}>
+            <text
+              fg={line.kind === "summary" ? theme.noteTitleText : theme.muted}
+              bg={theme.noteBackground}
+            >
               {padText(line.text, bodyWidth)}
             </text>
           </box>
         </CommentRow>
       ))}
 
+      {/* Trailing blank uses the diff background, not the card background,
+          so consecutive comments on the same hunk read as separate cards
+          with a single row of breathing space between them. */}
       <box style={{ width: "100%", height: 1, backgroundColor: theme.panel }}>
         <text>{" ".repeat(Math.max(0, width))}</text>
       </box>
@@ -128,16 +166,23 @@ function CommentRow({
   width: number;
 }) {
   return (
-    <box style={{ width: "100%", height: 1, flexDirection: "row", backgroundColor: theme.panel }}>
-      <box style={{ width: LEFT_INDENT, height: 1, backgroundColor: theme.panel }}>
+    <box
+      style={{
+        width: "100%",
+        height: 1,
+        flexDirection: "row",
+        backgroundColor: theme.noteBackground,
+      }}
+    >
+      <box style={{ width: LEFT_INDENT, height: 1, backgroundColor: theme.noteBackground }}>
         <text>{" ".repeat(LEFT_INDENT)}</text>
       </box>
-      <box style={{ width: ACCENT_BAR_WIDTH, height: 1, backgroundColor: theme.panel }}>
-        <text fg={theme.accent} bg={theme.panel}>
+      <box style={{ width: ACCENT_BAR_WIDTH, height: 1, backgroundColor: theme.noteBackground }}>
+        <text fg={theme.noteBorder} bg={theme.noteBackground}>
           ▎
         </text>
       </box>
-      <box style={{ width: GUTTER_PADDING, height: 1, backgroundColor: theme.panel }}>
+      <box style={{ width: GUTTER_PADDING, height: 1, backgroundColor: theme.noteBackground }}>
         <text>{" ".repeat(GUTTER_PADDING)}</text>
       </box>
       {children}
@@ -155,7 +200,7 @@ export function CommentCardSpacer({
   width: number;
 }) {
   return (
-    <box style={{ width: "100%", height: 1, backgroundColor: theme.panel }}>
+    <box style={{ width: "100%", height: 1, backgroundColor: theme.noteBackground }}>
       <text>{" ".repeat(Math.max(0, width))}</text>
     </box>
   );

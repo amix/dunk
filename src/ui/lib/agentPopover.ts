@@ -1,10 +1,10 @@
-import { fitText } from "./text";
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max);
-}
-
-/** Wrap plain text to a fixed terminal width, breaking long tokens when needed. */
+/**
+ * Wrap plain text to a fixed terminal width, breaking long tokens when needed.
+ *
+ * The name of this module is a leftover from when comments rendered as a
+ * floating "agent popover"; the popover surface is gone, but the wrapping
+ * helper is still the single source of truth for soft-wrapping comment prose.
+ */
 export function wrapText(text: string, width: number) {
   if (width <= 0) {
     return [""];
@@ -47,71 +47,4 @@ export function wrapText(text: string, width: number) {
 
   pushCurrent();
   return lines.length > 0 ? lines : [""];
-}
-
-/** Build the framed agent-popover title shown in the card header. */
-function agentPopoverTitle(noteIndex: number, noteCount: number) {
-  return noteCount > 1 ? `Comment ${noteIndex + 1}/${noteCount}` : "Comment";
-}
-
-/** Measure the content rows and total box height for one framed agent popover. */
-export function buildAgentPopoverContent({
-  locationLabel,
-  noteCount,
-  noteIndex,
-  rationale,
-  summary,
-  width,
-}: {
-  locationLabel: string;
-  noteCount: number;
-  noteIndex: number;
-  rationale?: string;
-  summary: string;
-  width: number;
-}) {
-  const innerWidth = Math.max(1, width - 4);
-  const summaryLines = wrapText(summary, innerWidth);
-  const rationaleLines = rationale ? wrapText(rationale, innerWidth) : [];
-  const footer = fitText(locationLabel, innerWidth);
-  const contentLineCount =
-    1 + summaryLines.length + (rationaleLines.length > 0 ? 1 + rationaleLines.length : 0) + 1 + 1;
-
-  return {
-    title: agentPopoverTitle(noteIndex, noteCount),
-    summaryLines,
-    rationaleLines,
-    footer,
-    height: contentLineCount + 2,
-    innerWidth,
-  };
-}
-
-/** Right-align the popover within the viewport while keeping its top edge anchored to the diff row. */
-export function resolveAgentPopoverPlacement({
-  anchorColumn,
-  anchorRowHeight,
-  anchorRowTop,
-  contentHeight,
-  noteHeight,
-  noteWidth,
-  viewportWidth,
-}: {
-  anchorColumn: number;
-  anchorRowHeight: number;
-  anchorRowTop: number;
-  contentHeight: number;
-  noteHeight: number;
-  noteWidth: number;
-  viewportWidth: number;
-}) {
-  const maxLeft = Math.max(1, viewportWidth - noteWidth);
-  const left = maxLeft;
-  const side: "right" | "left" = left >= anchorColumn ? "right" : "left";
-
-  const preferredTop = anchorRowTop + Math.max(0, Math.floor((anchorRowHeight - 1) / 2));
-  const maxTop = Math.max(0, contentHeight - noteHeight);
-  const top = clamp(preferredTop, 0, maxTop);
-
-  return { left, top, side };
 }
