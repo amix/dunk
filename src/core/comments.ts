@@ -5,16 +5,8 @@ import { isAbsolute, join, relative, resolve as resolvePath } from "node:path";
 import { z } from "zod";
 import { DUNK_COMMENTS_FILENAME, DUNK_DIR } from "./dunkPaths";
 import { DunkUserError } from "./errors";
+import { LARGE_FILE_MAX_BYTES } from "./limits";
 import type { Annotation, Changeset, DiffFile, DriftReason, LineRange } from "./types";
-
-/**
- * Skip reading any comment-anchored file larger than this. Matches the
- * diff loader's `LARGE_DIFF_FILE_MAX_BYTES` so a comment on a generated
- * 50 MB JSON blob can't make `dunk comments list` or a watch reload
- * allocate gigabytes. Oversized files surface as missing-file drift,
- * with a clearer reason on the drift card.
- */
-const COMMENT_FILE_MAX_BYTES = 1_000_000;
 
 /**
  * Resolve a comment's `file` to an absolute path inside `repoRoot`, or null
@@ -131,9 +123,9 @@ export function computeAnchor(lines: string[], line: number): string {
 
 /**
  * Stat-gate one file read: returns the contents only when the file fits
- * under `COMMENT_FILE_MAX_BYTES`. Anything larger (or missing, or
- * unreadable) returns `undefined` so callers report it as drift instead
- * of trying to slurp the file into memory.
+ * under `LARGE_FILE_MAX_BYTES`. Anything larger (or missing, or unreadable)
+ * returns `undefined` so callers report it as drift instead of trying to
+ * slurp the file into memory.
  */
 function readPostImageIfSmallEnough(absolutePath: string): string | undefined {
   let size: number;
@@ -142,7 +134,7 @@ function readPostImageIfSmallEnough(absolutePath: string): string | undefined {
   } catch {
     return undefined;
   }
-  if (size > COMMENT_FILE_MAX_BYTES) {
+  if (size > LARGE_FILE_MAX_BYTES) {
     return undefined;
   }
   try {
@@ -223,14 +215,13 @@ function summarizeCommentsValidationIssues(error: z.ZodError): string[] {
   return issues;
 }
 
-/** Read `.dunk/comments.json` from the repo root, returning [] if missing. */
-export function readCommentsFile(repoRoot: string): CommentsFile {
-  const path = join(repoRoot, DUNK_DIR, DUNK_COMMENTS_FILENAME);
-  if (!existsSync(path)) {
-    return { schema: SCHEMA_VERSION, comments: [] };
-  }
-
-  const raw = readFileSync(path, "utf8");
+/**
+ * Parse already-read JSON text against the persisted comments schema, with
+ * the same actionable DunkUserError messages the public read uses. Extracted
+ * so the optimistic-write loop can hash + parse the exact same bytes instead
+ * of reading the file twice (which would race a concurrent writer).
+ */
+function parseCommentsFile(raw: string, path: string): CommentsFile {
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
@@ -260,6 +251,15 @@ export function readCommentsFile(repoRoot: string): CommentsFile {
     ]);
   }
   return result.data;
+}
+
+/** Read `.dunk/comments.json` from the repo root, returning [] if missing. */
+export function readCommentsFile(repoRoot: string): CommentsFile {
+  const path = join(repoRoot, DUNK_DIR, DUNK_COMMENTS_FILENAME);
+  if (!existsSync(path)) {
+    return { schema: SCHEMA_VERSION, comments: [] };
+  }
+  return parseCommentsFile(readFileSync(path, "utf8"), path);
 }
 
 /** Atomically write the comments file using a unique temp + rename. */
@@ -487,8 +487,10 @@ export function commentsForHunkRange(
 const MUTATE_MAX_ATTEMPTS = 5;
 
 /**
- * Snapshot of the current `.dunk/comments.json` with a content fingerprint
- * the optimistic-write loop uses to detect a concurrent writer.
+ * Snapshot of the current `.dunk/comments.json` with a content fingerprint.
+ * Reads the file exactly once and uses the same bytes for both the schema
+ * parse and the SHA hash, so a concurrent writer landing between the two
+ * can't make the optimistic-write loop hash and validate different content.
  */
 function readCommentsFileWithFingerprint(repoRoot: string): {
   file: CommentsFile;
@@ -499,14 +501,9 @@ function readCommentsFileWithFingerprint(repoRoot: string): {
     return { file: { schema: SCHEMA_VERSION, comments: [] }, fingerprint: null };
   }
 
-  // Hash the raw bytes, then route the parse through readCommentsFile so the
-  // optimistic-write path enforces the same zod schema the rest of dunk does.
-  // Reading twice (here + inside readCommentsFile) is fine — comments.json is
-  // tiny KB-range and only re-hits page cache.
   const raw = readFileSync(path, "utf8");
-  const file = readCommentsFile(repoRoot);
   return {
-    file,
+    file: parseCommentsFile(raw, path),
     fingerprint: createHash("sha256").update(raw).digest("hex"),
   };
 }

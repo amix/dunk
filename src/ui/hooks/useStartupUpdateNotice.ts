@@ -12,25 +12,22 @@
 import { useEffect, useRef, useState } from "react";
 import type { UpdateNotice } from "../../core/updateNotice";
 
-const DEFAULT_DELAY_MS = 1_200;
-const DEFAULT_DURATION_MS = 7_000;
-const DEFAULT_REPEAT_MS = 6 * 60 * 60 * 1_000;
+// Wait this long after mount before the dist-tag fetch so it never races first paint.
+const STARTUP_NOTICE_DELAY_MS = 1_200;
+// How long the notice stays visible in the status bar before fading back to the default hint.
+const STARTUP_NOTICE_DURATION_MS = 7_000;
+// Re-check every 6 hours so long-lived sessions still pick up a freshly published release.
+const STARTUP_NOTICE_REPEAT_MS = 6 * 60 * 60 * 1_000;
 
 interface StartupUpdateNoticeOptions {
   enabled: boolean;
   resolver?: () => Promise<UpdateNotice | null>;
-  delayMs?: number;
-  durationMs?: number;
-  repeatMs?: number;
 }
 
 /** Returns the active notice text (or null) for the current session. */
 export function useStartupUpdateNotice({
   enabled,
   resolver,
-  delayMs = DEFAULT_DELAY_MS,
-  durationMs = DEFAULT_DURATION_MS,
-  repeatMs = DEFAULT_REPEAT_MS,
 }: StartupUpdateNoticeOptions): string | null {
   const [noticeText, setNoticeText] = useState<string | null>(null);
   const lastShownKeyRef = useRef<string | null>(null);
@@ -70,7 +67,7 @@ export function useStartupUpdateNotice({
               setNoticeText(null);
               dismissTimer = null;
             }
-          }, durationMs);
+          }, STARTUP_NOTICE_DURATION_MS);
           dismissTimer.unref?.();
         })
         .catch(() => {
@@ -81,9 +78,9 @@ export function useStartupUpdateNotice({
         });
     };
 
-    const delayTimer = setTimeout(runUpdateCheck, delayMs);
+    const delayTimer = setTimeout(runUpdateCheck, STARTUP_NOTICE_DELAY_MS);
     delayTimer.unref?.();
-    const repeatTimer = setInterval(runUpdateCheck, repeatMs);
+    const repeatTimer = setInterval(runUpdateCheck, STARTUP_NOTICE_REPEAT_MS);
     repeatTimer.unref?.();
 
     return () => {
@@ -92,7 +89,7 @@ export function useStartupUpdateNotice({
       clearInterval(repeatTimer);
       clearDismissTimer();
     };
-  }, [delayMs, durationMs, enabled, repeatMs, resolver]);
+  }, [enabled, resolver]);
 
   return noticeText;
 }

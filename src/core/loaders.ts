@@ -15,6 +15,7 @@ import {
   readPostImagesForComments,
   resolveComments,
 } from "./comments";
+import { LARGE_FILE_MAX_BYTES } from "./limits";
 import { DEFAULT_VIEW_PREFERENCES, findRepoRoot } from "./config";
 import type { DriftedCommentSummary } from "./types";
 import { normalizeDiffMetadataPaths, normalizeDiffPath } from "./diffPaths";
@@ -53,7 +54,7 @@ interface LoadAppBootstrapOptions {
   cwd?: string;
 }
 
-const LARGE_DIFF_FILE_MAX_BYTES = 1_000_000;
+const LARGE_DIFF_FILE_MAX_BYTES = LARGE_FILE_MAX_BYTES;
 const LARGE_DIFF_FILE_MAX_LINES = 20_000;
 const LARGE_DIFF_FILE_SNIFF_BYTES = 256 * 1024;
 

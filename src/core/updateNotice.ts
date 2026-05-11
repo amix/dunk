@@ -6,11 +6,10 @@
  * the published version is strictly newer. Network/parse failures are silent
  * — this is a nice-to-have for someone running `dunk diff`, never a blocker.
  */
-import { resolveCliVersion } from "./version";
+import { resolveCliVersion, UNKNOWN_CLI_VERSION } from "./version";
 
 const DIST_TAGS_URL = "https://registry.npmjs.org/-/package/dunkdiff/dist-tags";
 const STABLE_SEMVER = /^\d+\.\d+\.\d+$/;
-const UNKNOWN_CLI_VERSION = "0.0.0-unknown";
 const DEFAULT_FETCH_TIMEOUT_MS = 5_000;
 
 export interface UpdateNotice {
@@ -28,13 +27,13 @@ export interface UpdateNoticeDeps {
   resolveInstalledVersion?: () => string;
 }
 
-/** Return whether a string is normalized stable semver (no prerelease / build). */
 function isStableVersion(value: string): boolean {
   return STABLE_SEMVER.test(value);
 }
 
-/** Compare two stable semver strings; true when `candidate` is strictly newer than `current`. */
 export function isNewerVersion(current: string, candidate: string): boolean {
+  // Bun.semver.order throws on malformed input; swallow so a typo'd dist-tag
+  // never bubbles up as an unhandled rejection inside the startup hook.
   try {
     return Bun.semver.order(current, candidate) < 0;
   } catch {
