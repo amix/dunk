@@ -22,6 +22,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 - Renamed binary, npm package, and config directory from `hunk` / `hunkdiff` / `.hunk/` to `dunk` / `dunk` / `.dunk/`.
 - Default view preferences: word wrap on, line numbers off. Comments now render unconditionally — the `c` toggle, `--comments`/`--no-comments` flags, and `comments` config key are gone.
+- Startup is ~4-5× faster on cold paths (`--help`, `--version`, `dunk comments {list,show,resolve}`, `dunk skill path`): ~120 ms → ~25 ms via `bun run`, ~480 ms → ~50 ms on the prebuilt npm binary. Heavy modules (OpenTUI, React, `@pierre/diffs`) are dynamic-imported only after the CLI parser decides we're launching the TUI.
 - Stripped the top menu bar in favor of a minimal status row with a `?` hint.
 - File header now uses an accent background to anchor the eye while scrolling.
 - Local install (`scripts/install-bin.sh`) uses a tiny shell wrapper around `bun run` instead of `bun build --compile`, cutting startup time roughly 6×.

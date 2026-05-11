@@ -1,14 +1,7 @@
 #!/usr/bin/env bun
 
-import { createCliRenderer } from "@opentui/core";
-import { createRoot } from "@opentui/react";
 import { formatCliError } from "./core/errors";
-import { pagePlainText } from "./core/pager";
-import { shutdownSession } from "./core/shutdown";
 import { prepareStartupPlan } from "./core/startup";
-import { shouldUseMouseForApp } from "./core/terminal";
-import { resolveStartupUpdateNotice } from "./core/updateNotice";
-import { AppHost } from "./ui/AppHost";
 
 async function main() {
   const startupPlan = await prepareStartupPlan();
@@ -19,6 +12,7 @@ async function main() {
   }
 
   if (startupPlan.kind === "plain-text-pager") {
+    const { pagePlainText } = await import("./core/pager");
     await pagePlainText(startupPlan.text);
     process.exit(0);
   }
@@ -26,6 +20,27 @@ async function main() {
   if (startupPlan.kind !== "app") {
     throw new Error("Unreachable startup plan.");
   }
+
+  // From here on we're launching the alternate-screen TUI. All the heavy
+  // render-side modules — OpenTUI, React, AppHost, updateNotice, terminal —
+  // are dynamic-imported behind this branch so cold-paths like `--help`,
+  // `--version`, and `dunk comments {list,show,resolve}` don't pay for
+  // ~60 ms of Pierre + OpenTUI + tree-sitter module parsing they never use.
+  const [
+    { createCliRenderer },
+    { createRoot },
+    { shutdownSession },
+    { shouldUseMouseForApp },
+    { resolveStartupUpdateNotice },
+    { AppHost },
+  ] = await Promise.all([
+    import("@opentui/core"),
+    import("@opentui/react"),
+    import("./core/shutdown"),
+    import("./core/terminal"),
+    import("./core/updateNotice"),
+    import("./ui/AppHost"),
+  ]);
 
   const { bootstrap, controllingTerminal } = startupPlan;
 
