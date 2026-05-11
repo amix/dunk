@@ -954,7 +954,12 @@ describe("UI components", () => {
 
     try {
       await settleDiffPane(setup);
-      const frame = setup.captureCharFrame();
+      const frame = await waitForFrame(
+        setup,
+        (text) =>
+          text.includes("18   export const line18 = 18;") &&
+          !text.includes("2 - export const line2 = 2;"),
+      );
 
       expect(frame).toContain("11   export const line11 = 11;");
       expect(frame).toContain("14 + export const line14 = 'this is a");

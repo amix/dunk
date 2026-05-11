@@ -1,8 +1,12 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, setDefaultTimeout, test } from "bun:test";
 import { mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { buildJjDiffArgs, runJjText } from "./jj";
+
+// jj sub-process spawns are dramatically slower on Windows (~70× the Linux time observed in CI),
+// so give the suite generous headroom to absorb that overhead without flaking.
+setDefaultTimeout(30_000);
 
 const tempDirs: string[] = [];
 const realJjTest = Bun.which("jj") ? test : test.skip;
