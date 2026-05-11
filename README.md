@@ -38,10 +38,10 @@ git diff --no-color | dunk patch - # review a patch from stdin
 ```
 
 ## Screenshots
+
 <img height="1000" alt="dunk alongside Claude Code" src="https://github.com/user-attachments/assets/f28fe57a-e833-49ea-846a-91310e403e77" />
 
 <img height="1000" alt="dunk standalone" src="https://github.com/user-attachments/assets/c390752f-046d-4f97-ae55-a68649726997" />
-
 
 ## Agent review workflow
 
