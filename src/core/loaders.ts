@@ -9,7 +9,12 @@ import { createTwoFilesPatch } from "diff";
 import fs from "node:fs";
 import { join, resolve as resolvePath } from "node:path";
 import { createSkippedBinaryMetadata, isProbablyBinaryFile, patchLooksBinary } from "./binary";
-import { applyCommentsToChangeset, readCommentsFile, resolveComments } from "./comments";
+import {
+  applyCommentsToChangeset,
+  readCommentsFile,
+  readPostImagesForComments,
+  resolveComments,
+} from "./comments";
 import { DEFAULT_VIEW_PREFERENCES, findRepoRoot } from "./config";
 import type { DriftedCommentSummary } from "./types";
 import { normalizeDiffMetadataPaths, normalizeDiffPath } from "./diffPaths";
@@ -686,19 +691,13 @@ function buildSkippedLargeTrackedDiffFile(
   index: number,
   sourcePrefix: string,
 ) {
-  return buildDiffFile(
-    createSkippedLargeMetadata(file.path, "change"),
-    "",
-    index,
-    sourcePrefix,
-    {
-      isTooLarge: true,
-      stats: {
-        additions: file.additions,
-        deletions: file.deletions,
-      },
+  return buildDiffFile(createSkippedLargeMetadata(file.path, "change"), "", index, sourcePrefix, {
+    isTooLarge: true,
+    stats: {
+      additions: file.additions,
+      deletions: file.deletions,
     },
-  );
+  });
 }
 
 /** Parse one synthetic untracked-file patch and reattach the real path after header normalization. */
@@ -739,18 +738,12 @@ function buildUntrackedDiffFile(
 ) {
   const largeFileCheck = inspectLargeUntrackedFile(repoRoot, filePath);
   if (largeFileCheck.shouldSkip) {
-    return buildDiffFile(
-      createSkippedLargeMetadata(filePath, "new"),
-      "",
-      index,
-      sourcePrefix,
-      {
-        isTooLarge: true,
-        isUntracked: true,
-        stats: largeFileCheck.stats,
-        statsTruncated: largeFileCheck.statsTruncated,
-      },
-    );
+    return buildDiffFile(createSkippedLargeMetadata(filePath, "new"), "", index, sourcePrefix, {
+      isTooLarge: true,
+      isUntracked: true,
+      stats: largeFileCheck.stats,
+      statsTruncated: largeFileCheck.statsTruncated,
+    });
   }
 
   const patch = normalizeUntrackedPatchHeaders(
@@ -758,23 +751,13 @@ function buildUntrackedDiffFile(
     filePath,
   );
 
-  return buildDiffFile(
-    parseUntrackedPatchFile(patch, filePath),
-    patch,
-    index,
-    sourcePrefix,
-    {
-      isUntracked: true,
-    },
-  );
+  return buildDiffFile(parseUntrackedPatchFile(patch, filePath), patch, index, sourcePrefix, {
+    isUntracked: true,
+  });
 }
 
 /** Parse raw patch text into the shared changeset model used by the app. */
-function normalizePatchChangeset(
-  patchText: string,
-  title: string,
-  sourceLabel: string,
-): Changeset {
+function normalizePatchChangeset(patchText: string, title: string, sourceLabel: string): Changeset {
   const normalizedPatchText = normalizeGitPatchPrefixes(
     stripGitLogMetadata(stripTerminalControl(patchText.replaceAll("\r\n", "\n"))),
   );
@@ -788,7 +771,7 @@ function normalizePatchChangeset(
       sourceLabel,
       title,
       summary: normalizedPatchText.trim() || undefined,
-      
+
       files: [],
     };
   }
@@ -805,14 +788,9 @@ function normalizePatchChangeset(
         .map((entry) => entry.patchMetadata)
         .filter(Boolean)
         .join("\n\n") || undefined,
-    
+
     files: metadataFiles.map((metadata, index) =>
-      buildDiffFile(
-        metadata,
-        findPatchChunk(metadata, chunks, index),
-        index,
-        sourceLabel,
-      ),
+      buildDiffFile(metadata, findPatchChunk(metadata, chunks, index), index, sourceLabel),
     ),
   };
 }
@@ -845,7 +823,7 @@ function buildBinaryFileDiffChangeset(
     id: `pair:${displayPath}`,
     sourceLabel: input.kind === "difftool" ? "git difftool" : "file compare",
     title,
-    
+
     files: [
       buildDiffFile(
         createSkippedBinaryMetadata(displayPath, resolveBinaryComparisonType(leftPath, rightPath)),
@@ -878,13 +856,7 @@ async function loadFileDiffChangeset(
         : `${basename(input.left)} ↔ ${basename(input.right)}`;
 
   if (isProbablyBinaryFile(leftPath) || isProbablyBinaryFile(rightPath)) {
-    return buildBinaryFileDiffChangeset(
-      input,
-      displayPath,
-      title,
-      leftPath,
-      rightPath,
-    );
+    return buildBinaryFileDiffChangeset(input, displayPath, title, leftPath, rightPath);
   }
 
   const leftText = await Bun.file(leftPath).text();
@@ -909,7 +881,7 @@ async function loadFileDiffChangeset(
     id: `pair:${displayPath}`,
     sourceLabel: input.kind === "difftool" ? "git difftool" : "file compare",
     title,
-    
+
     files: [
       buildDiffFile(metadata, patch, 0, displayPath, {
         previousPath: basename(input.left),
@@ -919,10 +891,7 @@ async function loadFileDiffChangeset(
 }
 
 /** Build a changeset from the current repository working tree or a git range. */
-async function loadGitChangeset(
-  input: VcsCommandInput,
-  cwd = process.cwd(),
-) {
+async function loadGitChangeset(input: VcsCommandInput, cwd = process.cwd()) {
   const repoRoot = resolveGitRepoRoot(input, { cwd });
   const repoName = basename(repoRoot);
   const title = input.staged
@@ -948,11 +917,7 @@ async function loadGitChangeset(
   const trackedFiles = [
     ...trackedChangeset.files,
     ...largeTrackedFiles.map((file, index) =>
-      buildSkippedLargeTrackedDiffFile(
-        file,
-        trackedChangeset.files.length + index,
-        repoRoot,
-      ),
+      buildSkippedLargeTrackedDiffFile(file, trackedChangeset.files.length + index, repoRoot),
     ),
   ];
   const untrackedFiles = listGitUntrackedFiles(input, { cwd, repoRoot });
@@ -969,23 +934,14 @@ async function loadGitChangeset(
     files: [
       ...trackedFiles,
       ...untrackedFiles.map((filePath, index) =>
-        buildUntrackedDiffFile(
-          input,
-          filePath,
-          trackedFiles.length + index,
-          repoRoot,
-          repoRoot,
-        ),
+        buildUntrackedDiffFile(input, filePath, trackedFiles.length + index, repoRoot, repoRoot),
       ),
     ],
   } satisfies Changeset;
 }
 
 /** Build a changeset from the current Jujutsu working-copy commit or a revset. */
-async function loadJjDiffChangeset(
-  input: VcsCommandInput,
-  cwd = process.cwd(),
-) {
+async function loadJjDiffChangeset(input: VcsCommandInput, cwd = process.cwd()) {
   if (input.staged) {
     throw createJjStagedError(input);
   }
@@ -1002,10 +958,7 @@ async function loadJjDiffChangeset(
 }
 
 /** Build a changeset from `git show`, suppressing commit-message chrome so only the patch feeds the UI. */
-async function loadShowChangeset(
-  input: ShowCommandInput,
-  cwd = process.cwd(),
-) {
+async function loadShowChangeset(input: ShowCommandInput, cwd = process.cwd()) {
   const repoRoot = resolveGitRepoRoot(input, { cwd });
   const repoName = basename(repoRoot);
 
@@ -1017,10 +970,7 @@ async function loadShowChangeset(
 }
 
 /** Build a changeset from one Jujutsu revset using Git-format patch output. */
-async function loadJjShowChangeset(
-  input: ShowCommandInput,
-  cwd = process.cwd(),
-) {
+async function loadJjShowChangeset(input: ShowCommandInput, cwd = process.cwd()) {
   const repoRoot = resolveJjRepoRoot(input, { cwd });
   const repoName = basename(repoRoot);
   const revset = input.ref ?? "@";
@@ -1033,10 +983,7 @@ async function loadJjShowChangeset(
 }
 
 /** Build a changeset from `git stash show -p`, which naturally maps to one reviewable patch. */
-async function loadStashShowChangeset(
-  input: StashShowCommandInput,
-  cwd = process.cwd(),
-) {
+async function loadStashShowChangeset(input: StashShowCommandInput, cwd = process.cwd()) {
   if (input.options.vcs === "jj") {
     throw new DunkUserError("`dunk stash show` requires Git VCS mode.", [
       'Set `vcs = "git"` in dunk config, then try again.',
@@ -1054,10 +1001,7 @@ async function loadStashShowChangeset(
 }
 
 /** Build a changeset from patch text supplied by file or stdin. */
-async function loadPatchChangeset(
-  input: PatchCommandInput,
-  cwd = process.cwd(),
-) {
+async function loadPatchChangeset(input: PatchCommandInput, cwd = process.cwd()) {
   const patchText =
     input.text ??
     (!input.file || input.file === "-"
@@ -1065,11 +1009,7 @@ async function loadPatchChangeset(
       : await Bun.file(resolvePath(cwd, input.file)).text());
 
   const label = input.file && input.file !== "-" ? input.file : "stdin patch";
-  return normalizePatchChangeset(
-    patchText,
-    `Patch review: ${basename(label)}`,
-    label,
-  );
+  return normalizePatchChangeset(patchText, `Patch review: ${basename(label)}`, label);
 }
 
 /** Resolve CLI input into the fully loaded app bootstrap state. */
@@ -1116,8 +1056,7 @@ export async function loadAppBootstrap(
     initialTheme: input.options.theme,
     initialShowLineNumbers: input.options.lineNumbers ?? DEFAULT_VIEW_PREFERENCES.showLineNumbers,
     initialWrapLines: input.options.wrapLines ?? DEFAULT_VIEW_PREFERENCES.wrapLines,
-    initialShowHunkHeaders:
-      input.options.hunkHeaders ?? DEFAULT_VIEW_PREFERENCES.showHunkHeaders,
+    initialShowHunkHeaders: input.options.hunkHeaders ?? DEFAULT_VIEW_PREFERENCES.showHunkHeaders,
     initialShowComments: input.options.comments ?? DEFAULT_VIEW_PREFERENCES.showComments,
     initialSelectionAutoCopy:
       input.options.selectionAutoCopy ?? DEFAULT_VIEW_PREFERENCES.selectionAutoCopy,
@@ -1158,20 +1097,7 @@ function mergeUserComments(
     return empty;
   }
 
-  const fileContentByPath = new Map<string, string | undefined>();
-  for (const comment of commentsFile.comments) {
-    if (fileContentByPath.has(comment.file)) {
-      continue;
-    }
-
-    let content: string | undefined;
-    try {
-      content = fs.readFileSync(resolvePath(repoRoot, comment.file), "utf8");
-    } catch {
-      content = undefined;
-    }
-    fileContentByPath.set(comment.file, content);
-  }
+  const fileContentByPath = readPostImagesForComments(repoRoot, commentsFile.comments);
 
   const resolved = resolveComments(commentsFile.comments, fileContentByPath);
   const applied = applyCommentsToChangeset(changeset, resolved);

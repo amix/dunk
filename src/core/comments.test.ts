@@ -47,7 +47,14 @@ describe("dunk comments", () => {
       writeCommentsFile(repoRoot, {
         schema: 1,
         comments: [
-          { id: 1, file: "src/a.ts", line: 3, range: [3, 3], anchor: "deadbeefcafef00d", body: "hello" },
+          {
+            id: 1,
+            file: "src/a.ts",
+            line: 3,
+            range: [3, 3],
+            anchor: "deadbeefcafef00d",
+            body: "hello",
+          },
         ],
       });
 
@@ -119,9 +126,27 @@ describe("dunk comments", () => {
 
   test("withRemovedComments deletes only the requested ids", () => {
     let file: import("./comments").CommentsFile = { schema: 1, comments: [] };
-    file = withAddedComment(file, { file: "x", line: 1, range: [1, 1], anchor: "a", body: "1" }).file;
-    file = withAddedComment(file, { file: "x", line: 2, range: [2, 2], anchor: "b", body: "2" }).file;
-    file = withAddedComment(file, { file: "x", line: 3, range: [3, 3], anchor: "c", body: "3" }).file;
+    file = withAddedComment(file, {
+      file: "x",
+      line: 1,
+      range: [1, 1],
+      anchor: "a",
+      body: "1",
+    }).file;
+    file = withAddedComment(file, {
+      file: "x",
+      line: 2,
+      range: [2, 2],
+      anchor: "b",
+      body: "2",
+    }).file;
+    file = withAddedComment(file, {
+      file: "x",
+      line: 3,
+      range: [3, 3],
+      anchor: "c",
+      body: "3",
+    }).file;
 
     const trimmed = withRemovedComments(file, [1, 3]);
     expect(trimmed.comments.map((c) => c.id)).toEqual([2]);
@@ -132,8 +157,22 @@ describe("dunk comments", () => {
       writeCommentsFile(repoRoot, {
         schema: 1,
         comments: [
-          { id: 3, file: "z.ts", line: 1, range: [1, 1], anchor: "ccccccccccccccc1", body: "third" },
-          { id: 1, file: "x.ts", line: 1, range: [1, 1], anchor: "aaaaaaaaaaaaaaa1", body: "first" },
+          {
+            id: 3,
+            file: "z.ts",
+            line: 1,
+            range: [1, 1],
+            anchor: "ccccccccccccccc1",
+            body: "third",
+          },
+          {
+            id: 1,
+            file: "x.ts",
+            line: 1,
+            range: [1, 1],
+            anchor: "aaaaaaaaaaaaaaa1",
+            body: "first",
+          },
         ],
       });
 

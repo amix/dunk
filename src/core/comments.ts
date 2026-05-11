@@ -1,9 +1,29 @@
 /** `.dunk/comments.json` reader/writer and drift detection. */
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
-import { join, resolve as resolvePath } from "node:path";
+import { isAbsolute, join, relative, resolve as resolvePath } from "node:path";
 import { DUNK_COMMENTS_FILENAME, DUNK_DIR } from "./dunkPaths";
 import type { Annotation, Changeset, DiffFile, DriftReason, LineRange } from "./types";
+
+/**
+ * Resolve a comment's `file` to an absolute path inside `repoRoot`, or null
+ * if the path is absolute or escapes the repo via `..` segments. `.dunk/`
+ * comments are user/agent-editable, so a crafted entry could otherwise make
+ * `dunk comments show` print arbitrary local files.
+ */
+export function resolveCommentPathWithinRepo(repoRoot: string, relPath: string): string | null {
+  if (typeof relPath !== "string" || relPath.length === 0 || isAbsolute(relPath)) {
+    return null;
+  }
+
+  const absolutePath = resolvePath(repoRoot, relPath);
+  const within = relative(repoRoot, absolutePath);
+  if (within === "" || within.startsWith("..")) {
+    return null;
+  }
+
+  return absolutePath;
+}
 
 const SCHEMA_VERSION = 1;
 const ANCHOR_HEX_LEN = 16;
@@ -69,18 +89,57 @@ export function computeAnchor(lines: string[], line: number): string {
 }
 
 /**
+ * Read post-image content for every distinct file referenced by `comments`.
+ * Returns a `Map<relativePath, content | undefined>`; entries that fail the
+ * repo-relative check get `undefined`, which downstream `resolveComments`
+ * surfaces as missing-file drift. Shared by the TUI loader and the CLI so
+ * neither can read outside the repo.
+ */
+export function readPostImagesForComments(
+  repoRoot: string,
+  comments: readonly PersistedComment[],
+): Map<string, string | undefined> {
+  const contentByPath = new Map<string, string | undefined>();
+  for (const comment of comments) {
+    if (contentByPath.has(comment.file)) {
+      continue;
+    }
+
+    const safePath = resolveCommentPathWithinRepo(repoRoot, comment.file);
+    if (!safePath) {
+      contentByPath.set(comment.file, undefined);
+      continue;
+    }
+
+    let content: string | undefined;
+    try {
+      content = readFileSync(safePath, "utf8");
+    } catch {
+      content = undefined;
+    }
+    contentByPath.set(comment.file, content);
+  }
+  return contentByPath;
+}
+
+/**
  * Read the post-image of `relPath` (relative to `repoRoot`) and compute the
- * anchor for one line. Returns null when the file can't be read or the line
- * is out of range — both situations callers treat as "skip this comment".
+ * anchor for one line. Returns null when the file can't be read, escapes the
+ * repo, or the line is out of range — callers all treat this as "skip".
  */
 export function computeAnchorForFile(
   repoRoot: string,
   relPath: string,
   line: number,
 ): string | null {
+  const resolvedPath = resolveCommentPathWithinRepo(repoRoot, relPath);
+  if (!resolvedPath) {
+    return null;
+  }
+
   let content: string;
   try {
-    content = readFileSync(resolvePath(repoRoot, relPath), "utf8");
+    content = readFileSync(resolvedPath, "utf8");
   } catch {
     return null;
   }
@@ -110,18 +169,23 @@ export function readCommentsFile(repoRoot: string): CommentsFile {
   };
 }
 
-/** Atomically write the comments file using a temp + rename. */
+/** Atomically write the comments file using a unique temp + rename. */
 export function writeCommentsFile(repoRoot: string, file: CommentsFile): void {
   const dir = join(repoRoot, DUNK_DIR);
   mkdirSync(dir, { recursive: true });
   const finalPath = join(dir, DUNK_COMMENTS_FILENAME);
-  const tempPath = join(dir, `.${DUNK_COMMENTS_FILENAME}.tmp`);
+  // Unique per-write temp filename so two writers (TUI + agent CLI) never
+  // collide on the same `.tmp` and double-rename through it. Same-filesystem
+  // rename remains atomic, so concurrent readers still see one whole file.
+  const tempPath = join(
+    dir,
+    `.${DUNK_COMMENTS_FILENAME}.${process.pid}.${Date.now().toString(36)}.${Math.random().toString(36).slice(2, 8)}.tmp`,
+  );
   const sorted: CommentsFile = {
     schema: SCHEMA_VERSION,
     comments: [...file.comments].sort((a, b) => a.id - b.id),
   };
   writeFileSync(tempPath, `${JSON.stringify(sorted, null, 2)}\n`, "utf8");
-  // Same-filesystem rename is atomic, so concurrent readers never see a partial file.
   renameSync(tempPath, finalPath);
 }
 
@@ -209,7 +273,21 @@ export function resolveComments(
     // the original anchor, re-pin to it instead of declaring drift.
     const relocatedLine = relocateAnchor(lines, comment.line, comment.anchor);
     if (relocatedLine !== null) {
-      return { ...comment, line: relocatedLine, state: "anchored" } as AnchoredComment;
+      // Shift the recorded hunk range by the same delta so `dunk comments
+      // show` and the renderer mark the relocated lines, not the stale ones.
+      // If the shift would push the range off either end of the file, we
+      // can't represent it honestly — declare drift instead of returning an
+      // anchored comment whose range is inconsistent with its line.
+      const delta = relocatedLine - comment.line;
+      const shiftedRange: LineRange = [comment.range[0] + delta, comment.range[1] + delta];
+      if (shiftedRange[0] >= 1 && shiftedRange[1] <= lines.length) {
+        return {
+          ...comment,
+          line: relocatedLine,
+          range: shiftedRange,
+          state: "anchored",
+        } as AnchoredComment;
+      }
     }
 
     return { ...comment, state: "drifted", reason: "anchor-mismatch" } as DriftedComment;
@@ -312,20 +390,80 @@ export function commentsForHunkRange(
   );
 }
 
-/** Read, mutate, write the comments file in one go. Returns the loaded shape. */
+/** Maximum optimistic-retry attempts before we give up on a concurrent writer. */
+const MUTATE_MAX_ATTEMPTS = 5;
+
+/**
+ * Snapshot of the current `.dunk/comments.json` with a content fingerprint
+ * the optimistic-write loop uses to detect a concurrent writer.
+ */
+function readCommentsFileWithFingerprint(repoRoot: string): {
+  file: CommentsFile;
+  fingerprint: string | null;
+} {
+  const path = join(repoRoot, DUNK_DIR, DUNK_COMMENTS_FILENAME);
+  if (!existsSync(path)) {
+    return { file: { schema: SCHEMA_VERSION, comments: [] }, fingerprint: null };
+  }
+
+  const raw = readFileSync(path, "utf8");
+  const parsed = JSON.parse(raw) as Partial<CommentsFile>;
+  if (parsed.schema !== SCHEMA_VERSION) {
+    throw new Error(
+      `Unsupported dunk comments schema ${parsed.schema} at ${path} (expected ${SCHEMA_VERSION}).`,
+    );
+  }
+
+  return {
+    file: {
+      schema: SCHEMA_VERSION,
+      comments: Array.isArray(parsed.comments) ? parsed.comments : [],
+    },
+    fingerprint: createHash("sha256").update(raw).digest("hex"),
+  };
+}
+
+/** Compute the on-disk fingerprint for one comments file, or null if absent. */
+function currentFingerprint(repoRoot: string): string | null {
+  const path = join(repoRoot, DUNK_DIR, DUNK_COMMENTS_FILENAME);
+  if (!existsSync(path)) {
+    return null;
+  }
+  return createHash("sha256").update(readFileSync(path, "utf8")).digest("hex");
+}
+
+/**
+ * Read, mutate, write the comments file with optimistic concurrency. Re-reads
+ * if a concurrent writer (TUI + agent CLI both editing) changed the file
+ * between the load and the rename. The `mutate` callback may run more than
+ * once — keep it pure.
+ */
 export function mutateCommentsFile(
   repoRoot: string,
   mutate: (current: CommentsFile) => CommentsFile,
 ): CommentsFile {
-  const current = readCommentsFile(repoRoot);
-  const next = mutate(current);
-  // Skip the write when the mutation was a no-op so we don't materialize an
-  // empty .dunk/comments.json on disk just because the user pressed a delete
-  // key on a hunk that has no comments.
-  if (next === current) {
-    return current;
+  for (let attempt = 0; attempt < MUTATE_MAX_ATTEMPTS; attempt += 1) {
+    const { file: current, fingerprint } = readCommentsFileWithFingerprint(repoRoot);
+    const next = mutate(current);
+    // Skip the write when the mutation was a no-op so we don't materialize an
+    // empty .dunk/comments.json on disk just because the user pressed a delete
+    // key on a hunk that has no comments.
+    if (next === current) {
+      return current;
+    }
+
+    // Re-check the fingerprint just before renaming — if a concurrent writer
+    // landed in the meantime, restart the read/mutate cycle so their update
+    // doesn't get clobbered.
+    if (currentFingerprint(repoRoot) !== fingerprint) {
+      continue;
+    }
+
+    writeCommentsFile(repoRoot, next);
+    return next;
   }
 
-  writeCommentsFile(repoRoot, next);
-  return next;
+  throw new Error(
+    `dunk comments: gave up after ${MUTATE_MAX_ATTEMPTS} optimistic retries on ${join(repoRoot, DUNK_DIR, DUNK_COMMENTS_FILENAME)}.`,
+  );
 }
