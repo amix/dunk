@@ -1,11 +1,15 @@
 import { afterEach, describe, expect, setDefaultTimeout, test } from "bun:test";
-import { createPtyHarness } from "./harness";
+import { createPtyHarness, ptyTimeouts } from "./harness";
 
 const harness = createPtyHarness();
 const ptyDescribe = process.env.DUNK_RUN_PTY_TESTS === "1" ? describe : describe.skip;
 
-/** Give PTY-backed startup and redraws enough headroom for slower CI machines. */
-setDefaultTimeout(20_000);
+/**
+ * Locally we want fast feedback when something is wrong; in CI we want enough
+ * headroom that flakes don't trip the suite. `ptyTimeouts` resolves both
+ * windows from a single env-aware source so individual tests stay tight.
+ */
+setDefaultTimeout(ptyTimeouts.suite);
 
 afterEach(() => {
   harness.cleanup();
@@ -22,7 +26,7 @@ ptyDescribe("live UI integration", () => {
 
     try {
       const initial = await session.waitForText(/Press \? for help/, {
-        timeout: 15_000,
+        timeout: ptyTimeouts.waitForText,
       });
 
       expect(initial).toContain("before.ts");
@@ -34,7 +38,7 @@ ptyDescribe("live UI integration", () => {
       const wrapped = await harness.waitForSnapshot(
         session,
         (text) => text.includes("ge';"),
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       expect(wrapped).toContain("ge';");
@@ -43,7 +47,7 @@ ptyDescribe("live UI integration", () => {
       const unwrapped = await harness.waitForSnapshot(
         session,
         (text) => !text.includes("ge';"),
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       expect(unwrapped).not.toContain("ge';");
@@ -62,7 +66,7 @@ ptyDescribe("live UI integration", () => {
 
     try {
       const initial = await session.waitForText(/Press \? for help/, {
-        timeout: 15_000,
+        timeout: ptyTimeouts.waitForText,
       });
 
       expect(initial).toContain("line1 = 100");
@@ -72,7 +76,7 @@ ptyDescribe("live UI integration", () => {
       const secondHunk = await harness.waitForSnapshot(
         session,
         (text) => text.includes("line60 = 6000"),
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       expect(secondHunk).toContain("line60 = 6000");
@@ -93,7 +97,7 @@ ptyDescribe("live UI integration", () => {
 
     try {
       await session.waitForText(/Press \? for help/, {
-        timeout: 15_000,
+        timeout: ptyTimeouts.waitForText,
       });
 
       for (let index = 0; index < 19; index += 1) {
@@ -104,7 +108,7 @@ ptyDescribe("live UI integration", () => {
       await harness.waitForSnapshot(
         session,
         (text) => text.includes("export const mid = 4;"),
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       await session.press("[");
@@ -113,7 +117,7 @@ ptyDescribe("live UI integration", () => {
       const backward = await harness.waitForSnapshot(
         session,
         (text) => text.includes("line 341 changed") || text.includes("line 002 changed"),
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       expect(backward).toContain("line 341 changed");
@@ -133,7 +137,7 @@ ptyDescribe("live UI integration", () => {
 
     try {
       const initial = await session.waitForText(/Press \? for help/, {
-        timeout: 15_000,
+        timeout: ptyTimeouts.waitForText,
       });
 
       expect(initial).toContain("line1 = 100");
@@ -143,7 +147,7 @@ ptyDescribe("live UI integration", () => {
       const secondHunk = await harness.waitForSnapshot(
         session,
         (text) => text.includes("line60 = 6000") && !text.includes("line1 = 100"),
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       expect(secondHunk).toContain("line60 = 6000");
@@ -153,7 +157,7 @@ ptyDescribe("live UI integration", () => {
       const firstHunk = await harness.waitForSnapshot(
         session,
         (text) => text.includes("line1 = 100") && !text.includes("line60 = 6000"),
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       expect(firstHunk).toContain("line1 = 100");
@@ -175,14 +179,14 @@ ptyDescribe("live UI integration", () => {
 
     try {
       await session.waitForText(/Press \? for help/, {
-        timeout: 15_000,
+        timeout: ptyTimeouts.waitForText,
       });
 
       await session.press("]");
       const bottomAligned = await harness.waitForSnapshot(
         session,
         (text) => text.includes("shortLine1 = 10;"),
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       expect(bottomAligned).not.toContain("line30 = 130");
@@ -195,7 +199,7 @@ ptyDescribe("live UI integration", () => {
       const movedUp = await harness.waitForSnapshot(
         session,
         (text) => text.includes("line30 = 130"),
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       expect(movedUp).toContain("line30 = 130");
@@ -215,14 +219,18 @@ ptyDescribe("live UI integration", () => {
 
     try {
       const wide = await session.waitForText(/Press \? for help/, {
-        timeout: 15_000,
+        timeout: ptyTimeouts.waitForText,
       });
 
       expect(harness.countMatches(wide, /alpha\.ts/g)).toBeGreaterThanOrEqual(2);
       expect(wide).toMatch(/▌.*▌/);
 
       session.resize({ cols: 150, rows: 24 });
-      const tight = await harness.waitForSnapshot(session, (text) => !/▌.*▌/.test(text), 5_000);
+      const tight = await harness.waitForSnapshot(
+        session,
+        (text) => !/▌.*▌/.test(text),
+        ptyTimeouts.waitForSnapshot,
+      );
 
       expect(harness.countMatches(tight, /alpha\.ts/g)).toBeLessThan(
         harness.countMatches(wide, /alpha\.ts/g),
@@ -244,7 +252,7 @@ ptyDescribe("live UI integration", () => {
 
     try {
       const initial = await session.waitForText(/Press \? for help/, {
-        timeout: 15_000,
+        timeout: ptyTimeouts.waitForText,
       });
 
       expect(initial).toContain("alphaOnly = true");
@@ -255,7 +263,7 @@ ptyDescribe("live UI integration", () => {
       const jumped = await harness.waitForSnapshot(
         session,
         (text) => text.includes("deltaOnly = true") && !text.includes("alphaOnly = true"),
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       expect(jumped).toContain("deltaValue = 2");
@@ -278,7 +286,7 @@ ptyDescribe("live UI integration", () => {
 
     try {
       const initial = await session.waitForText(/Press \? for help/, {
-        timeout: 15_000,
+        timeout: ptyTimeouts.waitForText,
       });
 
       expect(initial).toContain("first.ts");
@@ -291,7 +299,7 @@ ptyDescribe("live UI integration", () => {
       const scrolled = await harness.waitForSnapshot(
         session,
         (text) => text.includes("line08 = 108") && text.includes("first.ts"),
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       expect(scrolled).toContain("first.ts");
@@ -303,7 +311,7 @@ ptyDescribe("live UI integration", () => {
           text.includes("second.ts") &&
           text.includes("line17 = 117") &&
           harness.countMatches(text, /first\.ts/g) === 1,
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       expect(pinned).toContain("second.ts");
@@ -325,7 +333,7 @@ ptyDescribe("live UI integration", () => {
 
     try {
       const initial = await session.waitForText(/Press \? for help/, {
-        timeout: 15_000,
+        timeout: ptyTimeouts.waitForText,
       });
 
       expect(initial).toContain("first.ts");
@@ -339,7 +347,7 @@ ptyDescribe("live UI integration", () => {
           harness.countMatches(text, /second\.ts/g) === 2 &&
           text.includes("@@ -1,16 +1,16 @@") &&
           text.includes("line17 = 117"),
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       expect(boundary).toContain("first.ts");
@@ -354,7 +362,7 @@ ptyDescribe("live UI integration", () => {
           harness.countMatches(text, /first\.ts/g) === 2 &&
           harness.countMatches(text, /second\.ts/g) === 2 &&
           text.includes("line18 = 118"),
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       expect(nextHeader).toContain("first.ts");
@@ -401,7 +409,7 @@ ptyDescribe("live UI integration", () => {
 
     try {
       const wide = await session.waitForText(/Press \? for help/, {
-        timeout: 15_000,
+        timeout: ptyTimeouts.waitForText,
       });
 
       expect(harness.countMatches(wide, /alpha\.ts/g)).toBeGreaterThanOrEqual(2);
@@ -411,7 +419,7 @@ ptyDescribe("live UI integration", () => {
       const tight = await harness.waitForSnapshot(
         session,
         (text) => /▌.*▌/.test(text) && harness.countMatches(text, /alpha\.ts/g) === 1,
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       expect(tight).toContain("betaValue = 1");
@@ -431,7 +439,7 @@ ptyDescribe("live UI integration", () => {
 
     try {
       const narrow = await session.waitForText(/Press \? for help/, {
-        timeout: 15_000,
+        timeout: ptyTimeouts.waitForText,
       });
 
       expect(harness.countMatches(narrow, /alpha\.ts/g)).toBe(1);
@@ -441,7 +449,7 @@ ptyDescribe("live UI integration", () => {
       const wide = await harness.waitForSnapshot(
         session,
         (text) => !/▌.*▌/.test(text) && harness.countMatches(text, /alpha\.ts/g) >= 2,
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       expect(wide).toContain("1   -  export const alpha = 1;");
@@ -461,7 +469,7 @@ ptyDescribe("live UI integration", () => {
 
     try {
       const initial = await session.waitForText(/Press \? for help/, {
-        timeout: 15_000,
+        timeout: ptyTimeouts.waitForText,
       });
 
       expect(initial).toContain("add = true");
@@ -473,7 +481,7 @@ ptyDescribe("live UI integration", () => {
         session,
         (text) =>
           text.includes("betaValue") && !text.includes("alpha.ts") && !text.includes("add = true"),
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       expect(filtered.toLowerCase()).toContain("filter");
@@ -496,7 +504,7 @@ ptyDescribe("live UI integration", () => {
 
     try {
       const initial = await session.waitForText(/Press \? for help/, {
-        timeout: 15_000,
+        timeout: ptyTimeouts.waitForText,
       });
 
       expect(initial).toContain("alphaOnly = true");
@@ -506,7 +514,7 @@ ptyDescribe("live UI integration", () => {
       await harness.waitForSnapshot(
         session,
         (text) => text.includes("filter: type to filter files"),
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       await session.type("delta");
@@ -516,7 +524,7 @@ ptyDescribe("live UI integration", () => {
           text.includes("filter: delta") &&
           text.includes("deltaOnly = true") &&
           !text.includes("alphaOnly = true"),
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       expect(filtered.toLowerCase()).toContain("filter");
@@ -537,7 +545,7 @@ ptyDescribe("live UI integration", () => {
     });
 
     try {
-      const initial = await session.waitForText(/scroll\.ts/, { timeout: 15_000 });
+      const initial = await session.waitForText(/scroll\.ts/, { timeout: ptyTimeouts.waitForText });
 
       expect(initial).not.toContain("View  Navigate  Theme  Agent  Help");
       expect(initial).toContain("before_01");
@@ -549,7 +557,7 @@ ptyDescribe("live UI integration", () => {
       const paged = await harness.waitForSnapshot(
         session,
         (text) => text.includes("before_23") || text.includes("after_06"),
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       expect(paged).not.toContain("View  Navigate  Theme  Agent  Help");
@@ -569,7 +577,7 @@ ptyDescribe("live UI integration", () => {
     });
 
     try {
-      const initial = await session.waitForText(/scroll\.ts/, { timeout: 15_000 });
+      const initial = await session.waitForText(/scroll\.ts/, { timeout: ptyTimeouts.waitForText });
 
       expect(initial).toContain("before_01");
       expect(initial).not.toContain("before_12");
@@ -578,7 +586,7 @@ ptyDescribe("live UI integration", () => {
       const halfPaged = await harness.waitForSnapshot(
         session,
         (text) => !text.includes("before_01"),
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       expect(halfPaged).not.toContain("before_01");
@@ -587,7 +595,7 @@ ptyDescribe("live UI integration", () => {
       const halfPageRestored = await harness.waitForSnapshot(
         session,
         (text) => text.includes("before_01"),
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       expect(halfPageRestored).toContain("before_01");
@@ -596,7 +604,7 @@ ptyDescribe("live UI integration", () => {
       const paged = await harness.waitForSnapshot(
         session,
         (text) => text.includes("before_18") || text.includes("after_02"),
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       expect(paged.includes("before_18") || paged.includes("after_02")).toBe(true);
@@ -605,7 +613,7 @@ ptyDescribe("live UI integration", () => {
       const pageRestored = await harness.waitForSnapshot(
         session,
         (text) => text.includes("before_01") && !text.includes("after_02"),
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       expect(pageRestored).toContain("before_01");
@@ -615,7 +623,7 @@ ptyDescribe("live UI integration", () => {
       const bottom = await harness.waitForSnapshot(
         session,
         (text) => text.includes("after_60"),
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       expect(bottom).toContain("after_60");
@@ -624,7 +632,7 @@ ptyDescribe("live UI integration", () => {
       const top = await harness.waitForSnapshot(
         session,
         (text) => text.includes("before_01") && !text.includes("after_60"),
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       expect(top).toContain("before_01");
@@ -644,7 +652,7 @@ ptyDescribe("live UI integration", () => {
     });
 
     try {
-      const initial = await session.waitForText(/scroll\.ts/, { timeout: 15_000 });
+      const initial = await session.waitForText(/scroll\.ts/, { timeout: ptyTimeouts.waitForText });
 
       expect(initial).not.toContain("View  Navigate  Theme  Agent  Help");
       expect(initial).toContain("before_01");
@@ -655,7 +663,7 @@ ptyDescribe("live UI integration", () => {
       const scrolled = await harness.waitForSnapshot(
         session,
         (text) => !text.includes("before_01") && text.includes("before_12"),
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       expect(scrolled).not.toContain("View  Navigate  Theme  Agent  Help");
@@ -666,7 +674,7 @@ ptyDescribe("live UI integration", () => {
       const restored = await harness.waitForSnapshot(
         session,
         (text) => text.includes("before_01") && !text.includes("before_12"),
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       expect(restored).toContain("before_01");
@@ -686,7 +694,7 @@ ptyDescribe("live UI integration", () => {
     });
 
     try {
-      const initial = await session.waitForText(/scroll\.ts/, { timeout: 15_000 });
+      const initial = await session.waitForText(/scroll\.ts/, { timeout: ptyTimeouts.waitForText });
 
       expect(initial).not.toContain("View  Navigate  Theme  Agent  Help");
       expect(initial).toContain("before_01");
@@ -697,7 +705,7 @@ ptyDescribe("live UI integration", () => {
       const scrolled = await harness.waitForSnapshot(
         session,
         (text) => !text.includes("before_01") && text.includes("before_12"),
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       expect(scrolled).not.toContain("View  Navigate  Theme  Agent  Help");
@@ -708,7 +716,7 @@ ptyDescribe("live UI integration", () => {
       const restored = await harness.waitForSnapshot(
         session,
         (text) => text.includes("before_01") && !text.includes("before_12"),
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       expect(restored).toContain("before_01");
@@ -728,7 +736,7 @@ ptyDescribe("live UI integration", () => {
     });
 
     try {
-      const initial = await session.waitForText(/scroll\.ts/, { timeout: 15_000 });
+      const initial = await session.waitForText(/scroll\.ts/, { timeout: ptyTimeouts.waitForText });
 
       expect(initial).not.toContain("View  Navigate  Theme  Agent  Help");
       expect(harness.countMatches(initial, /scroll\.ts/g)).toBe(1);
@@ -738,7 +746,7 @@ ptyDescribe("live UI integration", () => {
       const withSidebar = await harness.waitForSnapshot(
         session,
         (text) => sidebarRow.test(text),
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       expect(withSidebar).not.toContain("View  Navigate  Theme  Agent  Help");
@@ -757,7 +765,7 @@ ptyDescribe("live UI integration", () => {
     });
 
     try {
-      const initial = await session.waitForText(/scroll\.ts/, { timeout: 15_000 });
+      const initial = await session.waitForText(/scroll\.ts/, { timeout: ptyTimeouts.waitForText });
 
       expect(initial).not.toContain("View  Navigate  Theme  Agent  Help");
       expect(initial).toContain("before_01");
@@ -768,7 +776,7 @@ ptyDescribe("live UI integration", () => {
       const scrolled = await harness.waitForSnapshot(
         session,
         (text) => !text.includes("before_01") && text.includes("before_12"),
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       expect(scrolled).not.toContain("View  Navigate  Theme  Agent  Help");
@@ -779,7 +787,7 @@ ptyDescribe("live UI integration", () => {
       const restored = await harness.waitForSnapshot(
         session,
         (text) => text.includes("before_01") && !text.includes("before_12"),
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       expect(restored).toContain("before_01");
@@ -800,7 +808,7 @@ ptyDescribe("live UI integration", () => {
 
     try {
       await session.waitForText(/Press \? for help/, {
-        timeout: 15_000,
+        timeout: ptyTimeouts.waitForText,
       });
 
       await session.press("?");
@@ -809,7 +817,7 @@ ptyDescribe("live UI integration", () => {
         (text) =>
           (text.includes("Keyboard help") || text.includes("Controls help")) &&
           text.includes("move line-by-line"),
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       expect(help.includes("Keyboard help") || help.includes("Controls help")).toBe(true);
@@ -830,7 +838,7 @@ ptyDescribe("live UI integration", () => {
 
     try {
       const initial = await session.waitForText(/Press \? for help/, {
-        timeout: 15_000,
+        timeout: ptyTimeouts.waitForText,
       });
 
       expect(initial).not.toMatch(/▌.*▌/);
@@ -840,7 +848,7 @@ ptyDescribe("live UI integration", () => {
       const split = await harness.waitForSnapshot(
         session,
         (text) => /▌.*▌/.test(text) && harness.countMatches(text, /alpha\.ts/g) >= 2,
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       expect(split).toMatch(/▌.*▌/);
@@ -849,7 +857,7 @@ ptyDescribe("live UI integration", () => {
       const stack = await harness.waitForSnapshot(
         session,
         (text) => !/▌.*▌/.test(text) && text.includes("1   -  export const alpha = 1;"),
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       expect(stack).not.toMatch(/▌.*▌/);
@@ -859,7 +867,7 @@ ptyDescribe("live UI integration", () => {
       const auto = await harness.waitForSnapshot(
         session,
         (text) => /▌.*▌/.test(text) && harness.countMatches(text, /alpha\.ts/g) >= 2,
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       expect(auto).toMatch(/▌.*▌/);
@@ -879,7 +887,7 @@ ptyDescribe("live UI integration", () => {
 
     try {
       const initial = await session.waitForText(/Press \? for help/, {
-        timeout: 15_000,
+        timeout: ptyTimeouts.waitForText,
       });
 
       expect(initial).toContain("line01 = 101");
@@ -905,7 +913,7 @@ ptyDescribe("live UI integration", () => {
       const stacked = await harness.waitForSnapshot(
         session,
         (text) => !/▌.*▌/.test(text) && text.includes(`line${anchoredLineNumber} =`),
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       expect(stacked).toContain(`line${anchoredLineNumber} =`);
@@ -914,7 +922,7 @@ ptyDescribe("live UI integration", () => {
       const split = await harness.waitForSnapshot(
         session,
         (text) => /▌.*▌/.test(text) && text.includes(`line${anchoredLineNumber} =`),
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       expect(split).toContain(`line${anchoredLineNumber} =`);
@@ -934,7 +942,7 @@ ptyDescribe("live UI integration", () => {
 
     try {
       const initial = await session.waitForText(/Press \? for help/, {
-        timeout: 15_000,
+        timeout: ptyTimeouts.waitForText,
       });
 
       expect(initial).toContain("line01 = 101");
@@ -948,7 +956,7 @@ ptyDescribe("live UI integration", () => {
         (text) =>
           !text.includes("line01 = 101") &&
           (text.includes("line11 = 111") || text.includes("line12 = 112")),
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       expect(scrolled).not.toContain("line01 = 101");
@@ -958,7 +966,7 @@ ptyDescribe("live UI integration", () => {
       const restored = await harness.waitForSnapshot(
         session,
         (text) => text.includes("line01 = 101"),
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       expect(restored).toContain("line01 = 101");
@@ -977,7 +985,7 @@ ptyDescribe("live UI integration", () => {
 
     try {
       const initial = await session.waitForText(/Press \? for help/, {
-        timeout: 15_000,
+        timeout: ptyTimeouts.waitForText,
       });
 
       expect(initial).toContain("this is a very long");
@@ -1021,7 +1029,7 @@ ptyDescribe("live UI integration", () => {
 
     try {
       const initial = await session.waitForText(/Press \? for help/, {
-        timeout: 15_000,
+        timeout: ptyTimeouts.waitForText,
       });
 
       expect(initial).toContain("this is a very long");
@@ -1043,7 +1051,7 @@ ptyDescribe("live UI integration", () => {
       const wrapped = await harness.waitForSnapshot(
         session,
         (text) => text.includes("ge';"),
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       expect(wrapped).toContain("this is a very long");
@@ -1053,7 +1061,7 @@ ptyDescribe("live UI integration", () => {
       const reset = await harness.waitForSnapshot(
         session,
         (text) => text.includes("this is a very long") && !text.includes("ge';"),
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       expect(reset).toContain("this is a very long");
@@ -1075,7 +1083,7 @@ ptyDescribe("live UI integration", () => {
 
     try {
       const initial = await session.waitForText(/Press \? for help/, {
-        timeout: 15_000,
+        timeout: ptyTimeouts.waitForText,
       });
 
       expect(initial).toContain("aaa-collapsed.ts");
@@ -1086,7 +1094,7 @@ ptyDescribe("live UI integration", () => {
       const advanced = await harness.waitForSnapshot(
         session,
         (text) => text.includes("366 - export const line366 = 366;"),
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       expect(advanced).toContain("366 - export const line366 = 366;");
@@ -1107,7 +1115,7 @@ ptyDescribe("live UI integration", () => {
 
     try {
       const initial = await session.waitForText(/Press \? for help/, {
-        timeout: 15_000,
+        timeout: ptyTimeouts.waitForText,
       });
       const initialHeaderCount = harness.countMatches(initial, /aaa-collapsed\.ts/g);
 
@@ -1115,7 +1123,7 @@ ptyDescribe("live UI integration", () => {
       await harness.waitForSnapshot(
         session,
         (text) => text.includes("366 - export const line366 = 366;"),
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       await session.scrollUp(1);
@@ -1124,7 +1132,7 @@ ptyDescribe("live UI integration", () => {
         (text) =>
           text.includes("··· 362 unchanged lines ···") &&
           harness.countMatches(text, /aaa-collapsed\.ts/g) === initialHeaderCount,
-        5_000,
+        ptyTimeouts.waitForSnapshot,
       );
 
       expect(restored).toContain("··· 362 unchanged lines ···");

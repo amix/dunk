@@ -5,6 +5,22 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Session } from "tuistory";
 
+/**
+ * PTY-test timeout windows. Locally we want sub-second feedback on failures
+ * so the iteration loop stays usable; in CI we keep the historical headroom
+ * to absorb shared-runner jitter. Detection mirrors GitHub Actions and most
+ * other CI providers, which all set `CI=true`.
+ */
+const isCi = process.env.CI === "true" || process.env.CI === "1";
+export const ptyTimeouts = {
+  /** Per-test wall-clock cap. */
+  suite: isCi ? 20_000 : 8_000,
+  /** Boot-time / first-paint waits before any user input is sent. */
+  waitForText: isCi ? 15_000 : 4_000,
+  /** Snapshot polls after a user keypress, where the UI is already painted. */
+  waitForSnapshot: isCi ? 5_000 : 1_500,
+} as const;
+
 const integrationDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(integrationDir, "../..");
 const sourceEntrypoint = join(repoRoot, "src/main.tsx");
@@ -469,7 +485,7 @@ export function createPtyHarness() {
   async function waitForSnapshot(
     session: Session,
     predicate: (text: string) => boolean,
-    timeoutMs = 5_000,
+    timeoutMs: number = ptyTimeouts.waitForSnapshot,
   ) {
     const start = Date.now();
     let snapshot = await session.text({ immediate: true });
