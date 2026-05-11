@@ -21,6 +21,7 @@ import { findRepoRoot } from "../core/config";
 import { resolveEditorLaunch, runEditorLaunch } from "../core/editor";
 import { hunkLineRange } from "../core/hunkRange";
 import type { AppBootstrap, CliInput, LayoutMode } from "../core/types";
+import type { UpdateNotice } from "../core/updateNotice";
 import { canReloadInput, computeWatchSignature } from "../core/watch";
 import { DriftedCommentsBanner } from "./components/chrome/DriftedCommentsBanner";
 import { StatusBar } from "./components/chrome/StatusBar";
@@ -34,6 +35,7 @@ import {
 } from "./diff/codeColumns";
 import { useAppKeyboardShortcuts } from "./hooks/useAppKeyboardShortcuts";
 import { useReviewController } from "./hooks/useReviewController";
+import { useStartupUpdateNotice } from "./hooks/useStartupUpdateNotice";
 import { fileRowId } from "./lib/ids";
 import { resolveResponsiveLayout } from "./lib/responsive";
 import { resizeSidebarWidth } from "./lib/sidebar";
@@ -87,6 +89,7 @@ export function App({
   bootstrap,
   onQuit = () => process.exit(0),
   onReloadSession,
+  startupNoticeResolver,
 }: {
   bootstrap: AppBootstrap;
   onQuit?: () => void;
@@ -94,6 +97,7 @@ export function App({
     nextInput: CliInput,
     options?: { resetApp?: boolean; sourcePath?: string },
   ) => Promise<void>;
+  startupNoticeResolver?: () => Promise<UpdateNotice | null>;
 }) {
   const SIDEBAR_MIN_WIDTH = 22;
   const DIFF_MIN_WIDTH = 48;
@@ -153,6 +157,13 @@ export function App({
   const selectionAutoCopy = bootstrap.initialSelectionAutoCopy ?? true;
 
   const activeTheme = resolveTheme(themeId, renderer.themeMode);
+  // Background dist-tag lookup — gated off in pager mode (one-shot, no chrome
+  // to host the notice) and skipped entirely when no resolver was injected
+  // (tests don't ship the network dep).
+  const startupNoticeText = useStartupUpdateNotice({
+    enabled: !pagerMode,
+    resolver: startupNoticeResolver,
+  });
   const review = useReviewController({ files: bootstrap.changeset.files });
   const filteredFiles = review.visibleFiles;
   const selectedFile = review.selectedFile;
@@ -1023,7 +1034,7 @@ export function App({
         <StatusBar
           filter={review.filter}
           filterFocused={focusArea === "filter"}
-          noticeText={transientStatus ?? undefined}
+          noticeText={transientStatus ?? startupNoticeText ?? undefined}
           terminalWidth={terminal.width}
           theme={activeTheme}
           onFilterInput={review.setFilter}

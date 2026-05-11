@@ -3,15 +3,18 @@ import { resolveConfiguredCliInput } from "../core/config";
 import { loadAppBootstrap } from "../core/loaders";
 import { resolveRuntimeCliInput } from "../core/terminal";
 import type { AppBootstrap, CliInput } from "../core/types";
+import type { UpdateNotice } from "../core/updateNotice";
 import { App } from "./App";
 
 /** Keep one live dunk app mounted while supporting fs-driven reloads. */
 export function AppHost({
   bootstrap,
   onQuit = () => process.exit(0),
+  startupNoticeResolver,
 }: {
   bootstrap: AppBootstrap;
   onQuit?: () => void;
+  startupNoticeResolver?: () => Promise<UpdateNotice | null>;
 }) {
   const [activeBootstrap, setActiveBootstrap] = useState(bootstrap);
   const [appVersion, setAppVersion] = useState(0);
@@ -44,6 +47,7 @@ export function AppHost({
       bootstrap={activeBootstrap}
       onQuit={onQuit}
       onReloadSession={reloadSession}
+      startupNoticeResolver={startupNoticeResolver}
     />
   );
 }
