@@ -612,13 +612,24 @@ export function DiffPane({
       // Convert the absolute review-stream viewport into file-body-local coordinates.
       // Example: if the viewport starts at row 2_000 globally and this file body starts at row
       // 1_940, then the file-local visible top is 60 rows into this file.
-      const minTop = scrollViewport.top - sectionLayout.bodyTop - overscanTerminalRows;
-      const maxBottom =
+      let minTop = scrollViewport.top - sectionLayout.bodyTop - overscanTerminalRows;
+      let maxBottom =
         scrollViewport.top + scrollViewport.height - sectionLayout.bodyTop + overscanTerminalRows;
 
-      // Keep the mounted rows bounded to the viewport slice. Selection reveal uses planned hunk
-      // geometry as its fallback, so mounting an offscreen selected hunk is not necessary and would
-      // remount very large hunks in full.
+      // For the *selected* file, also include the selected hunk's body window in
+      // the mounted set even when it sits off-screen. The reveal effect needs
+      // mounted row bounds to land its single `scrollTo`; without this the
+      // first reveal fires against planned (estimated) geometry and a later
+      // retry fires against newly-mounted bounds, which the user sees as a
+      // flicker / double-jump. One extra hunk mounted is negligibly cheap.
+      if (file.id === selectedFileId) {
+        const hunkBounds = geometry.hunkBounds.get(selectedHunkIndex);
+        if (hunkBounds && hunkBounds.height > 0) {
+          const hunkOverscan = Math.max(8, Math.floor(scrollViewport.height / 4));
+          minTop = Math.min(minTop, hunkBounds.top - hunkOverscan);
+          maxBottom = Math.max(maxBottom, hunkBounds.top + hunkBounds.height + hunkOverscan);
+        }
+      }
 
       // Clamp the requested file-local interval back into the real body extent, then store it as
       // { top, height } so the row slicer can rebuild the matching [top, bottom) window later.
@@ -637,6 +648,8 @@ export function DiffPane({
     scrollViewport.height,
     scrollViewport.top,
     sectionGeometry,
+    selectedFileId,
+    selectedHunkIndex,
     visibleWindowedFileIds,
   ]);
 
@@ -1053,10 +1066,17 @@ export function DiffPane({
       return;
     }
 
-    const scrollSelectionIntoView = () => {
+    /**
+     * Scroll the selected hunk/note into view. Returns whether the call
+     * landed against *mounted* row bounds (the stable, final geometry) or
+     * had to fall back to the *planned* estimate. The reveal loop uses
+     * that signal to decide whether one more retry is worth it — landing
+     * on mounted bounds is the "stop now" condition that kills flicker.
+     */
+    const scrollSelectionIntoView = (): "mounted" | "planned" | "noop" => {
       const scrollBox = scrollRef.current;
       if (!scrollBox) {
-        return;
+        return "noop";
       }
 
       const viewportHeight = Math.max(scrollViewport.height, scrollBox.viewport.height ?? 0);
@@ -1065,7 +1085,6 @@ export function DiffPane({
       // When navigating comment-to-comment, scroll the inline note card near the viewport top
       // instead of positioning the entire hunk. Clamp the reveal target too: notes in the final
       // hunk can request a top offset that is no longer reachable once the viewport hits EOF.
-      // Using the reachable value keeps the reveal logic from fighting later manual scrolling.
       if (selectedNoteBounds) {
         const revealScrollTop = computeHunkRevealScrollTop({
           hunkTop: selectedNoteBounds.top,
@@ -1073,11 +1092,9 @@ export function DiffPane({
           preferredTopPadding,
           viewportHeight,
         });
-        // Floor against the owning file's body boundary so the viewport never crosses above it
-        // and triggers a pinned-header flash.
         const flooredScrollTop = Math.max(revealScrollTop, selectedFileBodyTop);
         scrollBox.scrollTo(clampReviewScrollTop(flooredScrollTop, viewportHeight));
-        return;
+        return "mounted";
       }
 
       if (selectedEstimatedHunkBounds) {
@@ -1088,19 +1105,18 @@ export function DiffPane({
         );
         const endRow = scrollBox.content.findDescendantById(selectedEstimatedHunkBounds.endRowId);
 
-        // Prefer exact mounted bounds when both edges are available. If only one edge has mounted
-        // so far, fall back to the planned bounds as one atomic estimate instead of mixing sources.
-        // The final reveal target still gets clamped below so a bottom-edge hunk does not keep
-        // re-requesting an impossible scrollTop after the selection settles.
+        // Mounted start row is the load-bearing signal — combined with the planned height it's
+        // enough for huge hunks where the end row never mounts. Both edges mounted is the
+        // strongest "this scroll lands once" guarantee.
         const renderedTop = startRow ? currentScrollTop + (startRow.y - viewportTop) : null;
         const renderedBottom = endRow
           ? currentScrollTop + (endRow.y + endRow.height - viewportTop)
           : null;
-        const renderedBoundsReady = renderedTop !== null && renderedBottom !== null;
-        const hunkTop = renderedBoundsReady ? renderedTop : selectedEstimatedHunkBounds.top;
-        const hunkHeight = renderedBoundsReady
-          ? Math.max(0, renderedBottom - renderedTop)
-          : selectedEstimatedHunkBounds.height;
+        const hunkTop = renderedTop ?? selectedEstimatedHunkBounds.top;
+        const hunkHeight =
+          renderedTop !== null && renderedBottom !== null
+            ? Math.max(0, renderedBottom - renderedTop)
+            : selectedEstimatedHunkBounds.height;
 
         const revealScrollTop = computeHunkRevealScrollTop({
           hunkTop,
@@ -1108,20 +1124,23 @@ export function DiffPane({
           preferredTopPadding,
           viewportHeight,
         });
-        // Floor against the owning file's body boundary so the viewport never crosses above it
-        // and triggers a pinned-header flash.
         const flooredScrollTop = Math.max(revealScrollTop, selectedFileBodyTop);
         scrollBox.scrollTo(clampReviewScrollTop(flooredScrollTop, viewportHeight));
-        return;
+        return renderedTop !== null ? "mounted" : "planned";
       }
 
       if (selectedAnchorId) {
         scrollBox.scrollChildIntoView(selectedAnchorId);
+        return "mounted";
       }
+      return "noop";
     };
 
     // Run after this pane renders the selected section/hunk, then retry briefly while layout
-    // settles across a couple of repaint cycles.
+    // settles across a couple of repaint cycles. The retry cascade is load-bearing for cross-file
+    // reveals where section geometry only lands after a follow-up layout pass — but together with
+    // the expanded `visibleBodyBoundsByFile` window above, the first call almost always lands on
+    // mounted bounds, so subsequent retries are no-op `scrollTo` calls instead of visible jumps.
     suppressViewportSelectionSync();
     scrollSelectionIntoView();
     pendingSelectionSettleRef.current = shouldTrackPinnedHeaderResettle;
