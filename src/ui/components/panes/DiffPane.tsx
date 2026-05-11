@@ -879,39 +879,71 @@ export function DiffPane({
     const layoutChanged = previousLayoutRef.current !== layout;
     const explicitLayoutToggle = previousLayoutToggleRequestIdRef.current !== layoutToggleRequestId;
     const wrapChanged = previousWrapLinesRef.current !== wrapLines;
+    const filesChanged = previousFilesRef.current !== files;
     const previousSectionMetrics = previousSectionGeometryRef.current;
     const previousFiles = previousFilesRef.current;
+    const shouldRestoreViewport = layoutChanged || wrapChanged || filesChanged;
 
-    if ((layoutChanged || wrapChanged) && previousSectionMetrics && previousFiles.length > 0) {
+    if (shouldRestoreViewport && previousSectionMetrics && previousFiles.length > 0) {
       const previousSectionHeaderHeights = buildInStreamFileHeaderHeights(previousFiles);
       const previousScrollTop =
         // Prefer the synchronously captured pre-toggle position so anchor restoration does not
-        // race the polling-based viewport snapshot.
+        // race the polling-based viewport snapshot. For files-only changes (comment add/edit/delete
+        // and external `.dunk/comments.json` reloads) the live scrollTop is still the pre-swap
+        // position because OpenTUI does not auto-reset scrollTop when content height changes.
         wrapChanged && wrapToggleScrollTop != null
           ? wrapToggleScrollTop
           : layoutChanged && explicitLayoutToggle && layoutToggleScrollTop != null
             ? layoutToggleScrollTop
             : (scrollRef.current?.scrollTop ??
               Math.max(prevScrollTopRef.current, scrollViewport.top));
-      const anchor = findViewportRowAnchor(
-        previousFiles,
-        previousSectionMetrics,
-        previousScrollTop,
-        previousSectionHeaderHeights,
-        lastViewportRowAnchorRef.current?.stableKey,
-      );
-      if (anchor) {
-        const nextTop = resolveViewportRowAnchorTop(
-          files,
-          sectionGeometry,
-          anchor,
-          sectionHeaderHeights,
+      // Resolve a viewport anchor using `previousScrollTop` against the pre-swap geometry, then
+      // translate it into the post-swap geometry. Returns null when no row in the new geometry
+      // covers the captured anchor (e.g. the only comment in a file was deleted).
+      const resolveStrategy = (options?: { preferDiffRows?: boolean }) => {
+        const candidate = findViewportRowAnchor(
+          previousFiles,
+          previousSectionMetrics,
+          previousScrollTop,
+          previousSectionHeaderHeights,
+          lastViewportRowAnchorRef.current?.stableKey,
+          options,
         );
+        const top = candidate
+          ? resolveViewportRowAnchorTop(files, sectionGeometry, candidate, sectionHeaderHeights)
+          : null;
+        return { anchor: candidate, top };
+      };
+      // Prefer the natural row anchor first. Inline-note stable keys are note-id based, so a
+      // comment-edit reload still resolves cleanly and keeps the reader's position inside the
+      // card. Only when the natural anchor cannot resolve in the new geometry do we fall back
+      // to a survivable diff row — that path handles deletes, where the inline-note row is gone.
+      const natural = resolveStrategy();
+      const filesOnlyChange = filesChanged && !layoutChanged && !wrapChanged;
+      const diffRowFallback =
+        natural.top === null && filesOnlyChange ? resolveStrategy({ preferDiffRows: true }) : null;
+      const anchor = natural.top !== null ? natural.anchor : diffRowFallback?.anchor;
+      const resolvedTop = natural.top !== null ? natural.top : (diffRowFallback?.top ?? null);
+      // When the anchor row vanishes (rare: e.g. the only comment in a file was deleted from a
+      // viewport sitting on it, or a filter removed the anchored file), fall back to clamping the
+      // pre-mutation scrollTop into the new content extent so the user does not snap to file top.
+      const fallbackTop =
+        resolvedTop === null && filesChanged
+          ? clampReviewScrollTop(
+              previousScrollTop,
+              Math.max(scrollViewport.height, scrollRef.current?.viewport.height ?? 0),
+            )
+          : null;
+      const targetTop = resolvedTop ?? fallbackTop;
+
+      if (targetTop !== null) {
         const restoreViewportAnchor = () => {
-          scrollRef.current?.scrollTo(nextTop);
+          scrollRef.current?.scrollTo(targetTop);
         };
 
-        lastViewportRowAnchorRef.current = anchor;
+        if (anchor && resolvedTop !== null) {
+          lastViewportRowAnchorRef.current = anchor;
+        }
         suppressViewportSelectionSync();
         restoreViewportAnchor();
         // Retry across a couple of repaint cycles so the restored top-row anchor sticks
@@ -937,11 +969,13 @@ export function DiffPane({
     previousSectionGeometryRef.current = sectionGeometry;
     previousFilesRef.current = files;
   }, [
+    clampReviewScrollTop,
     files,
     layout,
     layoutToggleRequestId,
     layoutToggleScrollTop,
     scrollRef,
+    scrollViewport.height,
     scrollViewport.top,
     sectionGeometry,
     sectionHeaderHeights,

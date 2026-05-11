@@ -540,7 +540,10 @@ describe("UI components", () => {
 
     try {
       await settleDiffPane(setup);
-      const frame = setup.captureCharFrame();
+      const frame = await waitForFrame(
+        setup,
+        (text) => text.includes("11 - export const line11 = 11;") && !text.includes("intro.ts"),
+      );
 
       expect(frame).toContain("11 - export const line11 = 11;");
       expect(frame).toContain("11 + export const line11 = 1100;");
@@ -907,7 +910,12 @@ describe("UI components", () => {
 
     try {
       await settleDiffPane(setup);
-      const frame = setup.captureCharFrame();
+      const frame = await waitForFrame(
+        setup,
+        (text) =>
+          text.includes("16 - export const line16 = 16;") &&
+          !text.includes("2 - export const line2 = 2;"),
+      );
 
       expect(frame).toContain("export const line11 = 11;");
       expect(frame).toContain("14 - export const line14 = 14;");
@@ -946,7 +954,12 @@ describe("UI components", () => {
 
     try {
       await settleDiffPane(setup);
-      const frame = setup.captureCharFrame();
+      const frame = await waitForFrame(
+        setup,
+        (text) =>
+          text.includes("18   export const line18 = 18;") &&
+          !text.includes("2 - export const line2 = 2;"),
+      );
 
       expect(frame).toContain("11   export const line11 = 11;");
       expect(frame).toContain("14 + export const line14 = 'this is a");
@@ -1014,7 +1027,9 @@ describe("UI components", () => {
 
     try {
       await settleDiffPane(setup);
-      const frame = setup.captureCharFrame();
+      const frame = await waitForFrame(setup, (text) =>
+        text.includes("Keep the selected hunk visible with its note."),
+      );
 
       // The minimal note card (left accent + title + body, no box border) keeps
       // the selected hunk and its inline comment visible together.
@@ -1080,7 +1095,7 @@ describe("UI components", () => {
 
     try {
       await settleDiffPane(setupWithout);
-      const frameWithout = setupWithout.captureCharFrame();
+      const frameWithout = await waitForFrame(setupWithout, (text) => text.includes("line57"));
 
       // dunk context (lines near 57-59) should be visible at the top.
       expect(frameWithout).toContain("line57");
@@ -1110,7 +1125,9 @@ describe("UI components", () => {
 
     try {
       await settleDiffPane(setupWith);
-      const frameWith = setupWith.captureCharFrame();
+      const frameWith = await waitForFrame(setupWith, (text) =>
+        text.includes("Note anchored on second hunk."),
+      );
 
       // Note should be visible.
       expect(frameWith).toContain("Note anchored on second hunk.");

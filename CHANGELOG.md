@@ -8,6 +8,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Fixed
+
+- Preserve scroll position when a comment is added, edited, or deleted (and when `.dunk/comments.json` reloads externally). The review pane re-anchors on a surviving diff row so inserting or removing inline comment cards no longer pushes the code you were reading out from under the viewport.
+
 ## [0.12.1] - 2026-05-11
 
 ### Fixed
