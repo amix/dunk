@@ -37,6 +37,12 @@ dunk diff before.ts after.ts # compare two concrete files
 git diff --no-color | dunk patch - # review a patch from stdin
 ```
 
+## Screenshots
+
+<img height="1000" alt="CleanShot 2026-05-11 at 09 04 15@2x" src="https://github.com/user-attachments/assets/b3c2b34d-cf06-4cdb-a1e3-c430843ef3d6" />
+
+<img height="1000" alt="CleanShot 2026-05-11 at 09 05 43@2x" src="https://github.com/user-attachments/assets/8bfd6e44-b831-4122-a0eb-5a8bec328bcf" />
+
 ## Agent review workflow
 
 `dunk` is designed for a human reviewer in one terminal and a coding agent in another.
