@@ -1057,7 +1057,6 @@ export async function loadAppBootstrap(
     initialShowLineNumbers: input.options.lineNumbers ?? DEFAULT_VIEW_PREFERENCES.showLineNumbers,
     initialWrapLines: input.options.wrapLines ?? DEFAULT_VIEW_PREFERENCES.wrapLines,
     initialShowHunkHeaders: input.options.hunkHeaders ?? DEFAULT_VIEW_PREFERENCES.showHunkHeaders,
-    initialShowComments: input.options.comments ?? DEFAULT_VIEW_PREFERENCES.showComments,
     initialSelectionAutoCopy:
       input.options.selectionAutoCopy ?? DEFAULT_VIEW_PREFERENCES.selectionAutoCopy,
     driftedComments: merged.drifted,

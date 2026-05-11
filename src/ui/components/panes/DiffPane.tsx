@@ -40,7 +40,6 @@ import type { VisibleBodyBounds } from "../../diff/rowWindowing";
 import { prefetchHighlightedDiff } from "../../diff/useHighlightedDiff";
 
 const EMPTY_VISIBLE_AGENT_NOTES: VisibleAgentNote[] = [];
-const EMPTY_VISIBLE_AGENT_NOTES_BY_FILE = new Map<string, VisibleAgentNote[]>();
 
 /**
  * Clamp one vertical scroll target into the currently reachable review-stream extent.
@@ -138,7 +137,6 @@ export function DiffPane({
   scrollToNote = false,
   separatorWidth,
   pagerMode = false,
-  showComments,
   showLineNumbers,
   showHunkHeaders,
   wrapLines,
@@ -166,7 +164,6 @@ export function DiffPane({
   scrollToNote?: boolean;
   separatorWidth: number;
   pagerMode?: boolean;
-  showComments: boolean;
   showLineNumbers: boolean;
   showHunkHeaders: boolean;
   wrapLines: boolean;
@@ -252,10 +249,6 @@ export function DiffPane({
   const allAgentNotesByFile = useMemo(() => {
     const next = new Map<string, VisibleAgentNote[]>();
 
-    if (!showComments) {
-      return next;
-    }
-
     files.forEach((file) => {
       if (file.annotations.length === 0) {
         return;
@@ -271,7 +264,7 @@ export function DiffPane({
     });
 
     return next;
-  }, [files, showComments]);
+  }, [files]);
 
   // Keep exact row rendering for wrapped lines and the selected file's visible notes;
   // other files can still use placeholders and viewport windowing.
@@ -441,10 +434,6 @@ export function DiffPane({
   const visibleAgentNotesByFile = useMemo(() => {
     const next = new Map<string, VisibleAgentNote[]>();
 
-    if (!showComments) {
-      return EMPTY_VISIBLE_AGENT_NOTES_BY_FILE;
-    }
-
     const fileIdsToMeasure = new Set(visibleViewportFileIds);
     // Always measure the selected file with its real note rows so hunk navigation can compute
     // accurate bounds even before the file scrolls into the visible viewport.
@@ -460,7 +449,7 @@ export function DiffPane({
     }
 
     return next;
-  }, [allAgentNotesByFile, selectedFileId, showComments, visibleViewportFileIds]);
+  }, [allAgentNotesByFile, selectedFileId, visibleViewportFileIds]);
 
   // Measure with the *full* set of agent notes per file, not just the visible-viewport set.
   // The visible set is correct for rendering (skip painting cards on off-screen files), but

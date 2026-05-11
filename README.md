@@ -142,7 +142,6 @@ vcs = "git"          # git, jj
 exclude_untracked = false
 line_numbers = false
 wrap_lines = true
-comments = true
 selection_auto_copy = true
 ```
 

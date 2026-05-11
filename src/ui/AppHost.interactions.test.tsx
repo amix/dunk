@@ -60,6 +60,29 @@ function createBootstrap(initialMode: LayoutMode = "split", pager = false): AppB
   });
 }
 
+/** Sidebar-focused bootstrap without an annotation on alpha so `/alpha\.ts/g` counts stay stable. */
+function createSidebarBootstrap(initialMode: LayoutMode = "split", pager = false): AppBootstrap {
+  return createTestVcsAppBootstrap({
+    changesetId: "changeset:sidebar",
+    files: [
+      createTestDiffFile(
+        "alpha",
+        "alpha.ts",
+        "export const alpha = 1;\n",
+        "export const alpha = 2;\nexport const add = true;\n",
+      ),
+      createTestDiffFile(
+        "beta",
+        "beta.ts",
+        "export const beta = 1;\n",
+        "export const betaValue = 1;\n",
+      ),
+    ],
+    initialMode,
+    pager,
+  });
+}
+
 function createSingleFileBootstrap(): AppBootstrap {
   return createTestVcsAppBootstrap({
     changesetId: "changeset:app-single-file",
@@ -218,9 +241,8 @@ function createRapidViewportLoopBootstrap(): AppBootstrap {
   return createTestVcsAppBootstrap({
     changesetId: "changeset:rapid-viewport",
     files,
-    vcsOptions: { mode: "stack", comments: true },
+    vcsOptions: { mode: "stack" },
     initialMode: "stack",
-    initialShowComments: true,
   });
 }
 
@@ -379,9 +401,8 @@ describe("App interactions", () => {
     }
   }, 20_000);
 
-  test("keyboard shortcuts toggle comments, line numbers, and hunk metadata", async () => {
+  test("keyboard shortcuts toggle line numbers and hunk metadata", async () => {
     const bootstrap = createSingleFileBootstrap();
-    bootstrap.initialShowComments = true;
     bootstrap.initialShowLineNumbers = true;
 
     const setup = await testRender(<AppHost bootstrap={bootstrap} />, {
@@ -393,16 +414,9 @@ describe("App interactions", () => {
       await flush(setup);
 
       let frame = setup.captureCharFrame();
+      // Comments are always rendered now; there's no toggle to flip them off.
       expect(frame).toContain("Annotation for alpha.ts");
       expect(frame).toContain("Why alpha.ts changed");
-
-      await act(async () => {
-        await setup.mockInput.typeText("c");
-      });
-      await flush(setup);
-
-      frame = setup.captureCharFrame();
-      expect(frame).not.toContain("Annotation for alpha.ts");
 
       await act(async () => {
         await setup.mockInput.typeText("l");
@@ -823,7 +837,6 @@ describe("App interactions", () => {
           initialShowLineNumbers: false,
           initialWrapLines: true,
           initialShowHunkHeaders: false,
-          initialShowComments: true,
         }}
       />,
       { width: 140, height: 20 },
@@ -954,7 +967,6 @@ describe("App interactions", () => {
 
   test("comments are visible by default across every visible review file", async () => {
     const bootstrap = createBootstrap();
-    bootstrap.initialShowComments = true;
     bootstrap.changeset.files[1]!.annotations = [
       {
         newRange: [1, 1],
@@ -1542,7 +1554,7 @@ describe("App interactions", () => {
   });
 
   test("sidebar visibility can toggle off and back on", async () => {
-    const setup = await testRender(<AppHost bootstrap={createBootstrap()} />, {
+    const setup = await testRender(<AppHost bootstrap={createSidebarBootstrap()} />, {
       width: 240,
       height: 24,
     });
@@ -1576,7 +1588,7 @@ describe("App interactions", () => {
   });
 
   test("pager mode can toggle the sidebar file tree", async () => {
-    const setup = await testRender(<AppHost bootstrap={createBootstrap("auto", true)} />, {
+    const setup = await testRender(<AppHost bootstrap={createSidebarBootstrap("auto", true)} />, {
       width: 220,
       height: 24,
     });
@@ -1612,7 +1624,7 @@ describe("App interactions", () => {
   });
 
   test("sidebar shortcut can force the sidebar open when responsive layout hides it", async () => {
-    const setup = await testRender(<AppHost bootstrap={createBootstrap("auto")} />, {
+    const setup = await testRender(<AppHost bootstrap={createSidebarBootstrap("auto")} />, {
       width: 160,
       height: 24,
     });

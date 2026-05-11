@@ -63,7 +63,6 @@ function buildCommonOptions(
     lineNumbers: resolveBooleanFlag(argv, "--line-numbers", "--no-line-numbers"),
     wrapLines: resolveBooleanFlag(argv, "--wrap", "--no-wrap"),
     hunkHeaders: resolveBooleanFlag(argv, "--hunk-headers", "--no-hunk-headers"),
-    comments: resolveBooleanFlag(argv, "--comments", "--no-comments"),
   };
 }
 
@@ -78,9 +77,7 @@ function applyCommonOptions(command: Command) {
     .option("--wrap", "wrap long diff lines")
     .option("--no-wrap", "truncate long diff lines to one row")
     .option("--hunk-headers", "show hunk metadata rows")
-    .option("--no-hunk-headers", "hide hunk metadata rows")
-    .option("--comments", "show user comments by default")
-    .option("--no-comments", "hide user comments by default");
+    .option("--no-hunk-headers", "hide hunk metadata rows");
 }
 
 /** Attach auto-refresh support to review commands that can reopen their source input. */
@@ -139,7 +136,6 @@ function renderCliHelp() {
     "  --line-numbers / --no-line-numbers      show or hide line numbers",
     "  --wrap / --no-wrap                      wrap or truncate long diff lines",
     "  --hunk-headers / --no-hunk-headers      show or hide hunk metadata rows",
-    "  --comments / --no-comments              show or hide user comments by default",
     "  --theme <theme>                         named theme override",
     "",
     "Git diff options:",

@@ -53,7 +53,6 @@ export function HelpDialog({
       items: [
         ["1 / 2 / 0", "split / stack / auto"],
         ["s / t", "sidebar / theme"],
-        ["c", "toggle comments"],
         ["l / w / m", "lines / wrap / metadata"],
       ],
     },

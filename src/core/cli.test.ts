@@ -81,7 +81,6 @@ describe("parseCli", () => {
       "--no-line-numbers",
       "--wrap",
       "--no-hunk-headers",
-      "--comments",
       "--watch",
     ]);
 
@@ -96,7 +95,6 @@ describe("parseCli", () => {
         lineNumbers: false,
         wrapLines: true,
         hunkHeaders: false,
-        comments: true,
       },
     });
   });

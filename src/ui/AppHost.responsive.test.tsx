@@ -13,7 +13,6 @@ function createBootstrap(initialMode: LayoutMode = "auto", pager = false): AppBo
     files: [
       createTestDiffFile({
         after: "export const alpha = 2;\nexport const add = true;\n",
-        annotations: true,
         before: "export const alpha = 1;\n",
         context: 3,
         id: "alpha",
@@ -28,7 +27,6 @@ function createBootstrap(initialMode: LayoutMode = "auto", pager = false): AppBo
       }),
     ],
     initialMode,
-    initialShowComments: false,
     pager,
     summary: "Patch summary",
   });

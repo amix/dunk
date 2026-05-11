@@ -15,7 +15,6 @@ export const DEFAULT_VIEW_PREFERENCES: PersistedViewPreferences = {
   showLineNumbers: false,
   wrapLines: true,
   showHunkHeaders: true,
-  showComments: true,
   selectionAutoCopy: true,
 };
 
@@ -64,7 +63,6 @@ function readConfigPreferences(source: Record<string, unknown>): CommonOptions {
     lineNumbers: normalizeBoolean(source.line_numbers),
     wrapLines: normalizeBoolean(source.wrap_lines),
     hunkHeaders: normalizeBoolean(source.hunk_headers),
-    comments: normalizeBoolean(source.comments),
     selectionAutoCopy: normalizeBoolean(source.selection_auto_copy),
   };
 }
@@ -82,7 +80,6 @@ function mergeOptions(base: CommonOptions, overrides: CommonOptions): CommonOpti
     lineNumbers: overrides.lineNumbers ?? base.lineNumbers,
     wrapLines: overrides.wrapLines ?? base.wrapLines,
     hunkHeaders: overrides.hunkHeaders ?? base.hunkHeaders,
-    comments: overrides.comments ?? base.comments,
     selectionAutoCopy: overrides.selectionAutoCopy ?? base.selectionAutoCopy,
   };
 }
@@ -166,7 +163,6 @@ export function resolveConfiguredCliInput(
     lineNumbers: DEFAULT_VIEW_PREFERENCES.showLineNumbers,
     wrapLines: DEFAULT_VIEW_PREFERENCES.wrapLines,
     hunkHeaders: DEFAULT_VIEW_PREFERENCES.showHunkHeaders,
-    comments: DEFAULT_VIEW_PREFERENCES.showComments,
     selectionAutoCopy: DEFAULT_VIEW_PREFERENCES.selectionAutoCopy,
   };
 

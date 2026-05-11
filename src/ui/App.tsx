@@ -64,7 +64,6 @@ function withCurrentViewOptions(
   view: {
     layoutMode: LayoutMode;
     themeId: string;
-    showComments: boolean;
     showHunkHeaders: boolean;
     showLineNumbers: boolean;
     wrapLines: boolean;
@@ -76,7 +75,6 @@ function withCurrentViewOptions(
       ...input.options,
       mode: view.layoutMode,
       theme: view.themeId,
-      comments: view.showComments,
       hunkHeaders: view.showHunkHeaders,
       lineNumbers: view.showLineNumbers,
       wrapLines: view.wrapLines,
@@ -118,7 +116,6 @@ export function App({
   const [themeId, setThemeId] = useState(
     () => resolveTheme(bootstrap.initialTheme, renderer.themeMode).id,
   );
-  const [showComments, setShowComments] = useState(bootstrap.initialShowComments ?? true);
   const [showLineNumbers, setShowLineNumbers] = useState(bootstrap.initialShowLineNumbers ?? true);
   const [wrapLines, setWrapLines] = useState(bootstrap.initialWrapLines ?? false);
   const [codeHorizontalOffset, setCodeHorizontalOffset] = useState(0);
@@ -391,10 +388,6 @@ export function App({
     setLayoutMode(mode);
   }, []);
 
-  const toggleComments = () => {
-    setShowComments((current) => !current);
-  };
-
   /** Toggle line-number gutters without changing the diff content itself. */
   const toggleLineNumbers = () => {
     setShowLineNumbers((current) => !current);
@@ -453,7 +446,6 @@ export function App({
     const nextInput = withCurrentViewOptions(bootstrap.input, {
       layoutMode,
       themeId,
-      showComments,
       showHunkHeaders,
       showLineNumbers,
       wrapLines,
@@ -474,7 +466,6 @@ export function App({
     canRefreshCurrentInput,
     layoutMode,
     onReloadSession,
-    showComments,
     showHunkHeaders,
     showLineNumbers,
     themeId,
@@ -872,7 +863,6 @@ export function App({
     scrollDiff,
     selectLayoutMode,
     showHelp,
-    toggleComments,
     toggleFocusArea,
     toggleHelp,
     toggleHunkHeaders,
@@ -1008,7 +998,6 @@ export function App({
           selectedHunkIndex={selectedDriftIndex !== null ? -1 : selectedHunkIndex}
           scrollToNote={review.scrollToNote}
           separatorWidth={diffSeparatorWidth}
-          showComments={showComments}
           showLineNumbers={showLineNumbers}
           showHunkHeaders={showHunkHeaders}
           wrapLines={wrapLines}
