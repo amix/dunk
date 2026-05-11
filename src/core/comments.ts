@@ -2,7 +2,9 @@
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { isAbsolute, join, relative, resolve as resolvePath } from "node:path";
+import { z } from "zod";
 import { DUNK_COMMENTS_FILENAME, DUNK_DIR } from "./dunkPaths";
+import { DunkUserError } from "./errors";
 import type { Annotation, Changeset, DiffFile, DriftReason, LineRange } from "./types";
 
 /**
@@ -27,6 +29,36 @@ export function resolveCommentPathWithinRepo(repoRoot: string, relPath: string):
 
 const SCHEMA_VERSION = 1;
 const ANCHOR_HEX_LEN = 16;
+
+/**
+ * Zod schema for a persisted comment. Keeps `.dunk/comments.json` honest
+ * even when an agent (or hand-edit) drops in a malformed entry — without
+ * this guard, missing `range`/`line`/`body` fields crash render with
+ * cryptic `lines[0]` undefined errors.
+ */
+const PersistedCommentSchema = z
+  .object({
+    id: z.number().int().positive(),
+    file: z.string().min(1),
+    line: z.number().int().positive(),
+    range: z
+      .tuple([z.number().int().positive(), z.number().int().positive()])
+      .refine(([start, end]) => start <= end, {
+        message: "range start must not exceed range end",
+      }),
+    anchor: z.string().regex(/^[0-9a-f]{16}$/, "anchor must be a 16-hex SHA-256 prefix"),
+    body: z.string(),
+  })
+  // Strict so a typo'd field (e.g. `rationale`) trips validation instead of
+  // silently sticking around through write cycles.
+  .strict();
+
+const CommentsFileSchema = z
+  .object({
+    schema: z.literal(SCHEMA_VERSION),
+    comments: z.array(PersistedCommentSchema),
+  })
+  .strict();
 
 /**
  * A persisted comment as it appears on disk.
@@ -148,6 +180,23 @@ export function computeAnchorForFile(
   return anchor || null;
 }
 
+/**
+ * Format the first few zod issues into a multi-line, agent-actionable hint
+ * (path, then the human-readable message), capped so a wildly broken file
+ * doesn't drown the user in noise.
+ */
+function summarizeCommentsValidationIssues(error: z.ZodError): string[] {
+  const limit = 5;
+  const issues = error.issues.slice(0, limit).map((issue) => {
+    const path = issue.path.length > 0 ? issue.path.join(".") : "<root>";
+    return `  ${path}: ${issue.message}`;
+  });
+  if (error.issues.length > limit) {
+    issues.push(`  ... and ${error.issues.length - limit} more issue(s) (truncated)`);
+  }
+  return issues;
+}
+
 /** Read `.dunk/comments.json` from the repo root, returning [] if missing. */
 export function readCommentsFile(repoRoot: string): CommentsFile {
   const path = join(repoRoot, DUNK_DIR, DUNK_COMMENTS_FILENAME);
@@ -156,17 +205,35 @@ export function readCommentsFile(repoRoot: string): CommentsFile {
   }
 
   const raw = readFileSync(path, "utf8");
-  const parsed = JSON.parse(raw) as Partial<CommentsFile>;
-  if (parsed.schema !== SCHEMA_VERSION) {
-    throw new Error(
-      `Unsupported dunk comments schema ${parsed.schema} at ${path} (expected ${SCHEMA_VERSION}).`,
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new DunkUserError(`Malformed JSON in ${path}: ${detail}`, [
+      "Repair the file by hand, or delete it to start fresh — dunk recreates an empty one on the next write.",
+    ]);
+  }
+
+  if (
+    parsed &&
+    typeof parsed === "object" &&
+    "schema" in parsed &&
+    parsed.schema !== SCHEMA_VERSION
+  ) {
+    throw new DunkUserError(
+      `Unsupported dunk comments schema ${(parsed as { schema: unknown }).schema} at ${path} (expected ${SCHEMA_VERSION}).`,
     );
   }
 
-  return {
-    schema: SCHEMA_VERSION,
-    comments: Array.isArray(parsed.comments) ? parsed.comments : [],
-  };
+  const result = CommentsFileSchema.safeParse(parsed);
+  if (!result.success) {
+    throw new DunkUserError(`Invalid comment in ${path}:`, [
+      ...summarizeCommentsValidationIssues(result.error),
+      "Fix the offending entry (or remove it). Silently dropping bad entries would hide data loss, so the read refuses to continue.",
+    ]);
+  }
+  return result.data;
 }
 
 /** Atomically write the comments file using a unique temp + rename. */
@@ -406,19 +473,14 @@ function readCommentsFileWithFingerprint(repoRoot: string): {
     return { file: { schema: SCHEMA_VERSION, comments: [] }, fingerprint: null };
   }
 
+  // Hash the raw bytes, then route the parse through readCommentsFile so the
+  // optimistic-write path enforces the same zod schema the rest of dunk does.
+  // Reading twice (here + inside readCommentsFile) is fine — comments.json is
+  // tiny KB-range and only re-hits page cache.
   const raw = readFileSync(path, "utf8");
-  const parsed = JSON.parse(raw) as Partial<CommentsFile>;
-  if (parsed.schema !== SCHEMA_VERSION) {
-    throw new Error(
-      `Unsupported dunk comments schema ${parsed.schema} at ${path} (expected ${SCHEMA_VERSION}).`,
-    );
-  }
-
+  const file = readCommentsFile(repoRoot);
   return {
-    file: {
-      schema: SCHEMA_VERSION,
-      comments: Array.isArray(parsed.comments) ? parsed.comments : [],
-    },
+    file,
     fingerprint: createHash("sha256").update(raw).digest("hex"),
   };
 }

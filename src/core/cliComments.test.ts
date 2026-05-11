@@ -274,8 +274,8 @@ describe("dunk comments CLI", () => {
     writeCommentsFile(repoRoot, {
       schema: 1,
       comments: [
-        { id: 1, file: "a.ts", line: 1, range: [1, 1], anchor: "a", body: "first" },
-        { id: 2, file: "b.ts", line: 1, range: [1, 1], anchor: "b", body: "second" },
+        { id: 1, file: "a.ts", line: 1, range: [1, 1], anchor: "aaaaaaaaaaaaaaaa", body: "first" },
+        { id: 2, file: "b.ts", line: 1, range: [1, 1], anchor: "bbbbbbbbbbbbbbbb", body: "second" },
       ],
     });
 
@@ -286,7 +286,9 @@ describe("dunk comments CLI", () => {
     const repoBefore = repoRoot;
     writeCommentsFile(repoBefore, {
       schema: 1,
-      comments: [{ id: 1, file: "a.ts", line: 1, range: [1, 1], anchor: "a", body: "first" }],
+      comments: [
+        { id: 1, file: "a.ts", line: 1, range: [1, 1], anchor: "aaaaaaaaaaaaaaaa", body: "first" },
+      ],
     });
 
     expect(() => runCommentsResolve([2], { cwd: repoRoot })).toThrow(/No dunk comment with id #2/);
@@ -297,8 +299,8 @@ describe("dunk comments CLI", () => {
     writeCommentsFile(repoRoot, {
       schema: 1,
       comments: [
-        { id: 1, file: "a.ts", line: 1, range: [1, 1], anchor: "a", body: "first" },
-        { id: 2, file: "b.ts", line: 1, range: [1, 1], anchor: "b", body: "second" },
+        { id: 1, file: "a.ts", line: 1, range: [1, 1], anchor: "aaaaaaaaaaaaaaaa", body: "first" },
+        { id: 2, file: "b.ts", line: 1, range: [1, 1], anchor: "bbbbbbbbbbbbbbbb", body: "second" },
       ],
     });
 
@@ -314,9 +316,9 @@ describe("dunk comments CLI", () => {
     writeCommentsFile(repoRoot, {
       schema: 1,
       comments: [
-        { id: 1, file: "a.ts", line: 1, range: [1, 1], anchor: "a", body: "first" },
-        { id: 2, file: "b.ts", line: 1, range: [1, 1], anchor: "b", body: "second" },
-        { id: 3, file: "c.ts", line: 1, range: [1, 1], anchor: "c", body: "third" },
+        { id: 1, file: "a.ts", line: 1, range: [1, 1], anchor: "aaaaaaaaaaaaaaaa", body: "first" },
+        { id: 2, file: "b.ts", line: 1, range: [1, 1], anchor: "bbbbbbbbbbbbbbbb", body: "second" },
+        { id: 3, file: "c.ts", line: 1, range: [1, 1], anchor: "cccccccccccccccc", body: "third" },
       ],
     });
 
@@ -331,7 +333,9 @@ describe("dunk comments CLI", () => {
     const repoRoot = createTempRepo();
     writeCommentsFile(repoRoot, {
       schema: 1,
-      comments: [{ id: 1, file: "a.ts", line: 1, range: [1, 1], anchor: "a", body: "first" }],
+      comments: [
+        { id: 1, file: "a.ts", line: 1, range: [1, 1], anchor: "aaaaaaaaaaaaaaaa", body: "first" },
+      ],
     });
 
     expect(() => runCommentsResolve([1, 99], { cwd: repoRoot })).toThrow(

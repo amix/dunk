@@ -12,6 +12,7 @@ import {
   withRemovedComments,
   writeCommentsFile,
 } from "./comments";
+import { DunkUserError } from "./errors";
 
 function withTempRepo<T>(run: (repoRoot: string) => T): T {
   const repoRoot = mkdtempSync(join(tmpdir(), "dunk-comments-"));
@@ -130,21 +131,21 @@ describe("dunk comments", () => {
       file: "x",
       line: 1,
       range: [1, 1],
-      anchor: "a",
+      anchor: "aaaaaaaaaaaaaaaa",
       body: "1",
     }).file;
     file = withAddedComment(file, {
       file: "x",
       line: 2,
       range: [2, 2],
-      anchor: "b",
+      anchor: "bbbbbbbbbbbbbbbb",
       body: "2",
     }).file;
     file = withAddedComment(file, {
       file: "x",
       line: 3,
       range: [3, 3],
-      anchor: "c",
+      anchor: "cccccccccccccccc",
       body: "3",
     }).file;
 
@@ -192,6 +193,83 @@ describe("dunk comments", () => {
       );
 
       expect(() => readCommentsFile(repoRoot)).toThrow(/Unsupported dunk comments schema/);
+    });
+  });
+
+  test("readCommentsFile fails loudly on malformed JSON", () => {
+    withTempRepo((repoRoot) => {
+      mkdirSync(join(repoRoot, ".dunk"), { recursive: true });
+      writeFileSync(join(repoRoot, ".dunk", "comments.json"), "{ not json");
+      expect(() => readCommentsFile(repoRoot)).toThrow(/Malformed JSON in/);
+    });
+  });
+
+  test("readCommentsFile rejects entries with missing required fields", () => {
+    withTempRepo((repoRoot) => {
+      mkdirSync(join(repoRoot, ".dunk"), { recursive: true });
+      writeFileSync(
+        join(repoRoot, ".dunk", "comments.json"),
+        JSON.stringify({
+          schema: 1,
+          comments: [{ id: 1, file: "x.ts", line: 1 }],
+        }),
+      );
+      expect(() => readCommentsFile(repoRoot)).toThrow(/Invalid comment in/);
+    });
+  });
+
+  test("readCommentsFile rejects out-of-shape ranges", () => {
+    withTempRepo((repoRoot) => {
+      mkdirSync(join(repoRoot, ".dunk"), { recursive: true });
+      writeFileSync(
+        join(repoRoot, ".dunk", "comments.json"),
+        JSON.stringify({
+          schema: 1,
+          comments: [
+            {
+              id: 1,
+              file: "x.ts",
+              line: 3,
+              range: [5, 2],
+              anchor: "deadbeefcafef00d",
+              body: "swapped range",
+            },
+          ],
+        }),
+      );
+      // Validate that the user sees the precise zod hint, not a generic "invalid" message.
+      try {
+        readCommentsFile(repoRoot);
+        throw new Error("readCommentsFile should have rejected the swapped range");
+      } catch (error) {
+        expect(error).toBeInstanceOf(DunkUserError);
+        const details = (error as DunkUserError).details.join("\n");
+        expect(details).toMatch(/range start must not exceed range end/);
+      }
+    });
+  });
+
+  test("readCommentsFile rejects unknown extra fields", () => {
+    withTempRepo((repoRoot) => {
+      mkdirSync(join(repoRoot, ".dunk"), { recursive: true });
+      writeFileSync(
+        join(repoRoot, ".dunk", "comments.json"),
+        JSON.stringify({
+          schema: 1,
+          comments: [
+            {
+              id: 1,
+              file: "x.ts",
+              line: 1,
+              range: [1, 1],
+              anchor: "deadbeefcafef00d",
+              body: "ok",
+              rationale: "leftover from older shape",
+            },
+          ],
+        }),
+      );
+      expect(() => readCommentsFile(repoRoot)).toThrow(/Invalid comment in/);
     });
   });
 });
