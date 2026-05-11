@@ -318,7 +318,7 @@ export function createPtyHarness() {
     ]);
   }
 
-  /** Build the cross-file hunk-navigation shape that used to jump backward to the file top. */
+  /** Build a cross-file hunk-navigation fixture with a long file followed by a short file. */
   function createCrossFileHunkNavigationRepoFixture() {
     const longBeforeLines = Array.from(
       { length: 342 },
@@ -408,10 +408,7 @@ export function createPtyHarness() {
   }) {
     const { launchTerminal } = await loadTuistory();
 
-    // PTY assertions in this suite were written against the historical view
-    // defaults (line numbers ON, line wrap OFF). After the fork rebrand the
-    // user-facing defaults flipped, so we opt every PTY launch back into the
-    // legacy shape unless the test explicitly overrides either flag.
+    // Keep PTY snapshots stable unless a test explicitly covers these view flags.
     const passesLineNumberFlag = options.args.some(
       (arg) => arg === "--line-numbers" || arg === "--no-line-numbers",
     );

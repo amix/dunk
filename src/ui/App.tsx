@@ -321,8 +321,7 @@ export function App({
       void copyToClipboard(text).then((copied) => {
         // Surface both success and failure so the user can tell whether the
         // OS helper (pbcopy / wl-copy / xclip) actually accepted the
-        // selection. On macOS in particular a silent failure used to look
-        // like "select-to-copy isn't working at all".
+        // selection.
         flashStatus(copied ? "copied to clipboard" : "clipboard copy failed");
       });
     };

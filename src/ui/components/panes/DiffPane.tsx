@@ -201,7 +201,7 @@ export function DiffPane({
     [files, selectedFileId],
   );
 
-  /** Route shifted wheel input into horizontal code-column scrolling without disturbing vertical review scroll. */
+  /** Route shifted wheel input into horizontal code scrolling. */
   const handleMouseScroll = useCallback(
     (event: TuiMouseEvent) => {
       const scrollBox = scrollRef.current;
@@ -550,22 +550,15 @@ export function DiffPane({
     }
   }, [files, highlightPrefetchFileIds, theme.appearance]);
 
-  // Read the live scroll box position during render so pinned-header ownership flips
-  // immediately after imperative scrolls instead of waiting for the polled viewport snapshot.
+  // Use the live scroll position so pinned headers react to imperative scrolls immediately.
   const effectiveScrollTop = scrollRef.current?.scrollTop ?? scrollViewport.top;
-
-  // Selection only changes via explicit user input (J/K, sidebar clicks). The earlier
-  // viewport-centered tracker fought J/K reveals and produced visible flicker; smart
-  // mouse-scroll tracking is a TODO follow-up that will reintroduce a tracker carefully.
 
   const pinnedHeaderFile = useMemo(() => {
     if (files.length === 0) {
       return null;
     }
 
-    // The current file header always owns the pinned top row.
-    // Use the previous visible row to decide ownership so the next file's real header can still
-    // scroll through the stream before the pinned header hands off to it on the following row.
+    // The previous visible row owns the pinned header until the next header scrolls through.
     const owner = findHeaderOwningFileSection(
       fileSectionLayouts,
       Math.max(0, effectiveScrollTop - 1),
@@ -845,7 +838,7 @@ export function DiffPane({
   const selectedNoteTop = selectedNoteBounds?.top ?? null;
   const selectedNoteHeight = selectedNoteBounds?.height ?? null;
 
-  /** The bodyTop of the currently selected file's section layout, used to floor hunk reveal scroll targets so they never cross above the owning file boundary. */
+  /** File-body top used to keep hunk reveal targets inside the selected file. */
   const selectedFileBodyTop =
     selectedFileIndex >= 0 ? (fileSectionLayouts[selectedFileIndex]?.bodyTop ?? 0) : 0;
 
@@ -1089,9 +1082,7 @@ export function DiffPane({
       const viewportHeight = Math.max(scrollViewport.height, scrollBox.viewport.height ?? 0);
       const preferredTopPadding = Math.max(2, Math.floor(viewportHeight * 0.25));
 
-      // When navigating comment-to-comment, scroll the inline note card near the viewport top
-      // instead of positioning the entire hunk. Clamp the reveal target too: notes in the final
-      // hunk can request a top offset that is no longer reachable once the viewport hits EOF.
+      // Comment-to-comment navigation reveals the note card, not the whole hunk.
       if (selectedNoteBounds) {
         const revealScrollTop = computeHunkRevealScrollTop({
           hunkTop: selectedNoteBounds.top,

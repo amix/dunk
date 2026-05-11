@@ -6,11 +6,8 @@ import { spawn } from "node:child_process";
  * to `false` rather than throwing, since this is wired to a passive UI
  * action (selection auto-copy) where failure should be silent.
  *
- * macOS note: pbcopy reads from stdin and exits when stdin closes. Some
- * spawn paths (especially under bun's bundled binary) raced the stdin
- * close before pbcopy could consume the bytes. The implementation here
- * uses node's `spawn` and writes via `child.stdin.end(text)` which queues
- * the write and closes after flush — that's the shape pbcopy expects.
+ * pbcopy expects stdin to close only after the write is queued, so this uses
+ * `child.stdin.end(text)` rather than closing the pipe separately.
  */
 export async function copyToClipboard(text: string): Promise<boolean> {
   if (text.length === 0) {

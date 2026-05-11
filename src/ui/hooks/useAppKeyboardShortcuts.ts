@@ -85,8 +85,7 @@ export function useAppKeyboardShortcuts({
   const showHelpRef = useRef(showHelp);
   const commentEditorActiveRef = useRef(commentEditorActive);
   const confirmActiveRef = useRef(confirmActive);
-  // Track the last key press time + sequence for the vim-style `gg` chord. Anything
-  // older than the window resets the chord so a stray `g` doesn't fire later.
+  // Track the vim-style `gg` chord inside a short timeout window.
   const pendingGAtRef = useRef<number | null>(null);
   const G_CHORD_WINDOW_MS = 600;
 
@@ -241,10 +240,7 @@ export function useAppKeyboardShortcuts({
       return;
     }
 
-    // Vim-style top/bottom: `gg` selects the first hunk in the review stream
-    // (highlighting + reveal stay in sync); Shift+G selects the last. The
-    // earlier scroll-only behavior moved the viewport but left selection
-    // stranded on whichever hunk was previously focused.
+    // Top/bottom navigation selects hunks so highlighting and reveal stay in sync.
     if (key.sequence === "g") {
       const now = Date.now();
       const previous = pendingGAtRef.current;
@@ -332,8 +328,7 @@ export function useAppKeyboardShortcuts({
     }
 
     if (key.sequence === "K" || key.sequence === "[") {
-      // `[` is the historical hunk-prev binding documented in older guides;
-      // we keep it as an alias so muscle memory and PTY tests both work.
+      // Keep `[` as a hunk-prev alias alongside shifted `K`.
       moveToHunk(-1);
       return;
     }

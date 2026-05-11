@@ -21,16 +21,10 @@ async function main() {
     throw new Error("Unreachable startup plan.");
   }
 
-  // From here on we're launching the alternate-screen TUI. All the heavy
-  // render-side modules — OpenTUI, React, AppHost, updateNotice, terminal —
-  // are dynamic-imported behind this branch so cold-paths like `--help`,
-  // `--version`, and `dunk comments {list,show,resolve}` don't pay for
-  // ~60 ms of Pierre + OpenTUI + tree-sitter module parsing they never use.
-  //
-  // Load @opentui/core first and sequentially: @opentui/react and the rest
-  // of the UI tree re-export symbols from it at module-init time, and a
-  // parallel Promise.all races their initialization against the core's,
-  // surfacing as `Cannot access 'TextNodeRenderable' before initialization`.
+  // Keep app-only modules behind the app startup branch so help, version,
+  // and comments commands stay on the cold path.
+  // Import @opentui/core before React bindings; those modules read core
+  // exports during initialization.
   const { createCliRenderer } = await import("@opentui/core");
   const [
     { createRoot },

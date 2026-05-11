@@ -10,8 +10,7 @@ import type { DiffRow, RenderSpan, SplitLineCell, StackLineCell } from "./pierre
 import { blendHex } from "../lib/color";
 import { fitText } from "../lib/text";
 
-// Re-exported so legacy diff-row imports keep working; the shared implementation
-// lives in lib/text alongside padText, with `…` as the default marker.
+// Shared text fitting lives in lib/text; this module re-exports it for diff-row callers.
 export { fitText };
 
 /** Slice styled spans to one visible window while preserving color runs. */

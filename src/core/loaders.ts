@@ -96,7 +96,7 @@ function stripTerminalControl(text: string) {
  * ```
  *
  * Lines from `commit ` through the first patch header (`diff --git `,
- * `--- `, or `+++ `) are dropped. dunk-body lines always start with
+ * `--- `, or `+++ `) are dropped. Diff body lines always start with
  * `+`, `-`, ` ` or `\`, so a real context line that begins with the word
  * "commit" is unaffected (its leading space prevents the regex match).
  *

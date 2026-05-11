@@ -4,15 +4,8 @@ import { padText } from "../../lib/text";
 import type { AppTheme } from "../../themes";
 
 /**
- * Render one review comment as a left-accented block. Used inline beneath the
- * hunk for anchored comments and stacked in the top-of-diff drift banner for
- * comments that no longer match the rendered hunks; the visual surface is the
- * same so the user sees one primitive everywhere.
- *
- * The card is body-first: a quiet `#id` (and a "1 of N" tail when the hunk
- * has multiple comments) sits as muted metadata above the prose, so the
- * comment text itself carries the visual weight. The left `▎` bar runs the
- * full height of the card so wrapped prose reads as one object.
+ * Render one review comment as a left-accented block.
+ * Metadata stays quiet so the comment body carries the visual weight.
  */
 
 /** Parse `dunk-comment:42` style ids back into their numeric handle, if shaped that way. */
@@ -24,11 +17,7 @@ function parseCommentId(annotationId: string | undefined): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-/**
- * Build the muted metadata header for one card: `#id · 1 of N` when a hunk
- * has multiple comments, just `#id` when single, or "" when the annotation
- * has no parseable id (defensive — never observed in practice).
- */
+/** Build the muted metadata header for one comment card. */
 function buildMetadataLabel(
   annotationId: string | undefined,
   commentIndex: number,
@@ -71,14 +60,12 @@ export function measureCommentCardHeight({
   width,
 }: {
   annotation: Annotation;
-  /** Kept for compatibility; the card no longer docks per-side. */
   anchorSide?: "old" | "new";
-  /** Kept for compatibility; the layout no longer affects card height. */
   layout?: Exclude<LayoutMode, "auto">;
   width: number;
 }) {
   const { lines } = buildBodyLines(annotation, width);
-  // Title row + body lines + one trailing blank for breathing room.
+  // Title row + body rows + one trailing spacer.
   return 1 + lines.length + 1;
 }
 
@@ -92,7 +79,6 @@ export function CommentCard({
   width,
 }: {
   annotation: Annotation;
-  /** Unused but kept so existing callers don't have to thread layout state. */
   anchorSide?: "old" | "new";
   layout?: Exclude<LayoutMode, "auto">;
   commentCount?: number;
@@ -108,10 +94,7 @@ export function CommentCard({
 
   return (
     <box style={{ width: "100%", flexDirection: "column", backgroundColor: theme.noteBackground }}>
-      {/* Metadata row is always rendered so planning geometry can predict the card
-          height without knowing whether an id is present. When there is nothing
-          to show in the row it stays as a blank `▎` band, giving the card a
-          consistent top edge. */}
+      {/* Always render the metadata row so card height stays predictable. */}
       <CommentRow theme={theme} width={width}>
         <box style={{ width: metadataWidth, height: 1, backgroundColor: theme.noteBackground }}>
           <text fg={theme.muted} bg={theme.noteBackground}>
@@ -145,9 +128,7 @@ export function CommentCard({
         </CommentRow>
       ))}
 
-      {/* Trailing blank uses the diff background, not the card background,
-          so consecutive comments on the same hunk read as separate cards
-          with a single row of breathing space between them. */}
+      {/* Diff-background spacer keeps adjacent comment cards separate. */}
       <box style={{ width: "100%", height: 1, backgroundColor: theme.panel }}>
         <text>{" ".repeat(Math.max(0, width))}</text>
       </box>
@@ -190,7 +171,7 @@ function CommentRow({
   );
 }
 
-/** Trailing blank row beneath the card, kept as an export so older planning code can address it by name. */
+/** Trailing blank row beneath one comment card. */
 export function CommentCardSpacer({
   theme,
   width,

@@ -9,7 +9,7 @@ export function expandDiffTabs(text: string) {
   return text.replaceAll("\t", " ".repeat(DIFF_CODE_TAB_WIDTH));
 }
 
-/** Measure one rendered code line after tab expansion and newline trimming, without allocating an expanded string. */
+/** Measure one rendered code line without allocating an expanded copy. */
 export function measureRenderedCodeLineWidth(line: string | undefined) {
   if (!line) {
     return 0;

@@ -1,10 +1,8 @@
 /**
  * `dunk comments` — agent-facing command surface for `.dunk/comments.json`.
  *
- * Coding agents should not be hand-editing the JSON: this module lets them
- * `list`, `show`, and `resolve` review comments without parsing or rewriting
- * the persisted schema themselves. All three commands print to stdout and exit;
- * mutations go through the same atomic write path the TUI uses.
+ * Provides list/show/resolve commands so agents can inspect and prune review
+ * comments without hand-editing the persisted JSON.
  */
 import { findRepoRoot } from "./config";
 import {
@@ -22,7 +20,6 @@ import { DunkUserError } from "./errors";
 export type CommentsOutputFormat = "text" | "json";
 
 interface CommentsListOptions {
-  /** Override the working directory used to locate the repo root (mostly for tests). */
   cwd?: string;
 }
 
@@ -44,8 +41,7 @@ function requireRepoRoot(cwd?: string): string {
 
 /**
  * Load every persisted comment plus the post-image content map needed to
- * resolve and render them. Callers reuse `contentByPath` for `show`-style
- * follow-up reads so a single command doesn't slurp the same file twice.
+ * resolve and render them.
  */
 function loadResolvedCommentsWithContent(repoRoot: string): {
   resolved: ResolvedComment[];
@@ -128,13 +124,8 @@ interface ContextLine {
 }
 
 /**
- * Pull the hunk lines plus `contextLines` of surrounding post-image so the
- * agent has enough scope to understand the comment without opening the file.
- * Reuses the resolve-pass content (no second `readFileSync`) and splits the
- * raw text so JSON output is byte-stable against the file on disk.
- *
- * Returns null when the file content is unavailable (drift) or the range
- * falls outside the file.
+ * Pull hunk lines plus surrounding post-image context from already-read file
+ * content. Returns null for unavailable drifted files or out-of-range hunks.
  */
 function readHunkWithContext(
   comment: PersistedComment,

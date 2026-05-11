@@ -30,9 +30,8 @@ export function appendGitPathspecs(args: string[], pathspecs?: string[]) {
   args.push("--", ...pathspecs);
 }
 
-// @pierre/diffs currently assumes git-style a/ and b/ prefixes when parsing patch headers.
-// Force canonical prefixes for git-backed review commands so user/repo git diff config
-// (noprefix, mnemonicPrefix, custom src/dst prefixes) cannot break parsing.
+// Pierre parses canonical a/ and b/ patch headers. Force those prefixes so
+// user Git diff config cannot break git-backed review commands.
 const DIFF_PREFIX_NORMALIZATION_ARGS = [
   "-c",
   "diff.noprefix=false",

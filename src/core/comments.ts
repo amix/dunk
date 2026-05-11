@@ -33,10 +33,8 @@ const SCHEMA_VERSION = 1;
 const ANCHOR_HEX_LEN = 16;
 
 /**
- * Zod schema for a persisted comment. Keeps `.dunk/comments.json` honest
- * even when an agent (or hand-edit) drops in a malformed entry — without
- * this guard, missing `range`/`line`/`body` fields crash render with
- * cryptic `lines[0]` undefined errors.
+ * Validate agent-editable `.dunk/comments.json` before malformed entries
+ * reach the renderer.
  */
 const PersistedCommentSchema = z
   .object({
@@ -51,8 +49,7 @@ const PersistedCommentSchema = z
     anchor: z.string().regex(/^[0-9a-f]{16}$/, "anchor must be a 16-hex SHA-256 prefix"),
     body: z.string(),
   })
-  // Strict so a typo'd field (e.g. `rationale`) trips validation instead of
-  // silently sticking around through write cycles.
+  // Unknown fields usually mean a typo or schema mismatch.
   .strict();
 
 const CommentsFileSchema = z
@@ -65,15 +62,11 @@ const CommentsFileSchema = z
 /**
  * A persisted comment as it appears on disk.
  *
- * `range` is the inclusive 1-based [start, end] post-image line range of the
- * hunk the comment is attached to. `dunk` only lets you comment at the hunk
- * level, so the range communicates "this comment is about these lines", not
- * just one line. Agents addressing comments should consider the full range
- * when deciding what to fix.
+ * `range` is the inclusive 1-based post-image hunk range the comment covers.
+ * Agents should consider that full range when deciding what to fix.
  *
  * `line` is the row used for drift detection (the anchor hash is computed
- * from its surrounding context). It's typically the hunk's last post-image
- * line, but the value is opaque to agents.
+ * from nearby context). Treat it as opaque.
  */
 export interface PersistedComment {
   id: number;
@@ -95,7 +88,7 @@ export interface AnchoredComment extends PersistedComment {
   state: "anchored";
 }
 
-/** Comment whose recorded anchor no longer matches the file. */
+/** Comment that cannot be rendered in the current diff; inspect `reason` for the case. */
 export interface DriftedComment extends PersistedComment {
   state: "drifted";
   reason: DriftReason;
@@ -177,8 +170,7 @@ export function readPostImagesForComments(
 /**
  * Read the post-image of `relPath` (relative to `repoRoot`) and compute the
  * anchor for one line. Returns null when the file can't be read, escapes the
- * repo, exceeds the size cap, or the line is out of range — callers all
- * treat this as "skip this anchor recomputation".
+ * repo, exceeds the size cap, or the line is out of range.
  */
 export function computeAnchorForFile(
   repoRoot: string,
@@ -200,9 +192,7 @@ export function computeAnchorForFile(
 }
 
 /**
- * Format the first few zod issues into a multi-line, agent-actionable hint
- * (path, then the human-readable message), capped so a wildly broken file
- * doesn't drown the user in noise.
+ * Format a bounded list of zod issues as path-prefixed, actionable lines.
  */
 function summarizeCommentsValidationIssues(error: z.ZodError): string[] {
   const limit = 5;
@@ -217,10 +207,8 @@ function summarizeCommentsValidationIssues(error: z.ZodError): string[] {
 }
 
 /**
- * Parse already-read JSON text against the persisted comments schema, with
- * the same actionable DunkUserError messages the public read uses. Extracted
- * so the optimistic-write loop can hash + parse the exact same bytes instead
- * of reading the file twice (which would race a concurrent writer).
+ * Parse already-read JSON text so validation and optimistic-write hashing use
+ * the same bytes.
  */
 function parseCommentsFile(raw: string, path: string): CommentsFile {
   let parsed: unknown;
@@ -360,18 +348,11 @@ export function resolveComments(
       return { ...comment, state: "anchored" } as AnchoredComment;
     }
 
-    // Bounded fuzzy relocation: a small neighbor edit (whitespace, a comment
-    // change one row above) is enough to invalidate the anchor hash even
-    // though the targeted line is still right there. Walk a 20-line window
-    // around the recorded position; if exactly one nearby line hashes to
-    // the original anchor, re-pin to it instead of declaring drift.
+    // Bounded fuzzy relocation keeps comments anchored through small nearby edits.
     const relocatedLine = relocateAnchor(lines, comment.line, comment.anchor);
     if (relocatedLine !== null) {
-      // Shift the recorded hunk range by the same delta so `dunk comments
-      // show` and the renderer mark the relocated lines, not the stale ones.
-      // If the shift would push the range off either end of the file, we
-      // can't represent it honestly — declare drift instead of returning an
-      // anchored comment whose range is inconsistent with its line.
+      // Shift the hunk range by the same delta so the rendered range stays
+      // consistent with the relocated anchor line.
       const delta = relocatedLine - comment.line;
       const shiftedRange: LineRange = [comment.range[0] + delta, comment.range[1] + delta];
       if (shiftedRange[0] >= 1 && shiftedRange[1] <= lines.length) {
@@ -431,12 +412,8 @@ export function commentToAnnotation(comment: AnchoredComment): Annotation {
  * renderer picks them up. Drifted comments are returned separately for
  * top-of-diff rendering.
  *
- * Second-pass drift detection: an anchored comment whose `line` doesn't
- * fall inside any current diff hunk for its file is downgraded to
- * `drifted: not-in-hunk`. Without this guard, a comment that anchored
- * cleanly against a line whose surrounding diff has resolved (the file
- * still has the line, but the hunk it lived in is gone) would render
- * nowhere — invisible to the reviewer.
+ * Second-pass drift detection downgrades anchors outside the current diff to
+ * `not-in-hunk`, keeping resolved comments visible until dismissed.
  */
 export function applyCommentsToChangeset(
   changeset: Changeset,
@@ -461,10 +438,8 @@ export function applyCommentsToChangeset(
 
     const owningFile = filesByPath.get(comment.file);
     if (!owningFile) {
-      // `resolveComments` already maps file-missing comments to drifted; if
-      // we still see an anchored comment whose file isn't in the changeset
-      // (e.g., the file exists on disk but isn't part of the active diff),
-      // surface it as drifted rather than rendering it nowhere.
+      // Existing files can still fall outside the active diff; surface those
+      // comments as drifted instead of rendering them nowhere.
       drifted.push({ ...comment, state: "drifted", reason: "not-in-hunk" });
       continue;
     }
@@ -560,10 +535,8 @@ function currentFingerprint(repoRoot: string): string | null {
 }
 
 /**
- * Read, mutate, write the comments file with optimistic concurrency. Re-reads
- * if a concurrent writer (TUI + agent CLI both editing) changed the file
- * between the load and the rename. The `mutate` callback may run more than
- * once — keep it pure.
+ * Read, mutate, and write the comments file with optimistic concurrency.
+ * The `mutate` callback may run more than once; keep it pure.
  */
 export function mutateCommentsFile(
   repoRoot: string,
@@ -572,16 +545,12 @@ export function mutateCommentsFile(
   for (let attempt = 0; attempt < MUTATE_MAX_ATTEMPTS; attempt += 1) {
     const { file: current, fingerprint } = readCommentsFileWithFingerprint(repoRoot);
     const next = mutate(current);
-    // Skip the write when the mutation was a no-op so we don't materialize an
-    // empty .dunk/comments.json on disk just because the user pressed a delete
-    // key on a hunk that has no comments.
+    // Avoid creating an empty comments file for no-op mutations.
     if (next === current) {
       return current;
     }
 
-    // Re-check the fingerprint just before renaming — if a concurrent writer
-    // landed in the meantime, restart the read/mutate cycle so their update
-    // doesn't get clobbered.
+    // Re-check before renaming so concurrent writers are not clobbered.
     if (currentFingerprint(repoRoot) !== fingerprint) {
       continue;
     }

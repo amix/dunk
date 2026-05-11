@@ -135,7 +135,7 @@ export interface AppBootstrap {
   initialWrapLines?: boolean;
   initialShowHunkHeaders?: boolean;
   initialSelectionAutoCopy?: boolean;
-  /** User comments whose recorded anchor no longer matches the current diff. */
+  /** User comments that cannot be rendered in the current diff. */
   driftedComments?: DriftedCommentSummary[];
 }
 

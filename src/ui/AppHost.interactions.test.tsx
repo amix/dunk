@@ -166,7 +166,7 @@ function createTwoFileHunkBootstrap(): AppBootstrap {
   });
 }
 
-/** Build the cross-file hunk-navigation shape that used to flash the previous pinned header. */
+/** Build a cross-file hunk-navigation fixture with adjacent long and short files. */
 function createCrossFileHunkNavigationBootstrap(): AppBootstrap {
   const longBeforeLines = Array.from(
     { length: 342 },
@@ -290,7 +290,7 @@ async function settleWrapToggle(setup: Awaited<ReturnType<typeof testRender>>) {
   });
 }
 
-/** Poll rendered frames until a predicate matches, which keeps interaction tests resilient to async repaints. */
+/** Poll rendered frames until async repaints satisfy one assertion. */
 async function waitForFrame(
   setup: Awaited<ReturnType<typeof testRender>>,
   predicate: (frame: string) => boolean,

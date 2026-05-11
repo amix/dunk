@@ -3,12 +3,7 @@ import { wrapText } from "../../lib/agentPopover";
 import { fitText, padText } from "../../lib/text";
 import type { AppTheme } from "../../themes";
 
-/**
- * Reviewer-facing labels for each drift reason. Phrased as impact ("file
- * removed", "anchor moved") rather than internal state strings
- * ("missing-file", "anchor-mismatch") so the banner reads like prose to
- * someone glancing at it for the first time.
- */
+/** User-facing labels for each drift reason. */
 const DRIFT_REASON_LABEL: Record<DriftedCommentSummary["reason"], string> = {
   "missing-file": "file removed",
   "out-of-range": "line no longer exists",
@@ -24,14 +19,7 @@ const LEFT_INDENT = 2;
 const GUTTER_PADDING = 1;
 const CARD_CHROME_WIDTH = LEFT_INDENT + ACCENT_BAR_WIDTH + GUTTER_PADDING;
 
-/**
- * Pinned section at the top of the diff view that surfaces user comments
- * whose anchors no longer match the current diff. The section uses the same
- * accent-background file-header shape as a real diff file, so the eye reads
- * "this is another section in the review stream" instead of a free-floating
- * banner. Each drifted entry renders as a left-accented card — mirroring
- * the inline CommentCard so the user only ever sees one comment shape.
- */
+/** Pinned review-stream section for drifted comments. */
 export function DriftedCommentsBanner({
   drifted,
   selectedIndex,
@@ -64,10 +52,7 @@ export function DriftedCommentsBanner({
       />
       {sorted.map((comment) => {
         const focused = selectedIndex !== null && drifted[selectedIndex]?.id === comment.id;
-        // `onSelect` is keyed on the original (unsorted) drift array index
-        // because callers store `selectedDriftIndex` against that order; if
-        // the displayed sort ever diverges further, only the receiver needs
-        // to translate, not the banner.
+        // Selection state is stored against the original drift array order.
         const driftIndex = drifted.findIndex((entry) => entry.id === comment.id);
         return (
           <box key={comment.id} style={{ width: "100%", flexDirection: "column" }}>
@@ -78,9 +63,7 @@ export function DriftedCommentsBanner({
               theme={theme}
               onSelect={onSelect ? () => onSelect(driftIndex) : undefined}
             />
-            {/* Single normal-background spacer between stacked cards (and one
-                trailing the section) so the eye reads each card as its own
-                object without padded-banner bulk inside the cards themselves. */}
+            {/* Normal-background spacer between stacked drift cards. */}
             <box style={{ width: "100%", height: 1, backgroundColor: theme.panel }}>
               <text>{" ".repeat(Math.max(0, terminalWidth))}</text>
             </box>
@@ -134,12 +117,7 @@ function SectionHeader({
   );
 }
 
-/**
- * One drifted entry rendered with the same left-accent + title + wrapped body
- * shape as the inline `CommentCard`. Unfocused cards cap the body to two
- * lines with an ellipsis marker; the focused card expands to the full body
- * so the user can read the whole comment without leaving the banner.
- */
+/** One drifted comment card; focus expands the full body. */
 function DriftedCommentCard({
   bodyWidth,
   comment,
@@ -153,18 +131,12 @@ function DriftedCommentCard({
   theme: AppTheme;
   onSelect?: () => void;
 }) {
-  // `#id · file:line · reason` — `#id` carries the stable handle, the rest
-  // reads as quiet metadata in `theme.muted` so the body text below is the
-  // visual focus of the card.
   const idLabel = `#${comment.id}`;
   const metadataTail = ` · ${comment.file}:${comment.line} · ${DRIFT_REASON_LABEL[comment.reason]}`;
   const allBodyLines = wrapText(comment.body, bodyWidth);
   const cappedBodyLines = focused
     ? allBodyLines
     : capLines(allBodyLines, COLLAPSED_BODY_LINE_CAP, bodyWidth);
-  // Selection state shifts the surface to the title-background tint; the
-  // accent bar stays the comment color so "selected" and "comment-ness"
-  // don't fight for the same visual signal.
   const surfaceBg = focused ? theme.noteTitleBackground : theme.noteBackground;
   const tailWidth = Math.max(0, bodyWidth - idLabel.length);
 
@@ -206,7 +178,7 @@ function capLines(lines: string[], cap: number, width: number): string[] {
   return [...head, truncated];
 }
 
-/** One row of a drift card: left indent + accent bar + gutter + content. Matches CommentCard. */
+/** One left-accented row inside a drift card. */
 function CardRow({
   children,
   surfaceBg,
@@ -234,12 +206,7 @@ function CardRow({
   );
 }
 
-/**
- * Spatial-order sort for drift cards: file path, then line within the file,
- * then id as a stable tiebreaker. Insertion order (id-only) read like
- * unrelated noise when the file paths were mixed; a sorted list reads
- * like a mini index of broken anchors.
- */
+/** Sort drift cards by file, line, then id. */
 function sortDrifted(drifted: DriftedCommentSummary[]): DriftedCommentSummary[] {
   return [...drifted].sort((a, b) => {
     if (a.file !== b.file) {

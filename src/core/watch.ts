@@ -30,16 +30,13 @@ function statSignature(path: string) {
 /**
  * Build a cheap change-detection signature for VCS inputs.
  *
- * The previous version called the full `git diff` (or `jj diff`) every poll
- * tick, allocating a complete patch string four times per second. That's
- * expensive on medium-to-large repos and scales with patch size instead of
- * with actual filesystem activity. We swap in cheap commands that only
- * report *that* something changed: `git diff --raw` (content-addressed via
- * per-file blob hashes) for tracked work, `git rev-parse` for ref-backed
- * reviews, `jj log -T commit_id` for jj.
+ * Polling should scale with filesystem activity, not patch size. Use cheap
+ * commands that only report whether something changed: `git diff --raw` for
+ * tracked work, `git rev-parse` for ref-backed reviews, and
+ * `jj log -T commit_id` for Jujutsu inputs.
  *
  * `--raw` rather than `--numstat`: numstat reports only counts, so two
- * same-shape edits (foo→bar then bar→baz, each "1\t1\tpath") would share a
+ * same-shape edits (foo -> bar then bar -> baz, each "1\t1\tpath") would share a
  * signature and watch mode would silently keep stale output. `--raw` includes
  * post-image blob hashes that change on any content edit.
  *
