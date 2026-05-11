@@ -36,10 +36,7 @@ export interface ReviewStream {
  * so a hunk-navigation keypress does not invalidate the memo and rebuild this
  * whole bundle.
  */
-export function buildReviewStream({
-  files,
-  filterQuery,
-}: BuildReviewStreamOptions): ReviewStream {
+export function buildReviewStream({ files, filterQuery }: BuildReviewStreamOptions): ReviewStream {
   const allFiles = files;
   const visibleFiles = filterReviewFiles(allFiles, filterQuery);
   const hunkCursors = buildHunkCursors(visibleFiles);

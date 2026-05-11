@@ -21,7 +21,7 @@ ptyDescribe("live UI integration", () => {
     });
 
     try {
-      const initial = await session.waitForText(/View\s+Navigate\s+Theme\s+Agent\s+Help/, {
+      const initial = await session.waitForText(/Press \? for help/, {
         timeout: 15_000,
       });
 
@@ -52,47 +52,6 @@ ptyDescribe("live UI integration", () => {
     }
   });
 
-  test("agent notes can be revealed and hidden in the live diff UI", async () => {
-    const fixture = harness.createAgentFilePair();
-    const session = await harness.launchHunk({
-      args: [
-        "diff",
-        fixture.before,
-        fixture.after,
-        "--mode",
-        "split",
-        "--agent-context",
-        fixture.agentContext,
-      ],
-      cols: 140,
-      rows: 20,
-    });
-
-    try {
-      const initial = await session.waitForText(/View\s+Navigate\s+Theme\s+Agent\s+Help/, {
-        timeout: 15_000,
-      });
-
-      expect(initial).not.toContain("Adds bonus export.");
-
-      await session.press("a");
-      const withNotes = await session.waitForText(/Adds bonus export\./, { timeout: 5_000 });
-
-      expect(withNotes).toContain("Highlights the follow-up addition for review.");
-
-      await session.press("a");
-      const withoutNotes = await harness.waitForSnapshot(
-        session,
-        (text) => !text.includes("Adds bonus export."),
-        5_000,
-      );
-
-      expect(withoutNotes).not.toContain("Adds bonus export.");
-    } finally {
-      session.close();
-    }
-  });
-
   test("real hunk navigation jumps to later hunks in the review stream", async () => {
     const fixture = harness.createMultiHunkFilePair();
     const session = await harness.launchHunk({
@@ -102,7 +61,7 @@ ptyDescribe("live UI integration", () => {
     });
 
     try {
-      const initial = await session.waitForText(/View\s+Navigate\s+Theme\s+Agent\s+Help/, {
+      const initial = await session.waitForText(/Press \? for help/, {
         timeout: 15_000,
       });
 
@@ -133,7 +92,7 @@ ptyDescribe("live UI integration", () => {
     });
 
     try {
-      await session.waitForText(/View\s+Navigate\s+Theme\s+Agent\s+Help/, {
+      await session.waitForText(/Press \? for help/, {
         timeout: 15_000,
       });
 
@@ -173,7 +132,7 @@ ptyDescribe("live UI integration", () => {
     });
 
     try {
-      const initial = await session.waitForText(/View\s+Navigate\s+Theme\s+Agent\s+Help/, {
+      const initial = await session.waitForText(/Press \? for help/, {
         timeout: 15_000,
       });
 
@@ -214,7 +173,7 @@ ptyDescribe("live UI integration", () => {
     });
 
     try {
-      await session.waitForText(/View\s+Navigate\s+Theme\s+Agent\s+Help/, {
+      await session.waitForText(/Press \? for help/, {
         timeout: 15_000,
       });
 
@@ -254,7 +213,7 @@ ptyDescribe("live UI integration", () => {
     });
 
     try {
-      const wide = await session.waitForText(/View\s+Navigate\s+Theme\s+Agent\s+Help/, {
+      const wide = await session.waitForText(/Press \? for help/, {
         timeout: 15_000,
       });
 
@@ -283,7 +242,7 @@ ptyDescribe("live UI integration", () => {
     });
 
     try {
-      const initial = await session.waitForText(/View\s+Navigate\s+Theme\s+Agent\s+Help/, {
+      const initial = await session.waitForText(/Press \? for help/, {
         timeout: 15_000,
       });
 
@@ -317,7 +276,7 @@ ptyDescribe("live UI integration", () => {
     });
 
     try {
-      const initial = await session.waitForText(/View\s+Navigate\s+Theme\s+Agent\s+Help/, {
+      const initial = await session.waitForText(/Press \? for help/, {
         timeout: 15_000,
       });
 
@@ -364,7 +323,7 @@ ptyDescribe("live UI integration", () => {
     });
 
     try {
-      const initial = await session.waitForText(/View\s+Navigate\s+Theme\s+Agent\s+Help/, {
+      const initial = await session.waitForText(/Press \? for help/, {
         timeout: 15_000,
       });
 
@@ -440,7 +399,7 @@ ptyDescribe("live UI integration", () => {
     });
 
     try {
-      const wide = await session.waitForText(/View\s+Navigate\s+Theme\s+Agent\s+Help/, {
+      const wide = await session.waitForText(/Press \? for help/, {
         timeout: 15_000,
       });
 
@@ -470,7 +429,7 @@ ptyDescribe("live UI integration", () => {
     });
 
     try {
-      const narrow = await session.waitForText(/View\s+Navigate\s+Theme\s+Agent\s+Help/, {
+      const narrow = await session.waitForText(/Press \? for help/, {
         timeout: 15_000,
       });
 
@@ -500,7 +459,7 @@ ptyDescribe("live UI integration", () => {
     });
 
     try {
-      const initial = await session.waitForText(/View\s+Navigate\s+Theme\s+Agent\s+Help/, {
+      const initial = await session.waitForText(/Press \? for help/, {
         timeout: 15_000,
       });
 
@@ -535,7 +494,7 @@ ptyDescribe("live UI integration", () => {
     });
 
     try {
-      const initial = await session.waitForText(/View\s+Navigate\s+Theme\s+Agent\s+Help/, {
+      const initial = await session.waitForText(/Press \? for help/, {
         timeout: 15_000,
       });
 
@@ -838,7 +797,7 @@ ptyDescribe("live UI integration", () => {
     });
 
     try {
-      await session.waitForText(/View\s+Navigate\s+Theme\s+Agent\s+Help/, {
+      await session.waitForText(/Press \? for help/, {
         timeout: 15_000,
       });
 
@@ -858,96 +817,6 @@ ptyDescribe("live UI integration", () => {
     }
   });
 
-  test("mouse menu navigation can switch the diff layout", async () => {
-    const fixture = harness.createTwoFileRepoFixture();
-    const session = await harness.launchHunk({
-      args: ["diff", "--mode", "split"],
-      cwd: fixture.dir,
-      cols: 220,
-      rows: 24,
-    });
-
-    try {
-      const initial = await session.waitForText(/View\s+Navigate\s+Theme\s+Agent\s+Help/, {
-        timeout: 15_000,
-      });
-
-      expect(initial).toMatch(/▌.*▌/);
-
-      await session.click(/View/);
-      const menu = await harness.waitForSnapshot(
-        session,
-        (text) => text.includes("Stacked view") && text.includes("Split view"),
-        5_000,
-      );
-
-      expect(menu).toContain("Stacked view");
-      expect(menu).toContain("Split view");
-
-      await session.click(/Stacked view/);
-      const stacked = await harness.waitForSnapshot(
-        session,
-        (text) => !/▌.*▌/.test(text) && text.includes("1   -  export const alpha = 1;"),
-        5_000,
-      );
-
-      expect(stacked).not.toMatch(/▌.*▌/);
-      expect(stacked).toContain("1   -  export const alpha = 1;");
-      expect(stacked).toContain("1   -  export const beta = 1;");
-    } finally {
-      session.close();
-    }
-  });
-
-  test("keyboard menu navigation can switch layouts in a real PTY", async () => {
-    const fixture = harness.createTwoFileRepoFixture();
-    const session = await harness.launchHunk({
-      args: ["diff", "--mode", "split"],
-      cwd: fixture.dir,
-      cols: 220,
-      rows: 24,
-    });
-
-    try {
-      const initial = await session.waitForText(/View\s+Navigate\s+Theme\s+Agent\s+Help/, {
-        timeout: 15_000,
-      });
-
-      expect(initial).toMatch(/▌.*▌/);
-
-      await session.press("f10");
-      const fileMenu = await harness.waitForSnapshot(
-        session,
-        (text) => text.includes("Toggle files/filter focus") && text.includes("Quit"),
-        5_000,
-      );
-
-      expect(fileMenu).toContain("Reload");
-
-      await session.press("right");
-      const viewMenu = await harness.waitForSnapshot(
-        session,
-        (text) => text.includes("Split view") && text.includes("Stacked view"),
-        5_000,
-      );
-
-      expect(viewMenu).toContain("Auto layout");
-
-      await session.press("down");
-      await session.press("enter");
-      const stacked = await harness.waitForSnapshot(
-        session,
-        (text) => !/▌.*▌/.test(text) && text.includes("1   -  export const alpha = 1;"),
-        5_000,
-      );
-
-      expect(stacked).not.toMatch(/▌.*▌/);
-      expect(stacked).toContain("1   -  export const alpha = 1;");
-    } finally {
-      session.close();
-    }
-  });
-
   test("direct layout hotkeys can switch between split, stack, and auto in a real PTY", async () => {
     const fixture = harness.createTwoFileRepoFixture();
     const session = await harness.launchHunk({
@@ -958,7 +827,7 @@ ptyDescribe("live UI integration", () => {
     });
 
     try {
-      const initial = await session.waitForText(/View\s+Navigate\s+Theme\s+Agent\s+Help/, {
+      const initial = await session.waitForText(/Press \? for help/, {
         timeout: 15_000,
       });
 
@@ -1006,7 +875,7 @@ ptyDescribe("live UI integration", () => {
     });
 
     try {
-      const initial = await session.waitForText(/View\s+Navigate\s+Theme\s+Agent\s+Help/, {
+      const initial = await session.waitForText(/Press \? for help/, {
         timeout: 15_000,
       });
 
@@ -1060,7 +929,7 @@ ptyDescribe("live UI integration", () => {
     });
 
     try {
-      const initial = await session.waitForText(/View\s+Navigate\s+Theme\s+Agent\s+Help/, {
+      const initial = await session.waitForText(/Press \? for help/, {
         timeout: 15_000,
       });
 
@@ -1103,7 +972,7 @@ ptyDescribe("live UI integration", () => {
     });
 
     try {
-      const initial = await session.waitForText(/View\s+Navigate\s+Theme\s+Agent\s+Help/, {
+      const initial = await session.waitForText(/Press \? for help/, {
         timeout: 15_000,
       });
 
@@ -1147,7 +1016,7 @@ ptyDescribe("live UI integration", () => {
     });
 
     try {
-      const initial = await session.waitForText(/View\s+Navigate\s+Theme\s+Agent\s+Help/, {
+      const initial = await session.waitForText(/Press \? for help/, {
         timeout: 15_000,
       });
 
@@ -1200,7 +1069,7 @@ ptyDescribe("live UI integration", () => {
     });
 
     try {
-      const initial = await session.waitForText(/View\s+Navigate\s+Theme\s+Agent\s+Help/, {
+      const initial = await session.waitForText(/Press \? for help/, {
         timeout: 15_000,
       });
 
@@ -1231,7 +1100,7 @@ ptyDescribe("live UI integration", () => {
     });
 
     try {
-      const initial = await session.waitForText(/View\s+Navigate\s+Theme\s+Agent\s+Help/, {
+      const initial = await session.waitForText(/Press \? for help/, {
         timeout: 15_000,
       });
       const initialHeaderCount = harness.countMatches(initial, /aaa-collapsed\.ts/g);

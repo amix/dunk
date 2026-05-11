@@ -8,7 +8,6 @@ import { createTestDiffFile as buildTestDiffFile, lines } from "../../../test/he
 import { hexColorDistance } from "../lib/color";
 import { resolveTheme } from "../themes";
 import { measureDiffSectionGeometry } from "../lib/diffSectionGeometry";
-import { buildFileSectionLayouts, buildInStreamFileHeaderHeights } from "../lib/fileSectionLayout";
 
 const { AppHost } = await import("../AppHost");
 const { buildSidebarEntries } = await import("../lib/files");
@@ -129,11 +128,6 @@ function createWideTwoHunkDiffFile(id: string, path: string, start = 1) {
   afterLines[59] = `export const line${start + 59} = ${start + 5900};`;
 
   return createTestDiffFile(id, path, lines(...beforeLines), lines(...afterLines));
-}
-
-/** Convert one desired viewport-center offset into the scrollTop that centers it on screen. */
-function scrollTopForCenter(centerOffset: number, viewportHeight: number) {
-  return Math.max(0, centerOffset - Math.max(0, Math.floor((viewportHeight - 1) / 2)));
 }
 
 function createViewportSizedBottomHunkDiffFile(id: string, path: string) {
@@ -1226,9 +1220,7 @@ describe("UI components", () => {
     expect(frame).toContain("Comment");
     expect(frame).toContain("Annotation for alpha.ts");
     expect(frame).toContain("Why alpha.ts changed");
-    expect(frame.indexOf("Comment")).toBeLessThan(
-      frame.indexOf("2 + export const add = true;"),
-    );
+    expect(frame.indexOf("Comment")).toBeLessThan(frame.indexOf("2 + export const add = true;"));
     expect(frame).toContain("Comment");
     expect(frame).toContain("Annotation for beta.ts");
     expect(frame).toContain("Why beta.ts changed");
@@ -1775,9 +1767,7 @@ describe("UI components", () => {
     expect(frame).toContain("row.");
     // Range-less notes now anchor at the hunk bottom too, so the card sits
     // after the last hunk row rather than above the first one.
-    expect(frame.indexOf("Comment")).toBeGreaterThan(
-      frame.indexOf("1 - export const value = 1;"),
-    );
+    expect(frame.indexOf("Comment")).toBeGreaterThan(frame.indexOf("1 - export const value = 1;"));
   });
 
   test("PierreDiffView shows contextual messages when there is no selected file or no textual hunks", async () => {

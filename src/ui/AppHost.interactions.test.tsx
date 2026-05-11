@@ -11,7 +11,6 @@ import { createTestDiffFile as buildTestDiffFile, lines } from "../../test/helpe
 const { loadAppBootstrap } = await import("../core/loaders");
 const { AppHost } = await import("./AppHost");
 
-const PAGE_DOWN_SEQUENCE = "\x1B[6~";
 const PAGE_UP_SEQUENCE = "\x1B[5~";
 
 function createTestDiffFile(
@@ -37,7 +36,6 @@ function createNumberedAssignmentLines(start: number, count: number, valueOffset
     return `export const line${String(lineNumber).padStart(2, "0")} = ${lineNumber + valueOffset};`;
   });
 }
-
 
 function createBootstrap(initialMode: LayoutMode = "split", pager = false): AppBootstrap {
   return createTestVcsAppBootstrap({
@@ -314,7 +312,6 @@ function firstCrossFileHunkNavigationHeader(frame: string) {
       .find((line) => line.startsWith("long-file.txt") || line.startsWith("short-file.ts")) ?? ""
   );
 }
-
 
 function firstVisibleAddedLine(frame: string) {
   return frame.match(/line\d{2} = 1\d{2}/)?.[0] ?? null;
@@ -842,9 +839,7 @@ describe("App interactions", () => {
       expect(frame).not.toContain("@@ -1,1 +1,2 @@");
       expect(frame).not.toContain("1 - export const message");
       // Notes anchor at the hunk bottom now, so the card sits below the last hunk row.
-      expect(frame.indexOf("Comment")).toBeGreaterThan(
-        frame.indexOf("export const added = true;"),
-      );
+      expect(frame.indexOf("Comment")).toBeGreaterThan(frame.indexOf("export const added = true;"));
     } finally {
       await act(async () => {
         setup.renderer.destroy();

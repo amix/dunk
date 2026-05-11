@@ -94,7 +94,7 @@ A single committed file means concurrent edits can conflict. That's the
 trade for simplicity. Resolve like any other JSON merge — the array is
 ordered by `id` so diffs stay localized.
 
-## Things explicitly *not* in v1
+## Things explicitly _not_ in v1
 
 - Threaded replies. Body is a flat string.
 - Resolved/unresolved state. Delete to "resolve".

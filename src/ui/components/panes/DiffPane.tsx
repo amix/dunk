@@ -26,7 +26,6 @@ import {
   type FileSectionLayout,
 } from "../../lib/fileSectionLayout";
 import { diffHunkId, diffSectionId } from "../../lib/ids";
-import { findViewportCenteredHunkTarget } from "../../lib/viewportSelection";
 import {
   findViewportRowAnchor,
   resolveViewportRowAnchorTop,
@@ -1266,9 +1265,7 @@ export function DiffPane({
                       }
                       onSelect={() => onSelectFile(file.id)}
                       onSelectHunk={
-                        onSelectHunk
-                          ? (hunkIndex) => onSelectHunk(file.id, hunkIndex)
-                          : undefined
+                        onSelectHunk ? (hunkIndex) => onSelectHunk(file.id, hunkIndex) : undefined
                       }
                     />
                   );

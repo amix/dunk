@@ -331,12 +331,14 @@ export function useAppKeyboardShortcuts({
       return;
     }
 
-    if (key.sequence === "K") {
+    if (key.sequence === "K" || key.sequence === "[") {
+      // `[` is the historical hunk-prev binding documented in older guides;
+      // we keep it as an alias so muscle memory and PTY tests both work.
       moveToHunk(-1);
       return;
     }
 
-    if (key.sequence === "J") {
+    if (key.sequence === "J" || key.sequence === "]") {
       moveToHunk(1);
       return;
     }

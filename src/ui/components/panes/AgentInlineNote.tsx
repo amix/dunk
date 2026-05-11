@@ -120,7 +120,7 @@ export function AgentInlineNote({
 function NoteRow({
   children,
   theme,
-  width,
+  width: _width,
 }: {
   children: React.ReactNode;
   theme: AppTheme;

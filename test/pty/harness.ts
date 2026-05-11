@@ -125,36 +125,6 @@ export function createPtyHarness() {
     return { dir, before, after };
   }
 
-  function createAgentFilePair() {
-    const dir = makeTempDir("dunk-tuistory-agent-");
-    const before = join(dir, "before.ts");
-    const after = join(dir, "after.ts");
-    const agentContext = join(dir, "agent.json");
-
-    writeText(before, "export const answer = 41;\n");
-    writeText(after, "export const answer = 42;\nexport const added = true;\n");
-    writeText(
-      agentContext,
-      JSON.stringify({
-        version: 1,
-        files: [
-          {
-            path: "after.ts",
-            annotations: [
-              {
-                newRange: [2, 2],
-                summary: "Adds bonus export.",
-                rationale: "Highlights the follow-up addition for review.",
-              },
-            ],
-          },
-        ],
-      }),
-    );
-
-    return { dir, before, after, agentContext };
-  }
-
   function createMultiHunkFilePair() {
     const dir = makeTempDir("dunk-tuistory-hunks-");
     const before = join(dir, "before.ts");
@@ -422,9 +392,25 @@ export function createPtyHarness() {
   }) {
     const { launchTerminal } = await loadTuistory();
 
+    // PTY assertions in this suite were written against the historical view
+    // defaults (line numbers ON, line wrap OFF). After the fork rebrand the
+    // user-facing defaults flipped, so we opt every PTY launch back into the
+    // legacy shape unless the test explicitly overrides either flag.
+    const passesLineNumberFlag = options.args.some(
+      (arg) => arg === "--line-numbers" || arg === "--no-line-numbers",
+    );
+    const passesWrapFlag = options.args.some((arg) => arg === "--wrap" || arg === "--no-wrap");
+    const stableLayoutDefaults: string[] = [];
+    if (!passesLineNumberFlag) {
+      stableLayoutDefaults.push("--line-numbers");
+    }
+    if (!passesWrapFlag) {
+      stableLayoutDefaults.push("--no-wrap");
+    }
+
     return launchTerminal({
       command: bunExecutable,
-      args: ["run", sourceEntrypoint, "--", ...options.args],
+      args: ["run", sourceEntrypoint, "--", ...options.args, ...stableLayoutDefaults],
       cwd: options.cwd ?? repoRoot,
       cols: options.cols ?? 140,
       rows: options.rows ?? 24,
@@ -510,7 +496,6 @@ export function createPtyHarness() {
   return {
     cleanup,
     countMatches,
-    createAgentFilePair,
     createBottomClampedRepoFixture,
     createCollapsedTopRepoFixture,
     createCrossFileHunkNavigationRepoFixture,

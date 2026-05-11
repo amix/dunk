@@ -58,7 +58,6 @@ describe("CLI entrypoint contracts", () => {
     expect(stdout).not.toContain("\u001b[?1049h");
   });
 
-
   test("prints the package version for --version without terminal takeover sequences", () => {
     const expectedVersion = require("../../package.json").version;
     const proc = Bun.spawnSync([bunExecutable, "run", "src/main.tsx", "--version"], {

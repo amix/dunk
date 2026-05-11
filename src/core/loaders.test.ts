@@ -23,12 +23,6 @@ function createTempDir(prefix: string) {
   return dir;
 }
 
-/** Normalize Windows short/long temp path spellings before path equality assertions. */
-function normalizeComparablePath(path: string) {
-  const resolvedPath = platform() === "win32" ? realpathSync.native(path) : path;
-  return resolvedPath.replace(/\\/g, "/");
-}
-
 function git(cwd: string, ...cmd: string[]) {
   const proc = Bun.spawnSync(["git", ...cmd], {
     cwd,
@@ -120,17 +114,6 @@ async function loadFromCwd(cwd: string, input: CliInput) {
 
 async function loadFromRepo(dir: string, input: CliInput) {
   return loadFromCwd(dir, input);
-}
-
-async function runFromProcessCwd<T>(cwd: string, task: () => Promise<T>) {
-  const previousCwd = process.cwd();
-  process.chdir(cwd);
-
-  try {
-    return await task();
-  } finally {
-    process.chdir(previousCwd);
-  }
 }
 
 afterEach(() => {

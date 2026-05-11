@@ -2,12 +2,7 @@ import fs from "node:fs";
 import { join } from "node:path";
 import { findRepoRoot } from "./config";
 import { DUNK_COMMENTS_RELATIVE_PATH } from "./dunkPaths";
-import {
-  buildGitDiffRawArgs,
-  listGitUntrackedFiles,
-  resolveGitRepoRoot,
-  runGitText,
-} from "./git";
+import { buildGitDiffRawArgs, listGitUntrackedFiles, resolveGitRepoRoot, runGitText } from "./git";
 import { runJjText } from "./jj";
 import type { CliInput } from "./types";
 

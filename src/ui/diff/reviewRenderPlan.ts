@@ -139,23 +139,6 @@ function diffRowStableKeys(row: DiffRow) {
   ]);
 }
 
-/** Pick the stable anchor that best matches one old/new-side guide row. */
-function diffRowStableKeyForSide(row: DiffRow, side: "old" | "new") {
-  if (row.type === "split-line") {
-    return side === "new"
-      ? newLineStableKey(row.hunkIndex, row.right.lineNumber)
-      : oldLineStableKey(row.hunkIndex, row.left.lineNumber);
-  }
-
-  if (row.type === "stack-line") {
-    return side === "new"
-      ? newLineStableKey(row.hunkIndex, row.cell.newLineNumber)
-      : oldLineStableKey(row.hunkIndex, row.cell.oldLineNumber);
-  }
-
-  return diffRowStableKeys(row)[0];
-}
-
 /** Read the old-side line number from a rendered diff row, or null if absent. */
 function rowOldLineNumber(row: DiffLineRow) {
   const value = row.type === "split-line" ? row.left.lineNumber : row.cell.oldLineNumber;
@@ -217,7 +200,10 @@ function buildLineRowIndex(rows: DiffRow[]): LineRowIndex {
  * Range-less notes intentionally anchor beside the first code row in the file,
  * Range-less notes fall back to the first visible line row.
  */
-function resolveNoteHunkAnchor(index: LineRowIndex, annotation: Annotation): DiffLineRow | DiffRow | undefined {
+function resolveNoteHunkAnchor(
+  index: LineRowIndex,
+  annotation: Annotation,
+): DiffLineRow | DiffRow | undefined {
   const anchor = annotationAnchor(annotation);
   if (anchor) {
     const map = anchor.side === "new" ? index.byNewLine : index.byOldLine;

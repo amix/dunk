@@ -319,14 +319,7 @@ export function App({
     return () => {
       unknownRenderer.off?.("selection", handleSelection as (selection: unknown) => void);
     };
-  }, [
-    commentEditorTarget,
-    confirmPrompt,
-    flashStatus,
-    focusArea,
-    renderer,
-    selectionAutoCopy,
-  ]);
+  }, [commentEditorTarget, confirmPrompt, flashStatus, focusArea, renderer, selectionAutoCopy]);
 
   useEffect(() => {
     // Force an intermediate redraw when app geometry or row-wrapping changes so pane relayout

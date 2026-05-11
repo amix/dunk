@@ -9,7 +9,6 @@ const { AppHost } = await import("./AppHost");
 
 function createBootstrap(initialMode: LayoutMode = "auto", pager = false): AppBootstrap {
   return createTestVcsAppBootstrap({
-    
     changesetId: "changeset:responsive",
     files: [
       createTestDiffFile({

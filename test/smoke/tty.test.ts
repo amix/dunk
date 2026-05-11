@@ -139,9 +139,9 @@ function createLongWrapFixtureFiles() {
 async function runTtySmoke(options: {
   mode?: "split" | "stack";
   pager?: boolean;
-  agentContext?: boolean;
   inputCommand?: string;
   longWrapFixture?: boolean;
+  lineNumbers?: boolean;
 }) {
   const fixture = options.longWrapFixture ? createLongWrapFixtureFiles() : createFixtureFiles();
   const transcript = join(fixture.dir, "transcript.txt");
@@ -155,8 +155,10 @@ async function runTtySmoke(options: {
     args.push("--pager");
   }
 
-  if (options.agentContext && !options.longWrapFixture) {
-    args.push("--agent-context", (fixture as ReturnType<typeof createFixtureFiles>).agent);
+  // The post-strip default is lineNumbers=off; the assertions in this file
+  // expect the rail-with-numbers layout, so opt them in explicitly.
+  if (options.lineNumbers ?? true) {
+    args.push("--line-numbers");
   }
 
   const hunkCommand = `bun run ${shellQuote(sourceEntrypoint)} ${args.map(shellQuote).join(" ")}`;
@@ -220,16 +222,15 @@ afterEach(() => {
 describe("TTY render smoke", () => {
   const ttyTest = enableTtySmokeTests ? test : test.skip;
 
-  ttyTest("split mode renders chrome, rails, and AI badges in a terminal transcript", async () => {
+  ttyTest("split mode renders chrome, rails, and the diff in a terminal transcript", async () => {
     if (!ttyToolsAvailable) {
       return;
     }
 
-    const output = await runTtySmoke({ mode: "split", agentContext: true });
+    const output = await runTtySmoke({ mode: "split" });
 
     expect(output).not.toContain("View  Navigate  Theme  Agent  Help");
     expect(output).toContain("before.ts ↔ after.ts");
-    expect(output).toContain("[AI]");
     expect(output).toContain("▌@@ -1,1 +1,2 @@");
     expect(output).toContain("▌1 - export const answer = 41;");
     expect(output).toContain("▌1 + export const answer = 42;");

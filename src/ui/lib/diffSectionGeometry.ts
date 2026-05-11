@@ -210,4 +210,3 @@ export function estimateDiffSectionBodyRows(
 ) {
   return measureDiffSectionGeometry(file, layout, showHunkHeaders, theme).bodyHeight;
 }
-
