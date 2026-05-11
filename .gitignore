@@ -3,6 +3,10 @@ node_modules
 .bun-install
 .bun-tmp
 
+# `bun build --compile` drops these in the cwd while writing the binary
+.*.bun-build
+*.bun-build
+
 # output
 out
 dist
