@@ -56,9 +56,7 @@ describe("editor launch resolution", () => {
   });
 
   test("dispatches by basename so absolute paths still match the editor convention", () => {
-    expect(
-      resolveEditorLaunch("a.ts", 4, { editor: "/opt/homebrew/bin/cursor" }),
-    ).toMatchObject({
+    expect(resolveEditorLaunch("a.ts", 4, { editor: "/opt/homebrew/bin/cursor" })).toMatchObject({
       command: ["/opt/homebrew/bin/cursor", "--goto", "a.ts:4"],
       needsTty: false,
     });

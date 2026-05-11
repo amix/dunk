@@ -23,11 +23,15 @@ export interface ResolveEditorOptions {
 export function resolveEditorLaunch(
   filePath: string,
   line: number,
-  options: ResolveEditorOptions = {},
+  options?: ResolveEditorOptions,
 ): EditorLaunchPlan | null {
-  // Default to the active environment so the App layer doesn't need to read env vars itself.
-  const visual = options.visual ?? process.env.VISUAL;
-  const editor = options.editor ?? process.env.EDITOR;
+  // Only fall back to the host environment when the caller passes no options
+  // at all. Any options object — even `{}` — treats the supplied values as
+  // the complete environment for this resolution, so unit tests stay
+  // deterministic regardless of whether the runner has $VISUAL/$EDITOR set.
+  const usingProcessEnv = options === undefined;
+  const visual = usingProcessEnv ? process.env.VISUAL : options.visual;
+  const editor = usingProcessEnv ? process.env.EDITOR : options.editor;
   const raw = (visual ?? editor ?? "").trim();
   if (raw.length === 0) {
     return null;
@@ -139,9 +143,4 @@ function splitCommand(raw: string): string[] {
   }
 
   return out;
-}
-
-/** Strip directory components from a program path. */
-function lastPathSegment(value: string): string {
-  return value.split(/[\\/]/).filter(Boolean).pop() ?? value;
 }
