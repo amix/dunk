@@ -26,15 +26,19 @@ async function main() {
   // are dynamic-imported behind this branch so cold-paths like `--help`,
   // `--version`, and `dunk comments {list,show,resolve}` don't pay for
   // ~60 ms of Pierre + OpenTUI + tree-sitter module parsing they never use.
+  //
+  // Load @opentui/core first and sequentially: @opentui/react and the rest
+  // of the UI tree re-export symbols from it at module-init time, and a
+  // parallel Promise.all races their initialization against the core's,
+  // surfacing as `Cannot access 'TextNodeRenderable' before initialization`.
+  const { createCliRenderer } = await import("@opentui/core");
   const [
-    { createCliRenderer },
     { createRoot },
     { shutdownSession },
     { shouldUseMouseForApp },
     { resolveStartupUpdateNotice },
     { AppHost },
   ] = await Promise.all([
-    import("@opentui/core"),
     import("@opentui/react"),
     import("./core/shutdown"),
     import("./core/terminal"),
