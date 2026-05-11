@@ -10,8 +10,11 @@ export interface ViewportRowAnchor {
   rowOffsetWithin: number;
 }
 
-/** Find the measured row bounds that cover one file-relative vertical offset. */
-function binarySearchRowBounds(sectionRowBounds: DiffSectionRowBounds[], relativeTop: number) {
+/**
+ * Find the index of the measured row whose extent covers one file-relative offset, or `-1`
+ * when the offset lies outside every measured row in the section.
+ */
+function binarySearchRowBoundsIndex(sectionRowBounds: DiffSectionRowBounds[], relativeTop: number) {
   let low = 0;
   let high = sectionRowBounds.length - 1;
 
@@ -24,11 +27,28 @@ function binarySearchRowBounds(sectionRowBounds: DiffSectionRowBounds[], relativ
     } else if (relativeTop >= rowBounds.top + rowBounds.height) {
       low = mid + 1;
     } else {
-      return rowBounds;
+      return mid;
     }
   }
 
-  return undefined;
+  return -1;
+}
+
+/** Resolve the nearest neighbouring diff-row to the picked index, preferring the row above. */
+function pickNearestDiffRow(sectionRowBounds: DiffSectionRowBounds[], pickedIndex: number) {
+  for (let index = pickedIndex - 1; index >= 0; index -= 1) {
+    if (sectionRowBounds[index]!.kind === "diff-row") {
+      return index;
+    }
+  }
+
+  for (let index = pickedIndex + 1; index < sectionRowBounds.length; index += 1) {
+    if (sectionRowBounds[index]!.kind === "diff-row") {
+      return index;
+    }
+  }
+
+  return pickedIndex;
 }
 
 /**
@@ -36,6 +56,10 @@ function binarySearchRowBounds(sectionRowBounds: DiffSectionRowBounds[], relativ
  *
  * `preferredStableKey` lets callers preserve the exact logical side they were already following
  * when a split row can map to multiple stacked rows and vice versa.
+ *
+ * `preferDiffRows` biases the picked row toward survivable diff content when the row covering
+ * the viewport top is an inline comment card. That keeps the user's reading position attached to
+ * code that survives a comment add/edit/delete instead of disappearing with the deleted card.
  */
 export function findViewportRowAnchor(
   files: DiffFile[],
@@ -43,6 +67,7 @@ export function findViewportRowAnchor(
   scrollTop: number,
   headerHeights: number[],
   preferredStableKey?: string | null,
+  options?: { preferDiffRows?: boolean },
 ) {
   const fileSectionLayouts = buildFileSectionLayouts(
     files,
@@ -58,10 +83,17 @@ export function findViewportRowAnchor(
     const relativeTop = scrollTop - bodyTop;
 
     if (relativeTop >= 0 && relativeTop < bodyHeight && geometry) {
-      const rowBounds = binarySearchRowBounds(geometry.rowBounds, relativeTop);
-      if (!rowBounds) {
+      const pickedIndex = binarySearchRowBoundsIndex(geometry.rowBounds, relativeTop);
+      if (pickedIndex < 0) {
         continue;
       }
+
+      const initialRow = geometry.rowBounds[pickedIndex]!;
+      const chosenIndex =
+        options?.preferDiffRows && initialRow.kind === "inline-note"
+          ? pickNearestDiffRow(geometry.rowBounds, pickedIndex)
+          : pickedIndex;
+      const rowBounds = geometry.rowBounds[chosenIndex]!;
 
       const stableKey =
         preferredStableKey && rowBounds.stableKeys.includes(preferredStableKey)
@@ -80,13 +112,17 @@ export function findViewportRowAnchor(
   return null;
 }
 
-/** Resolve one captured row anchor into its next absolute scrollTop after a relayout. */
+/**
+ * Resolve one captured row anchor into its next absolute scrollTop after a relayout.
+ * Returns `null` when the file or row no longer exists, so callers can apply a sensible
+ * fallback rather than scrolling to the file body top.
+ */
 export function resolveViewportRowAnchorTop(
   files: DiffFile[],
   sectionGeometry: DiffSectionGeometry[],
   anchor: ViewportRowAnchor,
   headerHeights: number[],
-) {
+): number | null {
   const fileSectionLayouts = buildFileSectionLayouts(
     files,
     sectionGeometry.map((metrics) => metrics?.bodyHeight ?? 0),
@@ -105,16 +141,14 @@ export function resolveViewportRowAnchorTop(
     const rowBounds =
       geometry.rowBoundsByStableKey.get(anchor.stableKey) ??
       geometry.rowBoundsByKey.get(anchor.rowKey);
-    if (rowBounds) {
-      return (
-        bodyTop +
-        rowBounds.top +
-        Math.min(anchor.rowOffsetWithin, Math.max(0, rowBounds.height - 1))
-      );
+    if (!rowBounds) {
+      return null;
     }
 
-    return bodyTop;
+    return (
+      bodyTop + rowBounds.top + Math.min(anchor.rowOffsetWithin, Math.max(0, rowBounds.height - 1))
+    );
   }
 
-  return 0;
+  return null;
 }

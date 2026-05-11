@@ -14,6 +14,8 @@ export interface DiffSectionRowBounds extends VerticalBounds {
   key: string;
   stableKey: string;
   stableKeys: string[];
+  /** Distinguishes content rows from inline comment cards so anchor pickers can prefer survivable rows. */
+  kind: PlannedReviewRow["kind"];
 }
 
 /** Cached placeholder sizing and hunk navigation geometry for one file section. */
@@ -146,10 +148,11 @@ export function measureDiffSectionGeometry(
       row.stableKey,
       ...(row.kind === "diff-row" ? (row.stableAliasKeys ?? []) : []),
     ];
-    const rowBoundsEntry = {
+    const rowBoundsEntry: DiffSectionRowBounds = {
       key: row.key,
       stableKey: row.stableKey,
       stableKeys,
+      kind: row.kind,
       // Record both the starting top and the measured height so callers can translate between
       // scroll positions and stable review-row identities across wrap/layout changes.
       top: bodyHeight,

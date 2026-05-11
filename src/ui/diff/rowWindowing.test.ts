@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { DiffSectionGeometry } from "../lib/diffSectionGeometry";
+import type { DiffSectionGeometry, DiffSectionRowBounds } from "../lib/diffSectionGeometry";
 import type { PlannedReviewRow } from "./reviewRenderPlan";
 import { resolveVisiblePlannedRowWindow } from "./rowWindowing";
 
@@ -26,10 +26,11 @@ function createTestSectionGeometry(
   rowBounds: Array<{ key: string; top: number; height: number }>,
   bodyHeight: number,
 ): DiffSectionGeometry {
-  const normalizedRowBounds = rowBounds.map((row) => ({
+  const normalizedRowBounds: DiffSectionRowBounds[] = rowBounds.map((row) => ({
     ...row,
     stableKey: row.key,
     stableKeys: [row.key],
+    kind: "diff-row",
   }));
 
   return {
