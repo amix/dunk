@@ -36,6 +36,8 @@ export interface UseAppKeyboardShortcutsOptions {
   requestQuit: () => void;
   scrollCodeHorizontally: (delta: number) => void;
   scrollDiff: (delta: number, unit: ScrollUnit) => void;
+  selectFirstHunk: () => void;
+  selectLastHunk: () => void;
   selectLayoutMode: (mode: LayoutMode) => void;
   showHelp: boolean;
   toggleFocusArea: () => void;
@@ -66,6 +68,8 @@ export function useAppKeyboardShortcuts({
   requestQuit,
   scrollCodeHorizontally,
   scrollDiff,
+  selectFirstHunk,
+  selectLastHunk,
   selectLayoutMode,
   showHelp,
   toggleFocusArea,
@@ -237,20 +241,23 @@ export function useAppKeyboardShortcuts({
       return;
     }
 
-    // Vim-style top/bottom: `gg` jumps to the very first hunk; Shift+G to the last.
+    // Vim-style top/bottom: `gg` selects the first hunk in the review stream
+    // (highlighting + reveal stay in sync); Shift+G selects the last. The
+    // earlier scroll-only behavior moved the viewport but left selection
+    // stranded on whichever hunk was previously focused.
     if (key.sequence === "g") {
       const now = Date.now();
       const previous = pendingGAtRef.current;
       pendingGAtRef.current = previous && now - previous <= G_CHORD_WINDOW_MS ? null : now;
       if (previous && now - previous <= G_CHORD_WINDOW_MS) {
-        scrollDiff(-1, "content");
+        selectFirstHunk();
       }
       return;
     }
     pendingGAtRef.current = null;
 
     if (key.sequence === "G") {
-      scrollDiff(1, "content");
+      selectLastHunk();
       return;
     }
 

@@ -49,7 +49,9 @@ export interface ReviewController {
   visibleFiles: DiffFile[];
   clearFilter: () => void;
   selectFile: (fileId: string, nextHunkIndex?: number, options?: ReviewSelectionOptions) => void;
+  selectFirstHunk: () => void;
   selectHunk: (fileId: string, hunkIndex: number, options?: ReviewSelectionOptions) => void;
+  selectLastHunk: () => void;
   setFilter: (value: string) => void;
 }
 
@@ -180,6 +182,26 @@ export function useReviewController({ files }: { files: DiffFile[] }): ReviewCon
     [hunkCursorIndex, hunkCursors, selectHunk, selectedFile?.id, selectedHunkIndex],
   );
 
+  /** Jump straight to the first hunk in the review stream (vim `gg`). */
+  const selectFirstHunk = useCallback(() => {
+    const first = hunkCursors[0];
+    if (!first) {
+      return;
+    }
+    selectHunk(first.fileId, first.hunkIndex, {
+      alignFileHeaderTop: first.fileId !== selectedFile?.id,
+    });
+  }, [hunkCursors, selectHunk, selectedFile?.id]);
+
+  /** Jump straight to the last hunk in the review stream (vim `G`). */
+  const selectLastHunk = useCallback(() => {
+    const last = hunkCursors[hunkCursors.length - 1];
+    if (!last) {
+      return;
+    }
+    selectHunk(last.fileId, last.hunkIndex);
+  }, [hunkCursors, selectHunk]);
+
   /** Move through only hunks that currently have inline comments. */
   const moveToAnnotatedHunk = useCallback(
     (delta: number) => {
@@ -240,7 +262,9 @@ export function useReviewController({ files }: { files: DiffFile[] }): ReviewCon
     moveToAnnotatedHunk,
     moveToHunk,
     selectFile,
+    selectFirstHunk,
     selectHunk,
+    selectLastHunk,
     setFilter,
   };
 }

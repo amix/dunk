@@ -1016,6 +1016,8 @@ export function App({
     requestQuit,
     scrollCodeHorizontally,
     scrollDiff,
+    selectFirstHunk: review.selectFirstHunk,
+    selectLastHunk: review.selectLastHunk,
     selectLayoutMode,
     showHelp,
     toggleFocusArea,
