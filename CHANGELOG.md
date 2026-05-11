@@ -8,6 +8,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-05-11
+
+First `dunkdiff` release after the hard-fork rename. Bundles the agent-facing CLI, on-disk comments model, startup perf work, and a polished comment UI.
+
 ### Added
 
 - `dunk comments {list,show,resolve}` — first-class CLI for coding agents to inspect and resolve review comments without entering the TUI or hand-editing `.dunk/comments.json`. `show <id>` prints the comment plus 10 lines of post-image context (configurable via `--context <N>`); `resolve <id>...` is atomic and refuses partial success when an id is missing. `--json` on `list`/`show` returns a stable shape with drift state.
@@ -20,9 +24,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
-- Renamed binary, npm package, and config directory from `hunk` / `hunkdiff` / `.hunk/` to `dunk` / `dunk` / `.dunk/`.
+- Renamed binary, npm package, and config directory from `hunk` / `hunkdiff` / `.hunk/` to `dunk` / `dunkdiff` / `.dunk/`.
 - Default view preferences: word wrap on, line numbers off. Comments now render unconditionally — the `c` toggle, `--comments`/`--no-comments` flags, and `comments` config key are gone.
 - Startup is ~4-5× faster on cold paths (`--help`, `--version`, `dunk comments {list,show,resolve}`, `dunk skill path`): ~120 ms → ~25 ms via `bun run`, ~480 ms → ~50 ms on the prebuilt npm binary. Heavy modules (OpenTUI, React, `@pierre/diffs`) are dynamic-imported only after the CLI parser decides we're launching the TUI.
+- Inline comments and drifted-comment entries now share one body-first card design (`#id` metadata header, accent bar, wrapped prose). Drifted comments dock as their own section above the diff and accept click-to-select.
 - Stripped the top menu bar in favor of a minimal status row with a `?` hint.
 - File header now uses an accent background to anchor the eye while scrolling.
 - Local install (`scripts/install-bin.sh`) uses a tiny shell wrapper around `bun run` instead of `bun build --compile`, cutting startup time roughly 6×.
@@ -32,5 +37,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Daemon, broker, and MCP session subsystems. Agent integration now flows through the on-disk comments file.
 - Update-notice prompts.
 - `--agent-context` CLI flag and the `AgentContext` sidecar JSON model.
+- Dead `AgentCard` floating-popover surface — the inline `CommentCard` has been the canonical surface for a while.
 
-[Unreleased]: https://github.com/amix/dunk/commits/main
+[Unreleased]: https://github.com/amix/dunk/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/amix/dunk/releases/tag/v0.12.0
