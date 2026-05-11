@@ -116,7 +116,7 @@ jobs:
           install_dir="$(mktemp -d)"
           node_dir="$(dirname "$(command -v node)")"
           npm pack --pack-destination "$pkg_dir" >/dev/null
-          pkg="$(find "$pkg_dir" -maxdepth 1 -name 'dunk-*.tgz' | head -n1)"
+          pkg="$(find "$pkg_dir" -maxdepth 1 -name 'dunkdiff-*.tgz' | head -n1)"
           npm install -g --prefix "$install_dir" "$pkg"
           PATH="$install_dir/bin:$node_dir:/usr/bin:/bin"
           if command -v bun >/dev/null 2>&1; then

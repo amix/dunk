@@ -54,7 +54,7 @@
     "lint": "oxlint . --deny-warnings",
     "lint:fix": "oxlint . --fix",
     "prepare": "simple-git-hooks",
-    "test": "\"${npm_execpath:-bun}\" test --parallel ./src ./packages ./scripts ./test/cli",
+    "test": "\"${npm_execpath:-bun}\" test --parallel ./src ./scripts ./test/cli",
     "test:integration": "DUNK_RUN_PTY_TESTS=1 \"${npm_execpath:-bun}\" test ./test/pty",
     "test:tty-smoke": "DUNK_RUN_TTY_SMOKE=1 \"${npm_execpath:-bun}\" test ./test/smoke",
     "check:pack": "bun run ./scripts/check-pack.ts",

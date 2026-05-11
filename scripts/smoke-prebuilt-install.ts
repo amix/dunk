@@ -50,9 +50,9 @@ let installDir: string | undefined;
 let smokeMetaDir: string | undefined;
 
 try {
-  packageDir = mkdtempSync(path.join(tempRoot, "hunk-prebuilt-pack-"));
-  installDir = mkdtempSync(path.join(tempRoot, "hunk-prebuilt-install-"));
-  smokeMetaDir = mkdtempSync(path.join(tempRoot, "hunk-prebuilt-meta-"));
+  packageDir = mkdtempSync(path.join(tempRoot, "dunk-prebuilt-pack-"));
+  installDir = mkdtempSync(path.join(tempRoot, "dunk-prebuilt-install-"));
+  smokeMetaDir = mkdtempSync(path.join(tempRoot, "dunk-prebuilt-meta-"));
 
   const nodeBinary = Bun.spawnSync(["bash", "-lc", "command -v node"], {
     stdin: "ignore",
@@ -85,7 +85,7 @@ try {
 
   // Point a temp copy of the staged meta package at the local platform tarball.
   // The real manifest uses semver ranges, but this smoke test runs before publish.
-  const smokePackageDir = path.join(smokeMetaDir, "dunk");
+  const smokePackageDir = path.join(smokeMetaDir, "dunkdiff");
   cpSync(path.join(releaseRoot, "dunkdiff"), smokePackageDir, { recursive: true });
   const smokeManifestPath = path.join(smokePackageDir, "package.json");
   const smokeManifest = JSON.parse(readFileSync(smokeManifestPath, "utf8")) as {
@@ -100,17 +100,17 @@ try {
   run(["npm", "pack", "--pack-destination", packageDir], {
     cwd: smokePackageDir,
   });
-  const metaTarball = path.join(packageDir, `dunk-${packageVersion}.tgz`);
+  const metaTarball = path.join(packageDir, `dunkdiff-${packageVersion}.tgz`);
 
   run(["npm", "install", "-g", "--prefix", installDir, metaTarball]);
 
   const sanitizedPath = [path.join(installDir, "bin"), nodeDir, bashDir].join(":");
-  const installedDunk = path.join(installDir, "bin", "hunk");
+  const installedDunk = path.join(installDir, "bin", "dunk");
   const installedPlatformBinary = path.join(
     installDir,
     "lib",
     "node_modules",
-    "dunk",
+    "dunkdiff",
     "node_modules",
     hostSpec.packageName,
     "bin",
@@ -134,8 +134,8 @@ try {
     env: commandEnv,
   });
 
-  if (help.stdout.includes("Usage: hunk") === false) {
-    throw new Error(`Expected help output to include 'Usage: hunk'.\n${help.stdout}`);
+  if (help.stdout.includes("Usage: dunk") === false) {
+    throw new Error(`Expected help output to include 'Usage: dunk'.\n${help.stdout}`);
   }
 
   const version = run([installedDunk, "--version"], {
@@ -143,7 +143,7 @@ try {
   });
   if (version.stdout !== `${packageVersion}\n`) {
     throw new Error(
-      `Expected installed hunk --version to print ${packageVersion}.\n${version.stdout}`,
+      `Expected installed dunk --version to print ${packageVersion}.\n${version.stdout}`,
     );
   }
 
@@ -151,11 +151,11 @@ try {
     env: commandEnv,
   }).stdout.trim();
   if (
-    !skillPath.endsWith(path.join("skills", "hunk-review", "SKILL.md")) ||
+    !skillPath.endsWith(path.join("skills", "dunk-review", "SKILL.md")) ||
     !existsSync(skillPath)
   ) {
     throw new Error(
-      `Expected installed hunk skill path to resolve to the bundled skill.\n${skillPath}`,
+      `Expected installed dunk skill path to resolve to the bundled skill.\n${skillPath}`,
     );
   }
 
