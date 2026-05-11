@@ -19,6 +19,7 @@ import {
 import { copyToClipboard } from "../core/clipboard";
 import { findRepoRoot } from "../core/config";
 import { resolveEditorLaunch, runEditorLaunch } from "../core/editor";
+import { hunkFingerprint } from "../core/hunkFingerprint";
 import { hunkLineRange } from "../core/hunkRange";
 import type { AppBootstrap, CliInput, LayoutMode } from "../core/types";
 import type { UpdateNotice } from "../core/updateNotice";
@@ -135,9 +136,18 @@ export function App({
   const [commentEditorTarget, setCommentEditorTarget] = useState<{
     repoRoot: string;
     filePath: string;
+    fileId: string;
     line: number;
     range: [number, number];
     anchor: string;
+    /**
+     * Transient identity hash of the hunk the user pressed `a` on. At save
+     * time we re-hash whatever hunk currently owns the resolved line; if
+     * the fingerprint changed, the diff churned out from under us and the
+     * write is rejected rather than silently anchoring the comment against
+     * a different hunk that happens to share line numbers.
+     */
+    hunkFingerprint: string;
   } | null>(null);
   // Hoist the draft body so a reload/remount of the comment editor cannot
   // silently drop in-flight typing. Reset to "" only on open and on cancel/
@@ -489,7 +499,7 @@ export function App({
     });
   }, [refreshCurrentInput]);
 
-  /** Resolve the active hunk's repo-root, file path, and post-image range. */
+  /** Resolve the active hunk's repo-root, file path, post-image range, and identity fingerprint. */
   const focusedHunkTarget = useCallback(() => {
     const selected = review.selectedFile;
     const hunk = review.selectedHunk;
@@ -498,7 +508,13 @@ export function App({
     }
 
     const range = hunkLineRange(hunk).newRange;
-    return { repoRoot, filePath: selected.path, range };
+    return {
+      repoRoot,
+      filePath: selected.path,
+      fileId: selected.id,
+      range,
+      hunkFingerprint: hunkFingerprint(selected.metadata, hunk),
+    };
   }, [repoRoot, review.selectedFile, review.selectedHunk]);
 
   /** Apply one mutation to the comments anchored on the focused hunk. */
@@ -654,9 +670,11 @@ export function App({
     setCommentEditorTarget({
       repoRoot: target.repoRoot,
       filePath: target.filePath,
+      fileId: target.fileId,
       line,
       range: target.range,
       anchor,
+      hunkFingerprint: target.hunkFingerprint,
     });
   }, [focusedHunkTarget]);
 
@@ -697,23 +715,87 @@ export function App({
       });
   }, [flashStatus, focusedHunkTarget, triggerRefreshCurrentInput]);
 
-  /** Persist the entered body and reload so the new comment shows up inline. */
+  /**
+   * Persist the entered body, validating that the hunk the user pressed `a`
+   * on still owns the resolved line. The diff stream can churn between
+   * modal-open and submit (watch mode, agent file edits, manual reloads);
+   * without this guard, the comment can silently anchor against a different
+   * hunk that happens to occupy the same line numbers in the new diff.
+   *
+   * Three outcomes:
+   * - Owning hunk fingerprint matches → write using the *current* hunk's
+   *   range so the persisted entry stays aligned with the live diff.
+   * - Fingerprint mismatches (or no current hunk owns the line) → reject
+   *   with a transient status; the modal closes but the draft is kept so
+   *   the user can re-author intentionally.
+   * - mutateCommentsFile throws → log and clear state.
+   */
   const saveComment = useCallback(
     (body: string) => {
       if (!commentEditorTarget) {
         return;
       }
 
-      const { repoRoot, filePath, line, range, anchor } = commentEditorTarget;
+      const {
+        repoRoot,
+        filePath,
+        fileId,
+        line,
+        anchor,
+        hunkFingerprint: openFingerprint,
+      } = commentEditorTarget;
+
+      // Re-derive the current owning hunk from the live changeset. `file.id`
+      // embeds the file's array index so a sidebar reorder could invalidate
+      // it; fall back to the path (and the rename's previousPath) before
+      // declaring the file gone.
+      const currentFile =
+        bootstrap.changeset.files.find((file) => file.id === fileId) ??
+        bootstrap.changeset.files.find(
+          (file) => file.path === filePath || file.previousPath === filePath,
+        );
+      if (!currentFile) {
+        // Validation rejection preserves the draft body so the user doesn't
+        // lose what they typed; only successful saves and explicit cancels
+        // clear it.
+        flashStatus("Diff changed — the file is gone. Re-open to retry; draft preserved.", 4000);
+        setCommentEditorTarget(null);
+        return;
+      }
+
+      const owningHunk = currentFile.metadata.hunks.find((hunk) => {
+        const { newRange } = hunkLineRange(hunk);
+        return line >= newRange[0] && line <= newRange[1];
+      });
+      if (!owningHunk) {
+        flashStatus(
+          "Diff changed — no hunk owns this line now. Re-open to retry; draft preserved.",
+          4000,
+        );
+        setCommentEditorTarget(null);
+        return;
+      }
+
+      const currentFingerprint = hunkFingerprint(currentFile.metadata, owningHunk);
+      if (currentFingerprint !== openFingerprint) {
+        flashStatus("Diff changed under the modal. Re-open to retry; draft preserved.", 4000);
+        setCommentEditorTarget(null);
+        return;
+      }
+
+      const currentRange = hunkLineRange(owningHunk).newRange;
+      let savedCommentId: number | null = null;
       try {
         mutateCommentsFile(repoRoot, (current) => {
-          return withAddedComment(current, {
+          const result = withAddedComment(current, {
             file: filePath,
             line,
-            range,
+            range: currentRange,
             anchor,
             body,
-          }).file;
+          });
+          savedCommentId = result.comment.id;
+          return result.file;
         });
       } catch (error) {
         console.error("Failed to save comment.", error);
@@ -722,11 +804,14 @@ export function App({
         return;
       }
 
+      if (savedCommentId !== null) {
+        pendingPostSaveRevealRef.current = savedCommentId;
+      }
       setCommentEditorTarget(null);
       setCommentDraftBody("");
       triggerRefreshCurrentInput();
     },
-    [commentEditorTarget, triggerRefreshCurrentInput],
+    [bootstrap.changeset.files, commentEditorTarget, flashStatus, triggerRefreshCurrentInput],
   );
 
   // Hold the current refresher in a ref so view-only state changes (theme,
@@ -743,6 +828,10 @@ export function App({
   // pending flush that runs when the modal closes.
   const commentAuthoringRef = useRef(false);
   const pendingPostAuthoringReloadRef = useRef(false);
+  // Records the id of a just-saved comment so the next bootstrap can scroll
+  // to it and flash a "Comment added" confirmation. Cleared once the next
+  // reload's annotations/drift list have been inspected, win or lose.
+  const pendingPostSaveRevealRef = useRef<number | null>(null);
   useEffect(() => {
     const wasAuthoring = commentAuthoringRef.current;
     const isAuthoring = commentEditorTarget !== null;
@@ -754,6 +843,61 @@ export function App({
       });
     }
   }, [commentEditorTarget]);
+
+  // After a successful `saveComment`, the next bootstrap carries either the
+  // anchored annotation (success path) or a drift entry (partial-success
+  // path). Surface that outcome explicitly: scroll the newly-anchored
+  // comment into view with a flash, or warn that it drifted on first save.
+  // Either way the user gets immediate confirmation that the write landed.
+  useEffect(() => {
+    const pendingId = pendingPostSaveRevealRef.current;
+    if (pendingId === null) {
+      return;
+    }
+
+    const annotationId = `dunk-comment:${pendingId}`;
+    let targetFileIndex = -1;
+    let targetHunkIndex = -1;
+    let targetRange: [number, number] | null = null;
+    let targetPath = "";
+    outer: for (let fileIndex = 0; fileIndex < bootstrap.changeset.files.length; fileIndex += 1) {
+      const file = bootstrap.changeset.files[fileIndex]!;
+      for (const annotation of file.annotations) {
+        if (annotation.id !== annotationId) {
+          continue;
+        }
+        const line = annotation.newRange?.[0] ?? 0;
+        for (let hunkIndex = 0; hunkIndex < file.metadata.hunks.length; hunkIndex += 1) {
+          const [start, end] = hunkLineRange(file.metadata.hunks[hunkIndex]!).newRange;
+          if (line >= start && line <= end) {
+            targetFileIndex = fileIndex;
+            targetHunkIndex = hunkIndex;
+            targetRange = [start, end];
+            targetPath = file.path;
+            break outer;
+          }
+        }
+      }
+    }
+
+    if (targetFileIndex >= 0 && targetRange) {
+      const file = bootstrap.changeset.files[targetFileIndex]!;
+      review.selectHunk(file.id, targetHunkIndex);
+      flashStatus(`Comment added — ${targetPath}:${targetRange[0]}-${targetRange[1]}`);
+      pendingPostSaveRevealRef.current = null;
+      return;
+    }
+
+    const driftEntry = bootstrap.driftedComments?.find((entry) => entry.id === pendingId);
+    if (driftEntry) {
+      flashStatus(
+        `Comment added but drifted (${driftEntry.reason}) — see the banner at the top.`,
+        5000,
+      );
+      pendingPostSaveRevealRef.current = null;
+    }
+    // Otherwise leave the ref armed; the next reload may carry the comment.
+  }, [bootstrap.changeset.files, bootstrap.driftedComments, flashStatus, review]);
 
   useEffect(() => {
     if (!watchEnabled) {

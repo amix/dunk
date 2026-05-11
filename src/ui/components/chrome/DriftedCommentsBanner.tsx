@@ -6,6 +6,7 @@ const DRIFT_REASON_LABEL: Record<DriftedCommentSummary["reason"], string> = {
   "missing-file": "missing",
   "out-of-range": "out-of-range",
   "anchor-mismatch": "drifted",
+  "not-in-hunk": "no hunk",
 };
 
 /**

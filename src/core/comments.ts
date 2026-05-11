@@ -5,6 +5,7 @@ import { isAbsolute, join, relative, resolve as resolvePath } from "node:path";
 import { z } from "zod";
 import { DUNK_COMMENTS_FILENAME, DUNK_DIR } from "./dunkPaths";
 import { DunkUserError } from "./errors";
+import { hunkLineRange } from "./hunkRange";
 import { LARGE_FILE_MAX_BYTES } from "./limits";
 import type { Annotation, Changeset, DiffFile, DriftReason, LineRange } from "./types";
 
@@ -429,23 +430,53 @@ export function commentToAnnotation(comment: AnchoredComment): Annotation {
  * Merge anchored comments into each DiffFile's inline annotations so the
  * renderer picks them up. Drifted comments are returned separately for
  * top-of-diff rendering.
+ *
+ * Second-pass drift detection: an anchored comment whose `line` doesn't
+ * fall inside any current diff hunk for its file is downgraded to
+ * `drifted: not-in-hunk`. Without this guard, a comment that anchored
+ * cleanly against a line whose surrounding diff has resolved (the file
+ * still has the line, but the hunk it lived in is gone) would render
+ * nowhere — invisible to the reviewer.
  */
 export function applyCommentsToChangeset(
   changeset: Changeset,
   resolved: ResolvedComment[],
 ): { changeset: Changeset; drifted: DriftedComment[] } {
+  const filesByPath = new Map<string, DiffFile>();
+  for (const file of changeset.files) {
+    filesByPath.set(file.path, file);
+    if (file.previousPath) {
+      filesByPath.set(file.previousPath, file);
+    }
+  }
+
   const anchoredByPath = new Map<string, AnchoredComment[]>();
   const drifted: DriftedComment[] = [];
 
   for (const comment of resolved) {
-    if (comment.state === "anchored") {
-      const list = anchoredByPath.get(comment.file) ?? [];
-      list.push(comment);
-      anchoredByPath.set(comment.file, list);
+    if (comment.state === "drifted") {
+      drifted.push(comment);
       continue;
     }
 
-    drifted.push(comment);
+    const owningFile = filesByPath.get(comment.file);
+    if (!owningFile) {
+      // `resolveComments` already maps file-missing comments to drifted; if
+      // we still see an anchored comment whose file isn't in the changeset
+      // (e.g., the file exists on disk but isn't part of the active diff),
+      // surface it as drifted rather than rendering it nowhere.
+      drifted.push({ ...comment, state: "drifted", reason: "not-in-hunk" });
+      continue;
+    }
+
+    if (!lineFallsInAnyHunk(owningFile, comment.line)) {
+      drifted.push({ ...comment, state: "drifted", reason: "not-in-hunk" });
+      continue;
+    }
+
+    const list = anchoredByPath.get(comment.file) ?? [];
+    list.push(comment);
+    anchoredByPath.set(comment.file, list);
   }
 
   const files = changeset.files.map((file) => mergeFileAnnotations(file, anchoredByPath));
@@ -453,6 +484,17 @@ export function applyCommentsToChangeset(
     changeset: { ...changeset, files },
     drifted,
   };
+}
+
+/** Return whether `line` (post-image) falls inside any of the file's current diff hunks. */
+function lineFallsInAnyHunk(file: DiffFile, line: number): boolean {
+  for (const hunk of file.metadata.hunks) {
+    const [start, end] = hunkLineRange(hunk).newRange;
+    if (line >= start && line <= end) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /** Layer anchored user comments onto a single DiffFile's inline annotations. */

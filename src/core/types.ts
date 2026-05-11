@@ -139,7 +139,7 @@ export interface AppBootstrap {
   driftedComments?: DriftedCommentSummary[];
 }
 
-export type DriftReason = "missing-file" | "out-of-range" | "anchor-mismatch";
+export type DriftReason = "missing-file" | "out-of-range" | "anchor-mismatch" | "not-in-hunk";
 
 /** Snapshot of a drifted user comment, surfaced to the UI for top-of-diff rendering. */
 export interface DriftedCommentSummary {
