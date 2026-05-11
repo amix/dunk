@@ -11,8 +11,8 @@ interface InlineVisibleNotePlacement {
   anchorKey: string;
   hunkIndex: number;
   note: VisibleAgentNote;
-  noteCount: number;
-  noteIndex: number;
+  commentCount: number;
+  commentIndex: number;
 }
 
 export type PlannedReviewRow =
@@ -34,8 +34,8 @@ export type PlannedReviewRow =
       hunkIndex: number;
       annotationId: string;
       annotation: Annotation;
-      noteCount: number;
-      noteIndex: number;
+      commentCount: number;
+      commentIndex: number;
     };
 
 function lineRows(rows: DiffRow[]) {
@@ -241,16 +241,16 @@ function buildInlineVisibleNotePlacements(rows: DiffRow[], visibleAgentNotes: Vi
       anchorKey: cardAnchorRow.key,
       hunkIndex,
       note,
-      noteCount: 1,
-      noteIndex: 0,
+      commentCount: 1,
+      commentIndex: 0,
     });
     placementsByAfterKey.set(cardAnchorRow.key, anchorPlacements);
   }
 
   for (const placements of placementsByAfterKey.values()) {
     placements.forEach((placement, position) => {
-      placement.noteIndex = position;
-      placement.noteCount = placements.length;
+      placement.commentIndex = position;
+      placement.commentCount = placements.length;
     });
   }
 
@@ -317,14 +317,14 @@ export function buildReviewRenderPlan({
     notesAfterThisRow.forEach((placement) => {
       plannedRows.push({
         kind: "inline-note",
-        key: `inline-note:${placement.note.id}:${row.key}:${placement.noteIndex}`,
+        key: `inline-note:${placement.note.id}:${row.key}:${placement.commentIndex}`,
         stableKey: `inline-note:${placement.note.id}`,
         fileId,
         hunkIndex: placement.hunkIndex,
         annotationId: placement.note.id,
         annotation: placement.note.annotation,
-        noteCount: placement.noteCount,
-        noteIndex: placement.noteIndex,
+        commentCount: placement.commentCount,
+        commentIndex: placement.commentIndex,
       });
     });
   }

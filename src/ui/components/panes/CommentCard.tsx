@@ -4,16 +4,17 @@ import { padText } from "../../lib/text";
 import type { AppTheme } from "../../themes";
 
 /**
- * Render an inline review comment as a left-accented block beneath the hunk.
+ * Render one review comment as a left-accented block. Used inline beneath the
+ * hunk for anchored comments and stacked in the top-of-diff drift banner for
+ * comments that no longer match the rendered hunks; the visual surface is the
+ * same so the user sees one primitive everywhere.
  *
- * The card has no surrounding box: a single colored bar in the gutter signals
- * "this is a comment", the title sits flush with that bar, and the body wraps
- * underneath. Comments are always hunk-anchored (one card per hunk bottom),
- * so per-side docking and guide rails were dropped.
+ * A single colored bar in the gutter signals "this is a comment", the title
+ * sits flush with that bar, and the body wraps underneath.
  */
 
-function inlineNoteTitle(noteIndex: number, noteCount: number) {
-  return noteCount > 1 ? `Comment ${noteIndex + 1}/${noteCount}` : "Comment";
+function commentCardTitle(commentIndex: number, commentCount: number) {
+  return commentCount > 1 ? `Comment ${commentIndex + 1}/${commentCount}` : "Comment";
 }
 
 const ACCENT_BAR_WIDTH = 1;
@@ -41,12 +42,12 @@ function buildBodyLines(annotation: Annotation, width: number) {
   return { bodyWidth, lines };
 }
 
-export function measureAgentInlineNoteHeight({
+export function measureCommentCardHeight({
   annotation,
   width,
 }: {
   annotation: Annotation;
-  /** Kept for compatibility; the new card no longer docks per-side. */
+  /** Kept for compatibility; the card no longer docks per-side. */
   anchorSide?: "old" | "new";
   /** Kept for compatibility; the layout no longer affects card height. */
   layout?: Exclude<LayoutMode, "auto">;
@@ -57,11 +58,11 @@ export function measureAgentInlineNoteHeight({
   return 1 + lines.length + 1;
 }
 
-/** Render the note card itself, anchored at the bottom of the hunk it annotates. */
-export function AgentInlineNote({
+/** Render the card itself, anchored at the bottom of the hunk it annotates. */
+export function CommentCard({
   annotation,
-  noteCount = 1,
-  noteIndex = 0,
+  commentCount = 1,
+  commentIndex = 0,
   onClose,
   theme,
   width,
@@ -70,20 +71,20 @@ export function AgentInlineNote({
   /** Unused but kept so existing callers don't have to thread layout state. */
   anchorSide?: "old" | "new";
   layout?: Exclude<LayoutMode, "auto">;
-  noteCount?: number;
-  noteIndex?: number;
+  commentCount?: number;
+  commentIndex?: number;
   onClose?: () => void;
   theme: AppTheme;
   width: number;
 }) {
   const { bodyWidth, lines } = buildBodyLines(annotation, width);
-  const titleText = inlineNoteTitle(noteIndex, noteCount);
+  const titleText = commentCardTitle(commentIndex, commentCount);
   const closeText = onClose ? "[x]" : "";
   const titleWidth = Math.max(1, bodyWidth - (closeText ? closeText.length + 1 : 0));
 
   return (
     <box style={{ width: "100%", flexDirection: "column", backgroundColor: theme.panel }}>
-      <NoteRow theme={theme} width={width}>
+      <CommentRow theme={theme} width={width}>
         <box style={{ width: titleWidth, height: 1, backgroundColor: theme.panel }}>
           <text fg={theme.accent} bg={theme.panel}>
             {padText(titleText, titleWidth)}
@@ -97,16 +98,16 @@ export function AgentInlineNote({
             <text fg={theme.muted} bg={theme.panel}>{` ${closeText}`}</text>
           </box>
         ) : null}
-      </NoteRow>
+      </CommentRow>
 
       {lines.map((line, index) => (
-        <NoteRow key={`${line.kind}:${index}`} theme={theme} width={width}>
+        <CommentRow key={`${line.kind}:${index}`} theme={theme} width={width}>
           <box style={{ width: bodyWidth, height: 1, backgroundColor: theme.panel }}>
             <text fg={line.kind === "summary" ? theme.text : theme.muted} bg={theme.panel}>
               {padText(line.text, bodyWidth)}
             </text>
           </box>
-        </NoteRow>
+        </CommentRow>
       ))}
 
       <box style={{ width: "100%", height: 1, backgroundColor: theme.panel }}>
@@ -117,7 +118,7 @@ export function AgentInlineNote({
 }
 
 /** One row of the card: left indent + colored accent bar + content. */
-function NoteRow({
+function CommentRow({
   children,
   theme,
   width: _width,
@@ -144,8 +145,8 @@ function NoteRow({
   );
 }
 
-/** Trailing cap kept as a no-op so callers don't need to be reworked. */
-export function AgentInlineNoteGuideCap({
+/** Trailing blank row beneath the card, kept as an export so older planning code can address it by name. */
+export function CommentCardSpacer({
   theme,
   width,
 }: {

@@ -56,11 +56,11 @@ function firstInlineNote(plannedRows: PlannedReviewRow[]) {
 function inlineNoteAnchorRow(plannedRows: PlannedReviewRow[]) {
   // Notes render at the bottom of the hunk, so the anchor row is the last
   // diff-row preceding the inline-note in the plan.
-  const noteIndex = plannedRows.findIndex((row) => row.kind === "inline-note");
-  if (noteIndex < 0) {
+  const commentIndex = plannedRows.findIndex((row) => row.kind === "inline-note");
+  if (commentIndex < 0) {
     return undefined;
   }
-  for (let index = noteIndex - 1; index >= 0; index -= 1) {
+  for (let index = commentIndex - 1; index >= 0; index -= 1) {
     const candidate = plannedRows[index];
     if (candidate?.kind === "diff-row") {
       return candidate;
@@ -99,8 +99,8 @@ describe("review render plan", () => {
     const note = firstInlineNote(plannedRows);
     expect(note?.kind).toBe("inline-note");
     if (note?.kind === "inline-note") {
-      expect(note.noteCount).toBe(1);
-      expect(note.noteIndex).toBe(0);
+      expect(note.commentCount).toBe(1);
+      expect(note.commentIndex).toBe(0);
     }
 
     const anchoredRow = inlineNoteAnchorRow(plannedRows);
@@ -354,7 +354,7 @@ describe("review render plan", () => {
       "annotation:counted:0:1",
     ]);
     // Both share the hunk-bottom anchor, so they are indexed within one stack of 2.
-    expect(inlineNotes.map((row) => row.noteIndex)).toEqual([0, 1]);
-    expect(inlineNotes.every((row) => row.noteCount === 2)).toBe(true);
+    expect(inlineNotes.map((row) => row.commentIndex)).toEqual([0, 1]);
+    expect(inlineNotes.every((row) => row.commentCount === 2)).toBe(true);
   });
 });

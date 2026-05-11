@@ -1,5 +1,5 @@
 import type { DiffFile, LayoutMode } from "../../core/types";
-import { measureAgentInlineNoteHeight } from "../components/panes/AgentInlineNote";
+import { measureCommentCardHeight } from "../components/panes/CommentCard";
 import { findMaxLineNumber } from "../diff/codeColumns";
 import { buildSplitRows, buildStackRows } from "../diff/pierre";
 import { measureRenderedRowHeight } from "../diff/renderRows";
@@ -60,7 +60,7 @@ function plannedRowHeight(
   theme: AppTheme,
 ) {
   if (row.kind === "inline-note") {
-    return measureAgentInlineNoteHeight({
+    return measureCommentCardHeight({
       annotation: row.annotation,
       layout,
       width,

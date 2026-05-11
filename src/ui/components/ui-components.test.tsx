@@ -14,7 +14,7 @@ const { buildSidebarEntries } = await import("../lib/files");
 const { HelpDialog } = await import("./chrome/HelpDialog");
 const { SidebarPane } = await import("./panes/SidebarPane");
 const { AgentCard } = await import("./panes/AgentCard");
-const { AgentInlineNote } = await import("./panes/AgentInlineNote");
+const { CommentCard } = await import("./panes/CommentCard");
 const { DiffPane } = await import("./panes/DiffPane");
 const { StatusBar } = await import("./chrome/StatusBar");
 const { DiffSectionPlaceholder } = await import("./panes/DiffSectionPlaceholder");
@@ -1150,10 +1150,10 @@ describe("UI components", () => {
     expect(lines[7]).toBe("└────────────────────────────────┘");
   });
 
-  test("AgentInlineNote renders title, body, and close affordance with a left accent bar", async () => {
+  test("CommentCard renders title, body, and close affordance with a left accent bar", async () => {
     const theme = resolveTheme("midnight", null);
     const frame = await captureFrame(
-      <AgentInlineNote
+      <CommentCard
         annotation={{
           summary: "Summary line",
           rationale: "Rationale line.",
@@ -1411,24 +1411,15 @@ describe("UI components", () => {
       "[Esc]",
       "Navigation",
       "↑ / ↓           move line-by-line",
-      "Space / f       page down (alt: f)",
-      "b               page up",
-      "Shift+Space     page up (alt)",
+      "Space / b       page down / up",
       "Ctrl+D / Ctrl+U half page down / up",
       "K / J           previous / next hunk",
-      "{ / }           previous / next comment",
       "← / →           scroll code left / right (Shift = faster)",
+      "gg / G          jump to first / last hunk",
       "Home / End      jump to top / bottom",
-      "gg / G          jump to top / bottom (vim)",
-      "Mouse",
-      "Wheel           scroll vertically",
-      "Shift+Wheel     scroll code horizontally",
-      "View",
-      "1 / 2 / 0       split / stack / auto",
-      "s / t           sidebar / theme",
-      "l / w / m       lines / wrap / metadata",
       "Comments",
       "a               add comment on this hunk",
+      "{ / }           previous / next comment",
       "d               delete one comment on this hunk",
       "D               delete all comments in this diff (confir",
       "e               open this file in $EDITOR at the hunk",
@@ -1436,6 +1427,13 @@ describe("UI components", () => {
       "/               focus file filter",
       "Tab             toggle files/filter focus",
       "r / q           reload / quit",
+      "View",
+      "1 / 2 / 0       split / stack / auto",
+      "s / t           sidebar / theme",
+      "l / w / m       lines / wrap / metadata",
+      "Mouse",
+      "Wheel           scroll vertically",
+      "Shift+Wheel     scroll code horizontally",
     ] as const;
 
     for (const expectedRow of expectedRows) {
@@ -1444,13 +1442,15 @@ describe("UI components", () => {
 
     const lines = frame.split("\n");
     const blankModalRow = /│\s+│/;
-    const mouseHeaderIndex = lines.findIndex((line) => line.includes("│ Mouse"));
-    const viewHeaderIndex = lines.findIndex((line) => line.includes("│ View"));
+    const commentsHeaderIndex = lines.findIndex((line) => line.includes("│ Comments"));
     const reviewHeaderIndex = lines.findIndex((line) => line.includes("│ Review"));
+    const viewHeaderIndex = lines.findIndex((line) => line.includes("│ View"));
+    const mouseHeaderIndex = lines.findIndex((line) => line.includes("│ Mouse"));
 
-    expect(lines[mouseHeaderIndex - 1]).toMatch(blankModalRow);
-    expect(lines[viewHeaderIndex - 1]).toMatch(blankModalRow);
+    expect(lines[commentsHeaderIndex - 1]).toMatch(blankModalRow);
     expect(lines[reviewHeaderIndex - 1]).toMatch(blankModalRow);
+    expect(lines[viewHeaderIndex - 1]).toMatch(blankModalRow);
+    expect(lines[mouseHeaderIndex - 1]).toMatch(blankModalRow);
     expect(frame).not.toContain("linese/Awrapt/smetadata");
     expect(frame).not.toContain("reloade/uquit");
   });

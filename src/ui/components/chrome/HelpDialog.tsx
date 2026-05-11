@@ -21,31 +21,30 @@ export function HelpDialog({
       title: "Navigation",
       items: [
         ["↑ / ↓", "move line-by-line"],
-        ["Space / f", "page down (alt: f)"],
-        ["b", "page up"],
-        ["Shift+Space", "page up (alt)"],
+        ["Space / b", "page down / up"],
         ["Ctrl+D / Ctrl+U", "half page down / up"],
         ["K / J", "previous / next hunk"],
-        ["{ / }", "previous / next comment"],
         ["← / →", "scroll code left / right (Shift = faster)"],
+        ["gg / G", "jump to first / last hunk"],
         ["Home / End", "jump to top / bottom"],
-        ["gg / G", "jump to top / bottom (vim)"],
-      ],
-    },
-    {
-      title: "Mouse",
-      items: [
-        ["Wheel", "scroll vertically"],
-        ["Shift+Wheel", "scroll code horizontally"],
       ],
     },
     {
       title: "Comments",
       items: [
         ["a", "add comment on this hunk"],
+        ["{ / }", "previous / next comment"],
         ["d", "delete one comment on this hunk"],
         ["D", "delete all comments in this diff (confirm)"],
         ["e", "open this file in $EDITOR at the hunk"],
+      ],
+    },
+    {
+      title: "Review",
+      items: [
+        ["/", "focus file filter"],
+        ["Tab", "toggle files/filter focus"],
+        [canRefresh ? "r / q" : "q", canRefresh ? "reload / quit" : "quit"],
       ],
     },
     {
@@ -57,11 +56,10 @@ export function HelpDialog({
       ],
     },
     {
-      title: "Review",
+      title: "Mouse",
       items: [
-        ["/", "focus file filter"],
-        ["Tab", "toggle files/filter focus"],
-        [canRefresh ? "r / q" : "q", canRefresh ? "reload / quit" : "quit"],
+        ["Wheel", "scroll vertically"],
+        ["Shift+Wheel", "scroll code horizontally"],
       ],
     },
   ] as const;

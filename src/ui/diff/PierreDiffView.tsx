@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { DiffFile, LayoutMode } from "../../core/types";
-import { AgentInlineNote } from "../components/panes/AgentInlineNote";
+import { CommentCard } from "../components/panes/CommentCard";
 import type { VisibleAgentNote } from "../lib/agentAnnotations";
 import type { DiffSectionGeometry } from "../lib/diffSectionGeometry";
 import { reviewRowId } from "../lib/ids";
@@ -158,10 +158,10 @@ export function PierreDiffView({
         if (plannedRow.kind === "inline-note") {
           return (
             <box key={plannedRow.key} id={rowId} style={{ width: "100%", flexDirection: "column" }}>
-              <AgentInlineNote
+              <CommentCard
                 annotation={plannedRow.annotation}
-                noteCount={plannedRow.noteCount}
-                noteIndex={plannedRow.noteIndex}
+                commentCount={plannedRow.commentCount}
+                commentIndex={plannedRow.commentIndex}
                 theme={theme}
                 width={width}
               />

@@ -1,5 +1,5 @@
 import type { LayoutMode } from "../../core/types";
-import { measureAgentInlineNoteHeight } from "../components/panes/AgentInlineNote";
+import { measureCommentCardHeight } from "../components/panes/CommentCard";
 import type { SectionGeometry, VerticalBounds } from "../lib/diffSpatial";
 import { reviewRowId } from "../lib/ids";
 import type { PlannedReviewRow } from "./reviewRenderPlan";
@@ -37,7 +37,7 @@ export function plannedReviewRowHeight(
   { showHunkHeaders, layout, width }: PlannedReviewRowLayoutOptions,
 ) {
   if (row.kind === "inline-note") {
-    return measureAgentInlineNoteHeight({
+    return measureCommentCardHeight({
       annotation: row.annotation,
       layout,
       width,
