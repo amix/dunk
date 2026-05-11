@@ -230,7 +230,7 @@ describe("TTY render smoke", () => {
     const output = await runTtySmoke({ mode: "split" });
 
     expect(output).not.toContain("View  Navigate  Theme  Agent  Help");
-    expect(output).toContain("before.ts ↔ after.ts");
+    expect(output).toContain("before.ts -> after.ts");
     expect(output).toContain("▌@@ -1,1 +1,2 @@");
     expect(output).toContain("▌1 - export const answer = 41;");
     expect(output).toContain("▌1 + export const answer = 42;");
