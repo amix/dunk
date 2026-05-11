@@ -7,6 +7,13 @@ import type {
   PagerCommandInput,
   ParsedCliInput,
 } from "./types";
+import {
+  renderCommentsHelp,
+  runCommentsList,
+  runCommentsResolve,
+  runCommentsShow,
+} from "./cliComments";
+import { DunkUserError } from "./errors";
 import { resolveBundledDunkReviewSkillPath } from "./paths";
 import { resolveCliVersion } from "./version";
 
@@ -17,16 +24,6 @@ function parseLayoutMode(value: string): LayoutMode {
   }
 
   throw new Error(`Invalid layout mode: ${value}`);
-}
-
-/** Parse one required positive integer CLI value. */
-function parsePositiveInt(value: string) {
-  const parsed = Number.parseInt(value, 10);
-  if (!Number.isInteger(parsed) || parsed <= 0) {
-    throw new Error(`Invalid positive integer: ${value}`);
-  }
-
-  return parsed;
 }
 
 /** Read one paired positive/negative boolean flag directly from raw argv. */
@@ -128,6 +125,7 @@ function renderCliHelp() {
     "  dunk patch [file]                       review a patch file or stdin",
     "  dunk pager                              general Git pager wrapper with diff detection",
     "  dunk difftool <left> <right> [path]     review Git difftool file pairs",
+    "  dunk comments [list|show|resolve]       inspect or resolve review comments without the TUI",
     "  dunk skill path                         print the bundled dunk review skill path",
     "",
     "Global options:",
@@ -198,13 +196,8 @@ function createCommand(name: string, description: string) {
   return applyCommonOptions(new Command(name).description(description));
 }
 
-/** Resolve whether one nested CLI command requested JSON output. */
-function resolveJsonOutput(options: { json?: boolean }) {
-  return options.json ? "json" : "text";
-}
-
 /** Parse the overloaded `dunk diff` command. */
-async function parseDiffCommand(tokens: string[], argv: string[]): Promise<ParsedCliInput> {
+async function parseDiffCommand(tokens: string[], _argv: string[]): Promise<ParsedCliInput> {
   const { commandTokens, pathspecs } = splitPathspecArgs(tokens);
   const command = applyWatchOption(
     createCommand("diff", "review diffs or compare two concrete files"),
@@ -284,7 +277,7 @@ async function parseDiffCommand(tokens: string[], argv: string[]): Promise<Parse
 }
 
 /** Parse the Git-style `dunk show` command. */
-async function parseShowCommand(tokens: string[], argv: string[]): Promise<ParsedCliInput> {
+async function parseShowCommand(tokens: string[], _argv: string[]): Promise<ParsedCliInput> {
   const { commandTokens, pathspecs } = splitPathspecArgs(tokens);
   const command = applyWatchOption(
     createCommand("show", "review the last commit or a given ref"),
@@ -399,6 +392,118 @@ async function parseDifftoolCommand(tokens: string[], argv: string[]): Promise<P
   };
 }
 
+/** Pull every positional id from `dunk comments resolve` and reject the rest. */
+function parseResolveIds(args: string[]): number[] {
+  const ids: number[] = [];
+  for (const raw of args) {
+    if (raw.startsWith("-")) {
+      throw new DunkUserError(`\`dunk comments resolve\` takes ids only, got \`${raw}\`.`);
+    }
+    const parsed = Number.parseInt(raw, 10);
+    if (!Number.isInteger(parsed) || parsed <= 0 || String(parsed) !== raw) {
+      throw new DunkUserError(
+        `\`dunk comments resolve\` expects positive integer ids, got \`${raw}\`.`,
+      );
+    }
+    ids.push(parsed);
+  }
+  return ids;
+}
+
+/**
+ * Parse `dunk comments ...` and execute the requested action eagerly.
+ *
+ * Like `dunk skill path`, these are print-and-exit commands rather than TUI
+ * sessions, so we build the output here and return it as `kind: "help"` so
+ * `main.tsx` writes it to stdout and exits 0. Errors raise `DunkUserError`,
+ * which `formatCliError` renders cleanly with exit 1.
+ */
+async function parseCommentsCommand(tokens: string[]): Promise<HelpCommandInput> {
+  const [subcommand, ...rest] = tokens;
+
+  // `--help`/`-h` at any position short-circuits to the subcommand help text.
+  if (tokens.includes("--help") || tokens.includes("-h")) {
+    return { kind: "help", text: renderCommentsHelp() };
+  }
+
+  if (!subcommand || subcommand === "list") {
+    const json = rest.includes("--json");
+    const extras = rest.filter((arg) => arg !== "--json");
+    if (extras.length > 0) {
+      throw new DunkUserError(`Unexpected argument for \`dunk comments list\`: \`${extras[0]}\`.`);
+    }
+
+    return { kind: "help", text: runCommentsList(json ? "json" : "text") };
+  }
+
+  if (subcommand === "show") {
+    const json = rest.includes("--json");
+    let contextLines: number | undefined;
+    const positionals: string[] = [];
+    for (let i = 0; i < rest.length; i += 1) {
+      const arg = rest[i]!;
+      if (arg === "--json") {
+        continue;
+      }
+      if (arg === "--context") {
+        const next = rest[i + 1];
+        if (next === undefined) {
+          throw new DunkUserError("`dunk comments show --context` requires a number.");
+        }
+        const parsed = Number.parseInt(next, 10);
+        if (!Number.isInteger(parsed) || parsed < 0 || String(parsed) !== next) {
+          throw new DunkUserError(
+            `\`dunk comments show --context\` expects a non-negative integer, got \`${next}\`.`,
+          );
+        }
+        contextLines = parsed;
+        i += 1;
+        continue;
+      }
+      if (arg.startsWith("--context=")) {
+        const value = arg.slice("--context=".length);
+        const parsed = Number.parseInt(value, 10);
+        if (!Number.isInteger(parsed) || parsed < 0 || String(parsed) !== value) {
+          throw new DunkUserError(
+            `\`dunk comments show --context\` expects a non-negative integer, got \`${value}\`.`,
+          );
+        }
+        contextLines = parsed;
+        continue;
+      }
+      positionals.push(arg);
+    }
+
+    if (positionals.length === 0) {
+      throw new DunkUserError("`dunk comments show` requires a comment id.");
+    }
+    if (positionals.length > 1) {
+      throw new DunkUserError("`dunk comments show` takes exactly one id.");
+    }
+
+    const id = Number.parseInt(positionals[0]!, 10);
+    if (!Number.isInteger(id) || id <= 0 || String(id) !== positionals[0]) {
+      throw new DunkUserError(
+        `\`dunk comments show\` expects a positive integer id, got \`${positionals[0]}\`.`,
+      );
+    }
+
+    return {
+      kind: "help",
+      text: runCommentsShow(id, json ? "json" : "text", { contextLines }),
+    };
+  }
+
+  if (subcommand === "resolve") {
+    const ids = parseResolveIds(rest);
+    return { kind: "help", text: runCommentsResolve(ids) };
+  }
+
+  throw new DunkUserError(`Unknown \`dunk comments\` subcommand: \`${subcommand}\`.`, [
+    "Use one of: list, show, resolve. Run `dunk comments --help` for details.",
+  ]);
+}
+
 /** Parse `dunk skill ...` for bundled skill discovery commands. */
 async function parseSkillCommand(tokens: string[]): Promise<HelpCommandInput> {
   const [subcommand, ...rest] = tokens;
@@ -506,6 +611,8 @@ export async function parseCli(argv: string[]): Promise<ParsedCliInput> {
       return parseStashCommand(rest, argv);
     case "skill":
       return parseSkillCommand(rest);
+    case "comments":
+      return parseCommentsCommand(rest);
     default:
       throw new Error(`Unknown command: ${commandName}`);
   }

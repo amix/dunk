@@ -6,12 +6,12 @@ Review diffs in a terminal UI, leave inline comments, and let a coding agent fix
 
 `dunk` is a hard fork of [hunk](https://github.com/modem-dev/hunk). It keeps the OpenTUI / [Pierre](https://www.npmjs.com/package/@pierre/diffs) diff-viewer foundation and removes the daemon, MCP, and session-broker layers.
 
-* Press `a` on a hunk to save a comment scoped to that hunk. Comments are hunk-level — you don't pick a specific line.
-* Comments live in `.dunk/comments.json`. Don't commit it; treat it as a local review scratchpad. Add `.dunk/` to your `.gitignore`.
-* `--watch` reloads code changes and comment edits automatically.
-* Resolved comments disappear as the agent removes them.
-* Drifted anchors surface at the top of the diff instead of getting lost.
-* Built on hunk’s terminal diff viewer, with sidebar navigation, split/stack layouts, pager support, and `git difftool` adapters.
+- Press `a` on a hunk to save a comment scoped to that hunk. Comments are hunk-level — you don't pick a specific line.
+- Comments live in `.dunk/comments.json`. Don't commit it; treat it as a local review scratchpad. Add `.dunk/` to your `.gitignore`.
+- `--watch` reloads code changes and comment edits automatically.
+- Resolved comments disappear as the agent removes them.
+- Drifted anchors surface at the top of the diff instead of getting lost.
+- Built on hunk’s terminal diff viewer, with sidebar navigation, split/stack layouts, pager support, and `git difftool` adapters.
 
 ## Install
 
@@ -59,9 +59,9 @@ git diff --no-color | dunk patch - # review a patch from stdin
 
    `.dunk/comments.json` is intentionally a local file — keep `.dunk/` in your `.gitignore` so review chatter doesn't leak into commits.
 
-3. Point your agent at `.dunk/comments.json`.
+3. Point your agent at `dunk comments`.
 
-   Each comment tells the agent what to fix and where. The agent should fix the issue, then remove the resolved comment from the JSON file.
+   Each comment tells the agent what to fix and where. The agent runs `dunk comments list` to see what's pending, `dunk comments show <id>` to read the hunk in context, fixes the issue, then `dunk comments resolve <id>` to drop the entry. Hand-editing `.dunk/comments.json` is the fallback when the binary isn't available.
 
 4. Keep reviewing while the agent works.
 
@@ -77,7 +77,7 @@ A sample agent skill lives at `skills/dunk-review/SKILL.md`. You can also find i
 dunk skill path
 ```
 
-Load that skill into Claude Code or any skill-aware agent to teach it how to read, fix, and prune `.dunk/comments.json`.
+Load that skill into Claude Code or any skill-aware agent to teach it how to use `dunk comments` for review.
 
 Tip: keep `dunk diff --watch` and your agent side by side. Add comments with `a`; as the agent updates `.dunk/comments.json`, the review updates in place.
 
@@ -130,8 +130,8 @@ diff-formatter = ":git"
 
 `dunk` reads config from either location:
 
-* `~/.config/dunk/config.toml`
-* `.dunk/config.toml`
+- `~/.config/dunk/config.toml`
+- `.dunk/config.toml`
 
 Example:
 

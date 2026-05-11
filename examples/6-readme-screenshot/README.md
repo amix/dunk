@@ -6,21 +6,20 @@ A screenshot-optimized demo for the main README: a multi-file UI refactor with i
 
 ```bash
 dunk patch examples/6-readme-screenshot/change.patch \
-  --agent-context examples/6-readme-screenshot/agent-context.json \
   --mode split \
   --theme midnight
 ```
+
+The `agent-context.json` sidecar is kept as historical reference; current dunk drives review through `.dunk/comments.json` and `dunk comments {list,show,resolve}`.
 
 ## Screenshot setup
 
 - use a wide terminal so the sidebar and split diff are both visible
 - keep the first file selected: `src/components/ReviewSummaryCard.tsx`
-- make sure agent notes are visible
-- capture the first annotated hunk with the note popover open
+- capture the first hunk with the diff in focus
 
 ## What it shows well
 
-- inline agent rationale beside the changed code
 - a clear mix of removed and added lines in one hunk
 - a visible multi-file sidebar
 - TSX prop renames, copy edits, and helper extraction with strong syntax color

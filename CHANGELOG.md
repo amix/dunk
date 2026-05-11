@@ -10,6 +10,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- `dunk comments {list,show,resolve}` — first-class CLI for coding agents to inspect and resolve review comments without entering the TUI or hand-editing `.dunk/comments.json`. `show <id>` prints the comment plus 10 lines of post-image context (configurable via `--context <N>`); `resolve <id>...` is atomic and refuses partial success when an id is missing. `--json` on `list`/`show` returns a stable shape with drift state.
 - Inline review comments backed by a single committed `.dunk/comments.json` per repo, with anchor-based drift detection so comments survive small edits.
 - Watch-mode integration: edits to `.dunk/comments.json` (e.g., from a coding agent fixing comments) refresh the diff in real time.
 - Sample `skills/dunk-review/SKILL.md` describing the read/fix/prune loop for Claude Code / Codex agents.

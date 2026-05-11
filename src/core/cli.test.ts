@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import { parseCli } from "./cli";
 import { resolveCliVersion } from "./version";
 
@@ -35,6 +35,7 @@ describe("parseCli", () => {
     expect(parsed.text).toContain("dunk diff");
     expect(parsed.text).toContain("dunk show");
     expect(parsed.text).toContain("dunk skill path");
+    expect(parsed.text).toContain("dunk comments");
     expect(parsed.text).toContain("Global options:");
     expect(parsed.text).toContain("Common review options:");
     expect(parsed.text).toContain("auto-reload when the current diff input changes");
@@ -234,7 +235,6 @@ describe("parseCli", () => {
     });
   });
 
-
   test("parses stash show mode", async () => {
     const parsed = await parseCli(["bun", "dunk", "stash", "show", "stash@{1}"]);
 
@@ -242,6 +242,30 @@ describe("parseCli", () => {
       kind: "stash-show",
       ref: "stash@{1}",
     });
+  });
+
+  test("prints comments help for dunk comments --help", async () => {
+    const parsed = await parseCli(["bun", "dunk", "comments", "--help"]);
+    expect(parsed.kind).toBe("help");
+    if (parsed.kind !== "help") {
+      throw new Error("Expected comments help output.");
+    }
+    expect(parsed.text).toContain("Usage: dunk comments");
+    expect(parsed.text).toContain("list");
+    expect(parsed.text).toContain("show");
+    expect(parsed.text).toContain("resolve");
+  });
+
+  test("rejects unknown comments subcommands", async () => {
+    await expect(parseCli(["bun", "dunk", "comments", "wat"])).rejects.toThrow(
+      /Unknown `dunk comments` subcommand/,
+    );
+  });
+
+  test("rejects non-integer ids for dunk comments resolve", async () => {
+    await expect(parseCli(["bun", "dunk", "comments", "resolve", "abc"])).rejects.toThrow(
+      /positive integer ids/,
+    );
   });
 
   test("rejects removed legacy git alias", async () => {
