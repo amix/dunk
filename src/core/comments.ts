@@ -1,11 +1,20 @@
 /** `.dunk/comments.json` reader/writer and drift detection. */
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { isAbsolute, join, relative, resolve as resolvePath } from "node:path";
 import { z } from "zod";
 import { DUNK_COMMENTS_FILENAME, DUNK_DIR } from "./dunkPaths";
 import { DunkUserError } from "./errors";
 import type { Annotation, Changeset, DiffFile, DriftReason, LineRange } from "./types";
+
+/**
+ * Skip reading any comment-anchored file larger than this. Matches the
+ * diff loader's `LARGE_DIFF_FILE_MAX_BYTES` so a comment on a generated
+ * 50 MB JSON blob can't make `dunk comments list` or a watch reload
+ * allocate gigabytes. Oversized files surface as missing-file drift,
+ * with a clearer reason on the drift card.
+ */
+const COMMENT_FILE_MAX_BYTES = 1_000_000;
 
 /**
  * Resolve a comment's `file` to an absolute path inside `repoRoot`, or null
@@ -121,11 +130,35 @@ export function computeAnchor(lines: string[], line: number): string {
 }
 
 /**
+ * Stat-gate one file read: returns the contents only when the file fits
+ * under `COMMENT_FILE_MAX_BYTES`. Anything larger (or missing, or
+ * unreadable) returns `undefined` so callers report it as drift instead
+ * of trying to slurp the file into memory.
+ */
+function readPostImageIfSmallEnough(absolutePath: string): string | undefined {
+  let size: number;
+  try {
+    size = statSync(absolutePath).size;
+  } catch {
+    return undefined;
+  }
+  if (size > COMMENT_FILE_MAX_BYTES) {
+    return undefined;
+  }
+  try {
+    return readFileSync(absolutePath, "utf8");
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Read post-image content for every distinct file referenced by `comments`.
  * Returns a `Map<relativePath, content | undefined>`; entries that fail the
- * repo-relative check get `undefined`, which downstream `resolveComments`
- * surfaces as missing-file drift. Shared by the TUI loader and the CLI so
- * neither can read outside the repo.
+ * repo-relative check, exceed the size cap, or are unreadable get
+ * `undefined`, which downstream `resolveComments` surfaces as
+ * missing-file drift. Shared by the TUI loader and the CLI so neither
+ * can read outside the repo or blow memory on a giant file.
  */
 export function readPostImagesForComments(
   repoRoot: string,
@@ -143,13 +176,7 @@ export function readPostImagesForComments(
       continue;
     }
 
-    let content: string | undefined;
-    try {
-      content = readFileSync(safePath, "utf8");
-    } catch {
-      content = undefined;
-    }
-    contentByPath.set(comment.file, content);
+    contentByPath.set(comment.file, readPostImageIfSmallEnough(safePath));
   }
   return contentByPath;
 }
@@ -157,7 +184,8 @@ export function readPostImagesForComments(
 /**
  * Read the post-image of `relPath` (relative to `repoRoot`) and compute the
  * anchor for one line. Returns null when the file can't be read, escapes the
- * repo, or the line is out of range — callers all treat this as "skip".
+ * repo, exceeds the size cap, or the line is out of range — callers all
+ * treat this as "skip this anchor recomputation".
  */
 export function computeAnchorForFile(
   repoRoot: string,
@@ -169,10 +197,8 @@ export function computeAnchorForFile(
     return null;
   }
 
-  let content: string;
-  try {
-    content = readFileSync(resolvedPath, "utf8");
-  } catch {
+  const content = readPostImageIfSmallEnough(resolvedPath);
+  if (content === undefined) {
     return null;
   }
 

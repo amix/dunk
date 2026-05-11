@@ -249,6 +249,25 @@ describe("dunk comments", () => {
     });
   });
 
+  test("readPostImagesForComments skips files past the size cap", async () => {
+    const { readPostImagesForComments } = await import("./comments");
+    withTempRepo((repoRoot) => {
+      const smallPath = join(repoRoot, "small.txt");
+      const largePath = join(repoRoot, "large.txt");
+      writeFileSync(smallPath, "tiny\n");
+      // 1.5 MB — comfortably over the 1 MB cap.
+      writeFileSync(largePath, "x".repeat(1_500_000));
+
+      const result = readPostImagesForComments(repoRoot, [
+        { id: 1, file: "small.txt", line: 1, range: [1, 1], anchor: "deadbeefcafef00d", body: "" },
+        { id: 2, file: "large.txt", line: 1, range: [1, 1], anchor: "deadbeefcafef00d", body: "" },
+      ]);
+
+      expect(result.get("small.txt")).toBe("tiny\n");
+      expect(result.get("large.txt")).toBeUndefined();
+    });
+  });
+
   test("readCommentsFile rejects unknown extra fields", () => {
     withTempRepo((repoRoot) => {
       mkdirSync(join(repoRoot, ".dunk"), { recursive: true });
