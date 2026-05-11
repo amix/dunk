@@ -714,6 +714,15 @@ export function DiffPane({
     }
     viewportTrackingScrollRef.current = scrollViewport.top;
 
+    // The reveal effect calls suppressViewportSelectionSync before scrolling
+    // to the new selection. Without this gate the viewport-tracker would see
+    // the post-scroll viewport, find a different hunk under the center, and
+    // immediately re-select it — yanking K hunk-prev (and other cross-file
+    // jumps) right back onto the original selection.
+    if (suppressViewportSelectionSyncRef.current) {
+      return;
+    }
+
     if (!onSelectHunk || files.length === 0 || scrollViewport.height <= 0) {
       return;
     }

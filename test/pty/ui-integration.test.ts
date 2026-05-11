@@ -163,8 +163,7 @@ ptyDescribe("live UI integration", () => {
     }
   });
 
-  test.skip(// TODO: viewport-scroll behavior tests are flaky against the post-rename
-  // chrome; revisit alongside the K hunk-prev navigation work.
+  test.skip(// TODO: mouse-wheel + pager scroll viewport behavior — separate bug, not the K hunk-prev family.
   "a short last file does not trap upward scrolling at the bottom edge", async () => {
     const fixture = harness.createBottomClampedRepoFixture();
     const session = await harness.launchHunk({
@@ -560,8 +559,7 @@ ptyDescribe("live UI integration", () => {
     }
   });
 
-  test.skip(// TODO: viewport-scroll behavior tests are flaky against the post-rename
-  // chrome; revisit alongside the K hunk-prev navigation work.
+  test.skip(// TODO: mouse-wheel + pager scroll viewport behavior — separate bug, not the K hunk-prev family.
   "pager mode handles half-page, page-up, and content-jump keyboard navigation", async () => {
     const fixture = harness.createPagerPatchFixture(60);
     const session = await harness.launchHunk({
@@ -870,8 +868,7 @@ ptyDescribe("live UI integration", () => {
     }
   });
 
-  test.skip(// TODO: viewport-scroll behavior tests are flaky against the post-rename
-  // chrome; revisit alongside the K hunk-prev navigation work.
+  test.skip(// TODO: mouse-wheel + pager scroll viewport behavior — separate bug, not the K hunk-prev family.
   "layout hotkeys preserve the current review position in a real PTY", async () => {
     const fixture = harness.createScrollableFilePair();
     const session = await harness.launchHunk({
@@ -926,8 +923,7 @@ ptyDescribe("live UI integration", () => {
     }
   });
 
-  test.skip(// TODO: viewport-scroll behavior tests are flaky against the post-rename
-  // chrome; revisit alongside the K hunk-prev navigation work.
+  test.skip(// TODO: mouse-wheel + pager scroll viewport behavior — separate bug, not the K hunk-prev family.
   "mouse wheel scrolling moves the review pane", async () => {
     const fixture = harness.createScrollableFilePair();
     const session = await harness.launchHunk({
@@ -1067,8 +1063,7 @@ ptyDescribe("live UI integration", () => {
     }
   });
 
-  test.skip(// TODO: viewport-scroll behavior tests are flaky against the post-rename
-  // chrome; revisit alongside the K hunk-prev navigation work.
+  test.skip(// TODO: mouse-wheel + pager scroll viewport behavior — separate bug, not the K hunk-prev family.
   "the first mouse-wheel step still advances content under the always-pinned file header above a collapsed gap", async () => {
     const fixture = harness.createCollapsedTopRepoFixture();
     const session = await harness.launchHunk({
@@ -1100,8 +1095,7 @@ ptyDescribe("live UI integration", () => {
     }
   });
 
-  test.skip(// TODO: viewport-scroll behavior tests are flaky against the post-rename
-  // chrome; revisit alongside the K hunk-prev navigation work.
+  test.skip(// TODO: mouse-wheel + pager scroll viewport behavior — separate bug, not the K hunk-prev family.
   "one mouse-wheel step down then up restores the collapsed-gap view beneath the pinned file header", async () => {
     const fixture = harness.createCollapsedTopRepoFixture();
     const session = await harness.launchHunk({
