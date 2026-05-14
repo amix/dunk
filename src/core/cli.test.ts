@@ -146,6 +146,51 @@ describe("parseCli", () => {
     });
   });
 
+  test("parses --branch with no value as a base-auto request", async () => {
+    const parsed = await parseCli(["bun", "dunk", "diff", "--branch"]);
+
+    expect(parsed).toMatchObject({
+      kind: "vcs",
+      staged: false,
+      branchReview: {},
+    });
+    if (parsed.kind === "vcs") {
+      expect(parsed.branchReview?.explicitBase).toBeUndefined();
+      expect(parsed.range).toBeUndefined();
+    }
+  });
+
+  test("parses --branch=base as an explicit base override", async () => {
+    const parsed = await parseCli(["bun", "dunk", "diff", "--branch=origin/main"]);
+
+    expect(parsed).toMatchObject({
+      kind: "vcs",
+      branchReview: { explicitBase: "origin/main" },
+    });
+  });
+
+  test("--branch composes with pathspecs after `--`", async () => {
+    const parsed = await parseCli(["bun", "dunk", "diff", "--branch=main", "--", "src/app.ts"]);
+
+    expect(parsed).toMatchObject({
+      kind: "vcs",
+      branchReview: { explicitBase: "main" },
+      pathspecs: ["src/app.ts"],
+    });
+  });
+
+  test("rejects --branch combined with --staged", async () => {
+    await expect(parseCli(["bun", "dunk", "diff", "--branch", "--staged"])).rejects.toThrow(
+      /--branch.*--staged/,
+    );
+  });
+
+  test("rejects --branch=base combined with positional revision args", async () => {
+    await expect(parseCli(["bun", "dunk", "diff", "--branch=main", "HEAD~3"])).rejects.toThrow(
+      /positional revision arguments/,
+    );
+  });
+
   test("parses pathspec-limited git diffs", async () => {
     const parsed = await parseCli([
       "bun",

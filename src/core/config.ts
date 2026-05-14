@@ -55,6 +55,11 @@ function normalizeString(value: unknown) {
 
 /** Read the view preferences stored at one TOML object level. */
 function readConfigPreferences(source: Record<string, unknown>): CommonOptions {
+  const branchReviewSection = source.branch_review;
+  const branchReviewBase = isRecord(branchReviewSection)
+    ? normalizeString(branchReviewSection.base)
+    : undefined;
+
   return {
     mode: normalizeLayoutMode(source.mode),
     vcs: normalizeVcsMode(source.vcs),
@@ -64,6 +69,7 @@ function readConfigPreferences(source: Record<string, unknown>): CommonOptions {
     wrapLines: normalizeBoolean(source.wrap_lines),
     hunkHeaders: normalizeBoolean(source.hunk_headers),
     selectionAutoCopy: normalizeBoolean(source.selection_auto_copy),
+    branchReviewBase,
   };
 }
 
@@ -81,6 +87,7 @@ function mergeOptions(base: CommonOptions, overrides: CommonOptions): CommonOpti
     wrapLines: overrides.wrapLines ?? base.wrapLines,
     hunkHeaders: overrides.hunkHeaders ?? base.hunkHeaders,
     selectionAutoCopy: overrides.selectionAutoCopy ?? base.selectionAutoCopy,
+    branchReviewBase: overrides.branchReviewBase ?? base.branchReviewBase,
   };
 }
 

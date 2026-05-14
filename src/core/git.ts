@@ -163,6 +163,12 @@ export function formatGitCommandLabel(input: GitBackedInput) {
         return "dunk diff --staged";
       }
 
+      if (input.branchReview) {
+        return input.branchReview.explicitBase
+          ? `dunk diff --branch=${input.branchReview.explicitBase}`
+          : "dunk diff --branch";
+      }
+
       return input.range ? `dunk diff ${input.range}` : "dunk diff";
     case "show":
       return input.ref ? `dunk show ${input.ref}` : "dunk show";

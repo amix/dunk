@@ -17,6 +17,7 @@ import {
 } from "./comments";
 import { LARGE_FILE_MAX_BYTES } from "./limits";
 import { DEFAULT_VIEW_PREFERENCES, findRepoRoot } from "./config";
+import { resolveGitBranchBase, resolveJjBranchBase } from "./branchReview";
 import type { DriftedCommentSummary } from "./types";
 import { normalizeDiffMetadataPaths, normalizeDiffPath } from "./diffPaths";
 import { DunkUserError } from "./errors";
@@ -891,23 +892,54 @@ async function loadFileDiffChangeset(
   } satisfies Changeset;
 }
 
+interface LoadedVcsChangeset {
+  changeset: Changeset;
+  sessionNotice?: string;
+}
+
 /** Build a changeset from the current repository working tree or a git range. */
-async function loadGitChangeset(input: VcsCommandInput, cwd = process.cwd()) {
+async function loadGitChangeset(
+  input: VcsCommandInput,
+  cwd = process.cwd(),
+): Promise<LoadedVcsChangeset> {
   const repoRoot = resolveGitRepoRoot(input, { cwd });
   const repoName = basename(repoRoot);
-  const title = input.staged
+
+  // Branch review: resolve <base>...HEAD to a concrete merge-base SHA, then route through the
+  // existing "git diff <single-rev>" path so untracked files, large-file skips, and watch reload
+  // keep working without a parallel code path.
+  //
+  // `gitDiffInput` is local to this loader by design — do not leak it past here. The original
+  // `input` (with `branchReview` still set) is what user-facing helpers like
+  // `formatGitCommandLabel` need, while `gitDiffInput` carries the resolved SHA in `range` for
+  // the git arg builders below.
+  let gitDiffInput = input;
+  let branchDisplayBase: string | undefined;
+  if (input.branchReview && !input.staged) {
+    const resolved = resolveGitBranchBase(input, { cwd });
+    branchDisplayBase = resolved.displayBase;
+    gitDiffInput = {
+      ...input,
+      range: resolved.gitMergeBaseSha,
+      branchReview: undefined,
+    };
+  }
+
+  const title = gitDiffInput.staged
     ? `${repoName} staged changes`
-    : input.range
-      ? `${repoName} ${input.range}`
-      : `${repoName} working tree`;
+    : branchDisplayBase
+      ? `${repoName} branch vs ${branchDisplayBase}`
+      : gitDiffInput.range
+        ? `${repoName} ${gitDiffInput.range}`
+        : `${repoName} working tree`;
   const largeTrackedFiles = parseGitNumstat(
-    runGitText({ input, args: buildGitDiffNumstatArgs(input), cwd }),
+    runGitText({ input: gitDiffInput, args: buildGitDiffNumstatArgs(gitDiffInput), cwd }),
   ).filter((file) => shouldSkipLargeTrackedDiff(file, repoRoot));
   const trackedChangeset = normalizePatchChangeset(
     runGitText({
-      input,
+      input: gitDiffInput,
       args: buildGitDiffArgs(
-        input,
+        gitDiffInput,
         largeTrackedFiles.map((file) => file.path),
       ),
       cwd,
@@ -921,41 +953,66 @@ async function loadGitChangeset(input: VcsCommandInput, cwd = process.cwd()) {
       buildSkippedLargeTrackedDiffFile(file, trackedChangeset.files.length + index, repoRoot),
     ),
   ];
-  const untrackedFiles = listGitUntrackedFiles(input, { cwd, repoRoot });
+  const untrackedFiles = listGitUntrackedFiles(gitDiffInput, { cwd, repoRoot });
+
+  const sessionNotice = branchDisplayBase ? `branch base: ${branchDisplayBase}` : undefined;
 
   if (untrackedFiles.length === 0) {
     return {
-      ...trackedChangeset,
-      files: trackedFiles,
-    } satisfies Changeset;
+      changeset: { ...trackedChangeset, files: trackedFiles } satisfies Changeset,
+      sessionNotice,
+    };
   }
 
   return {
-    ...trackedChangeset,
-    files: [
-      ...trackedFiles,
-      ...untrackedFiles.map((filePath, index) =>
-        buildUntrackedDiffFile(input, filePath, trackedFiles.length + index, repoRoot, repoRoot),
-      ),
-    ],
-  } satisfies Changeset;
+    changeset: {
+      ...trackedChangeset,
+      files: [
+        ...trackedFiles,
+        ...untrackedFiles.map((filePath, index) =>
+          buildUntrackedDiffFile(
+            gitDiffInput,
+            filePath,
+            trackedFiles.length + index,
+            repoRoot,
+            repoRoot,
+          ),
+        ),
+      ],
+    } satisfies Changeset,
+    sessionNotice,
+  };
 }
 
 /** Build a changeset from the current Jujutsu working-copy commit or a revset. */
-async function loadJjDiffChangeset(input: VcsCommandInput, cwd = process.cwd()) {
+async function loadJjDiffChangeset(
+  input: VcsCommandInput,
+  cwd = process.cwd(),
+): Promise<LoadedVcsChangeset> {
   if (input.staged) {
     throw createJjStagedError(input);
   }
 
   const repoRoot = resolveJjRepoRoot(input, { cwd });
   const repoName = basename(repoRoot);
-  const title = input.range ? `${repoName} ${input.range}` : `${repoName} working copy`;
 
-  return normalizePatchChangeset(
-    runJjText({ input, args: buildJjDiffArgs(input), cwd }),
+  const branchBase = input.branchReview ? resolveJjBranchBase(input) : undefined;
+  const title = branchBase
+    ? `${repoName} branch vs ${branchBase.displayBase}`
+    : input.range
+      ? `${repoName} ${input.range}`
+      : `${repoName} working copy`;
+
+  const changeset = normalizePatchChangeset(
+    runJjText({ input, args: buildJjDiffArgs(input, branchBase?.jjFromRevset), cwd }),
     title,
     repoRoot,
   );
+
+  return {
+    changeset,
+    sessionNotice: branchBase ? `branch base: ${branchBase.displayBase}` : undefined,
+  };
 }
 
 /** Build a changeset from `git show`, suppressing commit-message chrome so only the patch feeds the UI. */
@@ -1019,14 +1076,18 @@ export async function loadAppBootstrap(
   { cwd = process.cwd() }: LoadAppBootstrapOptions = {},
 ): Promise<AppBootstrap> {
   let changeset: Changeset;
+  let sessionNotice: string | undefined;
 
   switch (input.kind) {
-    case "vcs":
-      changeset =
+    case "vcs": {
+      const loaded =
         input.options.vcs === "jj"
           ? await loadJjDiffChangeset(input, cwd)
           : await loadGitChangeset(input, cwd);
+      changeset = loaded.changeset;
+      sessionNotice = loaded.sessionNotice;
       break;
+    }
     case "show":
       changeset =
         input.options.vcs === "jj"
@@ -1061,6 +1122,7 @@ export async function loadAppBootstrap(
     initialSelectionAutoCopy:
       input.options.selectionAutoCopy ?? DEFAULT_VIEW_PREFERENCES.selectionAutoCopy,
     driftedComments: merged.drifted,
+    sessionNotice,
   };
 }
 

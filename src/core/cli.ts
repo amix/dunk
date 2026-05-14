@@ -16,6 +16,7 @@ import {
 import { DunkUserError } from "./errors";
 import { resolveBundledDunkReviewSkillPath } from "./paths";
 import { resolveCliVersion } from "./version";
+import type { BranchReviewRequest } from "./types";
 
 /** Validate one requested layout mode from CLI input. */
 function parseLayoutMode(value: string): LayoutMode {
@@ -116,6 +117,7 @@ function renderCliHelp() {
     "Commands:",
     "  dunk diff [target] [-- <pathspec...>]   review working tree changes or compare against a target",
     "  dunk diff --staged [-- <pathspec...>]   review staged changes",
+    "  dunk diff --branch[=base]               review everything on the current branch vs its base",
     "  dunk diff <left> <right>                compare two concrete files",
     "  dunk show [target] [-- <pathspec...>]   review the last commit or a given target",
     "  dunk stash show [ref]                   review a stash entry (git only)",
@@ -141,6 +143,7 @@ function renderCliHelp() {
     "Git diff options:",
     "  --staged, --cached                      review staged changes",
     "  --exclude-untracked                     hide untracked files in working tree reviews",
+    "  --branch [base]                         review the whole branch vs base (origin/HEAD by default)",
     "",
     "Notes:",
     "  Run `dunk <command> --help` for command-specific syntax and options.",
@@ -207,6 +210,10 @@ async function parseDiffCommand(tokens: string[], _argv: string[]): Promise<Pars
         "include untracked files in working tree reviews",
       ).hideHelp(),
     )
+    .option(
+      "--branch [base]",
+      "review everything on the current branch versus its base (defaults to origin/HEAD)",
+    )
     .argument("[targets...]");
 
   let parsedTargets: string[] = [];
@@ -228,6 +235,29 @@ async function parseDiffCommand(tokens: string[], _argv: string[]): Promise<Pars
   // pathspec literally named e.g. `--no-wrap` does not flip a view option.
   const options = buildCommonOptions(parsedOptions, commandTokens);
   const normalizedPathspecs = pathspecs.length > 0 ? pathspecs : undefined;
+
+  const branchReview = parseBranchReviewOption(parsedOptions.branch);
+  if (branchReview) {
+    if (staged) {
+      throw new DunkUserError("`dunk diff --branch` cannot be combined with `--staged`.", [
+        "`--branch` already includes staged and unstaged work on top of the branch base.",
+      ]);
+    }
+    if (parsedTargets.length > 0) {
+      throw new DunkUserError("`dunk diff --branch` does not take positional revision arguments.", [
+        "Pass the base via the flag, e.g. `dunk diff --branch=origin/main`.",
+        "Use `[-- <pathspec...>]` to narrow the review to specific files.",
+      ]);
+    }
+
+    return {
+      kind: "vcs",
+      staged: false,
+      pathspecs: normalizedPathspecs,
+      options,
+      branchReview,
+    };
+  }
 
   if (parsedTargets.length === 0) {
     return {
@@ -270,6 +300,29 @@ async function parseDiffCommand(tokens: string[], _argv: string[]): Promise<Pars
   throw new Error(
     "Use `dunk diff [target] [-- pathspec...]`, `dunk diff <left> <right>` for file comparison.",
   );
+}
+
+/**
+ * Translate commander's `--branch [base]` option value into a `BranchReviewRequest`.
+ *
+ * - `--branch` alone parses as `true` → request branch mode, base resolved later.
+ * - `--branch=foo` / `--branch foo` parses as the string → carry that explicit base through.
+ * - Absent → `undefined`, leaving regular `dunk diff` behavior intact.
+ */
+function parseBranchReviewOption(value: unknown): BranchReviewRequest | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (value === true) {
+    return {};
+  }
+
+  if (typeof value === "string" && value.length > 0) {
+    return { explicitBase: value };
+  }
+
+  return undefined;
 }
 
 /** Parse the Git-style `dunk show` command. */

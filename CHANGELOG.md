@@ -8,6 +8,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added
+
+- `dunk diff --branch[=base]` reviews everything that differs between the current branch and its base — committed, staged, unstaged, and untracked — in one pass. Resolution order: explicit `--branch=<base>`, then `[branch_review] base` in `.dunk/config.toml`, then `origin/HEAD`, then `origin/main`/`main`/`origin/master`/`master`/`origin/trunk`/`trunk`. The resolved base shows up in the status bar so auto-detection is visible. Works in both Git and Jujutsu (uses `fork_point(@ | "<base>")` for jj).
+
 ## [0.12.2] - 2026-05-11
 
 ### Fixed
