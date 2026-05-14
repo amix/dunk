@@ -30,6 +30,8 @@ dunk             # show help
 dunk --version   # print the installed version
 
 dunk diff                    # review the working tree, including untracked files
+dunk diff --branch           # review the whole current branch vs its base (auto-detects origin/HEAD)
+dunk diff --branch=main      # …or pick the base explicitly
 dunk diff --watch            # auto-reload as files and comments change
 dunk show                    # review the latest commit
 dunk show HEAD~1             # review an earlier commit
@@ -113,6 +115,16 @@ git config --global alias.dshow "-c core.pager=\"dunk pager\" show"
 
 > [!NOTE]
 > Untracked files are included automatically only by `dunk diff`, which uses the working-tree loader. When you use `dunk pager`, Git decides what goes into the patch, so untracked files won’t appear.
+
+## Whole-branch review
+
+`dunk diff --branch` shows everything that differs between the current branch and its base — committed history, staged work, unstaged edits, and untracked files — in one review. Pick the base explicitly with `--branch=<ref>`, or let `dunk` resolve it: explicit flag → `[branch_review] base` in `.dunk/config.toml` → `origin/HEAD` → `origin/main` / `main` / `origin/master` / `master` / `origin/trunk` / `trunk`. The resolved base is shown in the status bar so auto-detection is never silent. Works in Jujutsu too (uses a `fork_point(@ | "<base>")` revset).
+
+```toml
+# .dunk/config.toml
+[branch_review]
+base = "origin/main"
+```
 
 ## Jujutsu
 
