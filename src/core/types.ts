@@ -52,6 +52,14 @@ export interface CommonOptions {
   wrapLines?: boolean;
   hunkHeaders?: boolean;
   selectionAutoCopy?: boolean;
+  /** Default base ref/revset for `dunk diff --branch` when no explicit base is passed. */
+  branchReviewBase?: string;
+}
+
+/** Branch-review request attached to a `dunk diff` invocation. */
+export interface BranchReviewRequest {
+  /** Base ref or revset the user typed on the CLI, if any. */
+  explicitBase?: string;
 }
 
 export interface PersistedViewPreferences {
@@ -79,6 +87,8 @@ export interface VcsCommandInput {
   staged: boolean;
   pathspecs?: string[];
   options: CommonOptions;
+  /** Present when the user invoked `dunk diff --branch[=base]`. */
+  branchReview?: BranchReviewRequest;
 }
 
 export interface ShowCommandInput {
@@ -137,6 +147,8 @@ export interface AppBootstrap {
   initialSelectionAutoCopy?: boolean;
   /** User comments that cannot be rendered in the current diff. */
   driftedComments?: DriftedCommentSummary[];
+  /** Persistent status-bar notice (e.g. "branch base: origin/main"). */
+  sessionNotice?: string;
 }
 
 export type DriftReason = "missing-file" | "out-of-range" | "anchor-mismatch" | "not-in-hunk";

@@ -1162,7 +1162,7 @@ export function App({
         <StatusBar
           filter={review.filter}
           filterFocused={focusArea === "filter"}
-          noticeText={transientStatus ?? startupNoticeText ?? undefined}
+          noticeText={transientStatus ?? startupNoticeText ?? bootstrap.sessionNotice ?? undefined}
           terminalWidth={terminal.width}
           theme={activeTheme}
           onFilterInput={review.setFilter}

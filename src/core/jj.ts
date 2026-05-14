@@ -20,10 +20,15 @@ function appendJjFilesets(args: string[], pathspecs?: string[]) {
 }
 
 /** Build the `jj diff --git` arguments for working-copy and revset reviews. */
-export function buildJjDiffArgs(input: VcsCommandInput) {
+export function buildJjDiffArgs(input: VcsCommandInput, jjFromRevset?: string) {
   const args = ["diff", "--git"];
 
-  if (input.range) {
+  if (jjFromRevset) {
+    // Branch review path: `jj diff --from fork_point(@ | "base") --to @` mirrors GitHub's
+    // three-dot semantics. We deliberately drop `-r` here so `--from`/`--to` are not mixed
+    // with single-revset selection, which jj rejects.
+    args.push("--from", jjFromRevset, "--to", "@");
+  } else if (input.range) {
     args.push("-r", input.range);
   }
 
@@ -43,6 +48,12 @@ export function formatJjCommandLabel(input: JjBackedInput) {
   if (input.kind === "vcs") {
     if (input.staged) {
       return "dunk diff --staged";
+    }
+
+    if (input.branchReview) {
+      return input.branchReview.explicitBase
+        ? `dunk diff --branch=${input.branchReview.explicitBase}`
+        : "dunk diff --branch";
     }
 
     return input.range ? `dunk diff ${input.range}` : "dunk diff";
