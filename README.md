@@ -39,6 +39,33 @@ dunk diff before.ts after.ts # compare two concrete files
 git diff --no-color | dunk patch - # review a patch from stdin
 ```
 
+## Tips
+
+- **Review commits that haven't been pushed yet.** Diff against your upstream tracking ref to see everything committed locally but not on the remote:
+
+  ```bash
+  dunk diff @{u}        # unpushed commits plus working-tree changes
+  dunk diff @{u}..HEAD  # unpushed commits only, no working-tree noise
+  ```
+
+- **Review what's about to be committed.** The natural companion to the tip above — one answers "what am I about to push?", this one answers "what am I about to commit?":
+
+  ```bash
+  dunk diff --staged
+  ```
+
+- **Narrow a noisy branch review to the files you care about.** Pathspecs after `--` work with `dunk diff` (including `--branch`) and `dunk show`:
+
+  ```bash
+  dunk diff --branch=main -- src/core README.md
+  ```
+
+- **Drop untracked files when they're just noise.** `dunk diff` includes them by default; this flag turns that off for a single run (use `exclude_untracked = true` in [config](#config) to make it permanent):
+
+  ```bash
+  dunk diff --exclude-untracked
+  ```
+
 ## Screenshots & Demo
 
 <img height="1000" alt="dunk alongside Claude Code" src="https://github.com/user-attachments/assets/f28fe57a-e833-49ea-846a-91310e403e77" />
