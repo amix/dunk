@@ -109,7 +109,9 @@ describe("resolveGitBranchBase", () => {
     expect(resolved.gitMergeBaseSha).toBe(sharedSha);
   });
 
-  test("falls back to main when neither flag nor config nor origin/HEAD is available", () => {
+  test("walks the standard fallback list when no remote is configured", () => {
+    // setupBranchedRepo creates a repo with no `origin` remote, so the resolver skips both
+    // origin/HEAD lookup and the origin/* fallback candidates and lands on local `main`.
     const { cwd, sharedSha } = setupBranchedRepo("dunk-branch-fallback-");
 
     const resolved = resolveGitBranchBase(buildVcsInput({ branchReview: {} }), { cwd });
@@ -126,6 +128,25 @@ describe("resolveGitBranchBase", () => {
         cwd,
       }),
     ).toThrow(/could not resolve base/);
+  });
+
+  test("distinguishes 'no common ancestor' from 'unknown base'", () => {
+    // Build an unrelated-history branch so `git merge-base` finds the ref but no shared commits.
+    const cwd = createTempDir("dunk-branch-no-ancestor-");
+    git(cwd, "init", "-q", "-b", "main");
+    writeFileSync(join(cwd, "a.txt"), "main\n");
+    git(cwd, "add", "a.txt");
+    git(cwd, "commit", "-q", "-m", "main");
+
+    git(cwd, "checkout", "-q", "--orphan", "orphan");
+    git(cwd, "rm", "-q", "-rf", ".");
+    writeFileSync(join(cwd, "b.txt"), "orphan\n");
+    git(cwd, "add", "b.txt");
+    git(cwd, "commit", "-q", "-m", "orphan");
+
+    expect(() =>
+      resolveGitBranchBase(buildVcsInput({ branchReview: { explicitBase: "main" } }), { cwd }),
+    ).toThrow(/common ancestor/);
   });
 });
 

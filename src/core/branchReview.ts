@@ -1,5 +1,4 @@
 import { DunkUserError } from "./errors";
-import { runGitText } from "./git";
 import type { VcsCommandInput } from "./types";
 
 /**
@@ -44,30 +43,78 @@ function firstNonEmptyLine(stdout: string) {
   return undefined;
 }
 
-/** Return the first base ref that `git rev-parse --verify` resolves. */
+interface GitProbeResult {
+  exitCode: number;
+  stdout: string;
+  stderr: string;
+}
+
+/**
+ * Spawn a short git probe and surface the raw exit code, stdout, and stderr.
+ *
+ * The resolver bypasses `runGitText` here on purpose: that helper translates non-zero exits into
+ * `DunkUserError` with a flattened message, which loses the signal we need to distinguish "ref
+ * does not exist" (exit 1 / empty stdout under `--quiet`) from real failures like a corrupt repo
+ * or missing executable.
+ */
+function probeGit(args: string[], cwd: string, gitExecutable: string): GitProbeResult {
+  let proc: ReturnType<typeof Bun.spawnSync>;
+  try {
+    proc = Bun.spawnSync([gitExecutable, ...args], {
+      cwd,
+      stdin: "ignore",
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("Executable not found in $PATH")) {
+      throw new DunkUserError(
+        `Git is required for \`dunk diff --branch\`, but \`${gitExecutable}\` was not found in PATH.`,
+        ["Install Git or make it available on PATH, then try again."],
+      );
+    }
+
+    throw error instanceof Error ? error : new Error(String(error));
+  }
+
+  return {
+    exitCode: proc.exitCode ?? 0,
+    stdout: Buffer.from(proc.stdout ?? []).toString("utf8"),
+    stderr: Buffer.from(proc.stderr ?? []).toString("utf8"),
+  };
+}
+
+/** Return the SHA the ref resolves to, or `undefined` when Git reports the ref does not exist. */
+function probeGitRefExists(ref: string, cwd: string, gitExecutable: string): string | undefined {
+  const probe = probeGit(
+    ["rev-parse", "--verify", "--quiet", `${ref}^{commit}`],
+    cwd,
+    gitExecutable,
+  );
+
+  if (probe.exitCode === 0) {
+    return firstNonEmptyLine(probe.stdout);
+  }
+
+  // `--quiet` mutes stderr on "no such ref" — that's the only failure mode we silently skip.
+  if (probe.exitCode === 1 && probe.stderr.trim() === "") {
+    return undefined;
+  }
+
+  throw new DunkUserError(`\`dunk diff --branch\` failed while probing base \`${ref}\`.`, [
+    probe.stderr.trim() || `git rev-parse exited with code ${probe.exitCode}.`,
+  ]);
+}
+
+/** Return the first fallback candidate whose ref exists in the repository. */
 function pickFirstResolvableGitRef(
-  input: VcsCommandInput,
   candidates: readonly string[],
   cwd: string,
   gitExecutable: string,
 ) {
   for (const candidate of candidates) {
-    try {
-      const sha = firstNonEmptyLine(
-        runGitText({
-          input,
-          args: ["rev-parse", "--verify", "--quiet", `${candidate}^{commit}`],
-          cwd,
-          gitExecutable,
-        }),
-      );
-
-      if (sha) {
-        return candidate;
-      }
-    } catch {
-      // Try the next fallback. `git rev-parse --verify` exits non-zero for unknown refs and
-      // dunk's runGitText surfaces that as a DunkUserError; we want to keep searching instead.
+    if (probeGitRefExists(candidate, cwd, gitExecutable)) {
+      return candidate;
     }
   }
 
@@ -75,41 +122,68 @@ function pickFirstResolvableGitRef(
 }
 
 /** Resolve `git symbolic-ref refs/remotes/origin/HEAD` into the branch name it points at. */
-function resolveOriginHead(
-  input: VcsCommandInput,
-  cwd: string,
-  gitExecutable: string,
-): string | undefined {
-  try {
-    const target = firstNonEmptyLine(
-      runGitText({
-        input,
-        args: ["symbolic-ref", "--quiet", "refs/remotes/origin/HEAD"],
-        cwd,
-        gitExecutable,
-      }),
-    );
-    if (!target) {
-      return undefined;
-    }
+function resolveOriginHead(cwd: string, gitExecutable: string): string | undefined {
+  const probe = probeGit(
+    ["symbolic-ref", "--quiet", "refs/remotes/origin/HEAD"],
+    cwd,
+    gitExecutable,
+  );
 
-    // `git symbolic-ref` returns e.g. `refs/remotes/origin/main`. Strip the `refs/remotes/` prefix
-    // so the user-facing base name reads like the branch they'd type by hand.
-    return target.startsWith("refs/remotes/") ? target.slice("refs/remotes/".length) : target;
-  } catch {
+  if (probe.exitCode !== 0) {
     return undefined;
   }
+
+  const target = firstNonEmptyLine(probe.stdout);
+  if (!target) {
+    return undefined;
+  }
+
+  // `git symbolic-ref` returns e.g. `refs/remotes/origin/main`. Strip the `refs/remotes/` prefix
+  // so the user-facing base name reads like the branch they'd type by hand.
+  return target.startsWith("refs/remotes/") ? target.slice("refs/remotes/".length) : target;
 }
 
-/** Return the `<base> ^HEAD` merge-base SHA used as the diff target. Throws if the base is unknown. */
-function runGitMergeBase(input: VcsCommandInput, base: string, cwd: string, gitExecutable: string) {
-  return firstNonEmptyLine(
-    runGitText({
-      input,
-      args: ["merge-base", base, "HEAD"],
-      cwd,
-      gitExecutable,
-    }),
+/**
+ * Compute the merge-base SHA for `<base>..HEAD`.
+ *
+ * - `{ kind: "ok", sha }` — common ancestor found.
+ * - `{ kind: "no-ancestor" }` — ref resolves but shares no history with HEAD (exit 1 / empty
+ *   stderr, per `git merge-base` docs).
+ * - `{ kind: "missing-ref" }` — Git reports the ref doesn't exist.
+ * - Throws — any other failure mode (corrupt repo, signal kill, etc.).
+ */
+type MergeBaseResult =
+  | { kind: "ok"; sha: string }
+  | { kind: "no-ancestor" }
+  | { kind: "missing-ref" };
+
+function computeGitMergeBase(base: string, cwd: string, gitExecutable: string): MergeBaseResult {
+  const probe = probeGit(["merge-base", base, "HEAD"], cwd, gitExecutable);
+
+  if (probe.exitCode === 0) {
+    const sha = firstNonEmptyLine(probe.stdout);
+    return sha ? { kind: "ok", sha } : { kind: "no-ancestor" };
+  }
+
+  // `git merge-base` exits 1 with empty stderr when refs are valid but share no history.
+  if (probe.exitCode === 1 && probe.stderr.trim() === "") {
+    return { kind: "no-ancestor" };
+  }
+
+  // Treat any stderr that looks like an unknown-revision message as "ref missing" so we can
+  // surface a precise error to the user; bubble up anything else (corrupt repo, etc.).
+  const stderr = probe.stderr;
+  if (
+    stderr.includes("Not a valid object name") ||
+    stderr.includes("unknown revision") ||
+    stderr.includes("bad revision")
+  ) {
+    return { kind: "missing-ref" };
+  }
+
+  throw new DunkUserError(
+    `\`dunk diff --branch\` failed while resolving the merge-base for \`${base}\`.`,
+    [stderr.trim() || `git merge-base exited with code ${probe.exitCode}.`],
   );
 }
 
@@ -136,60 +210,50 @@ function createMissingMergeBaseError(base: string) {
   );
 }
 
+/** Resolve a named base into its merge-base SHA, mapping each result type to a clear error. */
+function resolveExplicitGitBase(
+  base: string,
+  cwd: string,
+  gitExecutable: string,
+): ResolvedBranchBase {
+  const result = computeGitMergeBase(base, cwd, gitExecutable);
+
+  switch (result.kind) {
+    case "ok":
+      return { displayBase: base, gitMergeBaseSha: result.sha };
+    case "missing-ref":
+      throw createBaseNotFoundError(base);
+    case "no-ancestor":
+      throw createMissingMergeBaseError(base);
+  }
+}
+
 /** Resolve a Git branch-review base into a concrete merge-base SHA. */
 export function resolveGitBranchBase(
   input: VcsCommandInput,
   { cwd = process.cwd(), gitExecutable = "git" }: { cwd?: string; gitExecutable?: string } = {},
 ): ResolvedBranchBase {
   const explicitBase = input.branchReview?.explicitBase;
-  const configuredBase = input.options.branchReviewBase;
-
   if (explicitBase) {
-    const sha = (() => {
-      try {
-        return runGitMergeBase(input, explicitBase, cwd, gitExecutable);
-      } catch {
-        throw createBaseNotFoundError(explicitBase);
-      }
-    })();
-    if (!sha) {
-      throw createMissingMergeBaseError(explicitBase);
-    }
-
-    return { displayBase: explicitBase, gitMergeBaseSha: sha };
+    return resolveExplicitGitBase(explicitBase, cwd, gitExecutable);
   }
 
+  const configuredBase = input.options.branchReviewBase;
   if (configuredBase) {
-    const sha = (() => {
-      try {
-        return runGitMergeBase(input, configuredBase, cwd, gitExecutable);
-      } catch {
-        throw createBaseNotFoundError(configuredBase);
-      }
-    })();
-    if (!sha) {
-      throw createMissingMergeBaseError(configuredBase);
-    }
-
-    return { displayBase: configuredBase, gitMergeBaseSha: sha };
+    return resolveExplicitGitBase(configuredBase, cwd, gitExecutable);
   }
 
-  const originHead = resolveOriginHead(input, cwd, gitExecutable);
+  const originHead = resolveOriginHead(cwd, gitExecutable);
   const candidates = originHead
     ? [originHead, ...GIT_BASE_FALLBACK_REFS.filter((ref) => ref !== originHead)]
     : [...GIT_BASE_FALLBACK_REFS];
 
-  const detected = pickFirstResolvableGitRef(input, candidates, cwd, gitExecutable);
+  const detected = pickFirstResolvableGitRef(candidates, cwd, gitExecutable);
   if (!detected) {
     throw createNoBaseFoundError();
   }
 
-  const sha = runGitMergeBase(input, detected, cwd, gitExecutable);
-  if (!sha) {
-    throw createMissingMergeBaseError(detected);
-  }
-
-  return { displayBase: detected, gitMergeBaseSha: sha };
+  return resolveExplicitGitBase(detected, cwd, gitExecutable);
 }
 
 /** Build the Jujutsu `fork_point` revset used as the `--from` argument for branch review. */

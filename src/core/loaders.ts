@@ -908,33 +908,38 @@ async function loadGitChangeset(
   // Branch review: resolve <base>...HEAD to a concrete merge-base SHA, then route through the
   // existing "git diff <single-rev>" path so untracked files, large-file skips, and watch reload
   // keep working without a parallel code path.
-  let effectiveInput = input;
+  //
+  // `gitDiffInput` is local to this loader by design — do not leak it past here. The original
+  // `input` (with `branchReview` still set) is what user-facing helpers like
+  // `formatGitCommandLabel` need, while `gitDiffInput` carries the resolved SHA in `range` for
+  // the git arg builders below.
+  let gitDiffInput = input;
   let branchDisplayBase: string | undefined;
   if (input.branchReview && !input.staged) {
     const resolved = resolveGitBranchBase(input, { cwd });
     branchDisplayBase = resolved.displayBase;
-    effectiveInput = {
+    gitDiffInput = {
       ...input,
       range: resolved.gitMergeBaseSha,
       branchReview: undefined,
     };
   }
 
-  const title = effectiveInput.staged
+  const title = gitDiffInput.staged
     ? `${repoName} staged changes`
     : branchDisplayBase
       ? `${repoName} branch vs ${branchDisplayBase}`
-      : effectiveInput.range
-        ? `${repoName} ${effectiveInput.range}`
+      : gitDiffInput.range
+        ? `${repoName} ${gitDiffInput.range}`
         : `${repoName} working tree`;
   const largeTrackedFiles = parseGitNumstat(
-    runGitText({ input: effectiveInput, args: buildGitDiffNumstatArgs(effectiveInput), cwd }),
+    runGitText({ input: gitDiffInput, args: buildGitDiffNumstatArgs(gitDiffInput), cwd }),
   ).filter((file) => shouldSkipLargeTrackedDiff(file, repoRoot));
   const trackedChangeset = normalizePatchChangeset(
     runGitText({
-      input: effectiveInput,
+      input: gitDiffInput,
       args: buildGitDiffArgs(
-        effectiveInput,
+        gitDiffInput,
         largeTrackedFiles.map((file) => file.path),
       ),
       cwd,
@@ -948,7 +953,7 @@ async function loadGitChangeset(
       buildSkippedLargeTrackedDiffFile(file, trackedChangeset.files.length + index, repoRoot),
     ),
   ];
-  const untrackedFiles = listGitUntrackedFiles(effectiveInput, { cwd, repoRoot });
+  const untrackedFiles = listGitUntrackedFiles(gitDiffInput, { cwd, repoRoot });
 
   const sessionNotice = branchDisplayBase ? `branch base: ${branchDisplayBase}` : undefined;
 
@@ -966,7 +971,7 @@ async function loadGitChangeset(
         ...trackedFiles,
         ...untrackedFiles.map((filePath, index) =>
           buildUntrackedDiffFile(
-            effectiveInput,
+            gitDiffInput,
             filePath,
             trackedFiles.length + index,
             repoRoot,
