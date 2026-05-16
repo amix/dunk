@@ -8,6 +8,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Removed
+
+- Jujutsu support. `dunk` now targets Git only — there's no more `vcs` config key, jj workspace auto-detection, or jj revset handling for `dunk diff`/`dunk show`. Use a colocated Git checkout if you work in jj.
+
 ## [0.13.0] - 2026-05-14
 
 ### Added

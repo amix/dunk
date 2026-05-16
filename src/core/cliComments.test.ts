@@ -354,7 +354,7 @@ describe("dunk comments CLI", () => {
   test("commands fail clearly when the cwd is not a repo", () => {
     const dir = mkdtempSync(join(tmpdir(), "dunk-cli-no-repo-"));
     tempDirs.push(dir);
-    expect(() => runCommentsList("text", { cwd: dir })).toThrow(/git or jj repository/);
+    expect(() => runCommentsList("text", { cwd: dir })).toThrow(/Not inside a git repository/);
   });
 
   test("renderCommentsHelp lists every subcommand", () => {

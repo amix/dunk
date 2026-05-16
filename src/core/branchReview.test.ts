@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { resolveGitBranchBase, resolveJjBranchBase } from "./branchReview";
+import { resolveGitBranchBase } from "./branchReview";
 import type { VcsCommandInput } from "./types";
 
 const tempDirs: string[] = [];
@@ -147,31 +147,5 @@ describe("resolveGitBranchBase", () => {
     expect(() =>
       resolveGitBranchBase(buildVcsInput({ branchReview: { explicitBase: "main" } }), { cwd }),
     ).toThrow(/common ancestor/);
-  });
-});
-
-describe("resolveJjBranchBase", () => {
-  test("wraps an explicit base in a fork_point revset", () => {
-    const resolved = resolveJjBranchBase(
-      buildVcsInput({ branchReview: { explicitBase: "origin/main" } }),
-    );
-
-    expect(resolved.displayBase).toBe("origin/main");
-    expect(resolved.jjFromRevset).toBe('fork_point(@ | "origin/main")');
-  });
-
-  test("falls back to trunk() when nothing else is configured", () => {
-    const resolved = resolveJjBranchBase(buildVcsInput({ branchReview: {} }));
-
-    expect(resolved.displayBase).toBe("trunk()");
-    expect(resolved.jjFromRevset).toBe('fork_point(@ | "trunk()")');
-  });
-
-  test("escapes embedded quotes so the revset stays parseable", () => {
-    const resolved = resolveJjBranchBase(
-      buildVcsInput({ branchReview: { explicitBase: 'weird"name' } }),
-    );
-
-    expect(resolved.jjFromRevset).toBe('fork_point(@ | "weird\\"name")');
   });
 });

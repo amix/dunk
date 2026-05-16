@@ -1,7 +1,6 @@
 import type { FileDiffMetadata } from "@pierre/diffs";
 
 export type LayoutMode = "auto" | "split" | "stack";
-export type VcsMode = "git" | "jj";
 
 /** Inclusive 1-based [start, end] line range used by annotations and persisted comments. */
 export type LineRange = [number, number];
@@ -43,7 +42,6 @@ export interface Changeset {
 
 export interface CommonOptions {
   mode?: LayoutMode;
-  vcs?: VcsMode;
   theme?: string;
   pager?: boolean;
   watch?: boolean;

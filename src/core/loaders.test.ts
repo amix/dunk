@@ -6,7 +6,6 @@ import { loadAppBootstrap } from "./loaders";
 import type { CliInput } from "./types";
 
 const tempDirs: string[] = [];
-const realJjTest = Bun.which("jj") ? test : test.skip;
 
 function cleanupTempDirs() {
   while (tempDirs.length > 0) {
@@ -39,34 +38,6 @@ function git(cwd: string, ...cmd: string[]) {
   return Buffer.from(proc.stdout).toString("utf8");
 }
 
-function jj(cwd: string, ...cmd: string[]) {
-  const proc = Bun.spawnSync(
-    [
-      "jj",
-      "--config",
-      "signing.behavior=drop",
-      "--config",
-      'user.name="Test User"',
-      "--config",
-      "user.email=test@example.com",
-      ...cmd,
-    ],
-    {
-      cwd,
-      stdout: "pipe",
-      stderr: "pipe",
-      stdin: "ignore",
-    },
-  );
-
-  if (proc.exitCode !== 0) {
-    const stderr = Buffer.from(proc.stderr).toString("utf8");
-    throw new Error(stderr.trim() || `jj ${cmd.join(" ")} failed`);
-  }
-
-  return Buffer.from(proc.stdout).toString("utf8");
-}
-
 function createTempRepo(prefix: string) {
   const dir = createTempDir(prefix);
 
@@ -76,29 +47,6 @@ function createTempRepo(prefix: string) {
   git(dir, "config", "commit.gpgsign", "false");
 
   return dir;
-}
-
-function createTempJjRepo(prefix: string) {
-  const dir = createTempDir(prefix);
-
-  jj(tmpdir(), "git", "init", "--colocate", dir);
-
-  return dir;
-}
-
-async function runWithHome<T>(home: string, task: () => Promise<T>) {
-  const previousHome = process.env.HOME;
-  process.env.HOME = home;
-
-  try {
-    return await task();
-  } finally {
-    if (previousHome === undefined) {
-      delete process.env.HOME;
-    } else {
-      process.env.HOME = previousHome;
-    }
-  }
 }
 
 async function loadFromCwd(cwd: string, input: CliInput) {
@@ -608,55 +556,6 @@ describe("loadAppBootstrap", () => {
     expect(bootstrap.changeset.files.map((file) => file.path)).toEqual(["beta.ts"]);
   });
 
-  realJjTest("loads jj diff output for a configured revset", async () => {
-    const home = createTempDir("hunk-jj-home-");
-
-    await runWithHome(home, async () => {
-      const dir = createTempJjRepo("hunk-jj-revset-");
-
-      writeFileSync(join(dir, "alpha.ts"), "export const alpha = 1;\n");
-      jj(dir, "commit", "-m", "initial");
-
-      writeFileSync(join(dir, "alpha.ts"), "export const alpha = 2;\n");
-      writeFileSync(join(dir, "beta.ts"), "export const beta = true;\n");
-
-      const bootstrap = await loadFromRepo(dir, {
-        kind: "vcs",
-        range: "@",
-        staged: false,
-        options: { mode: "auto", vcs: "jj" },
-      });
-
-      expect(bootstrap.changeset.files.map((file) => file.path)).toEqual(["alpha.ts", "beta.ts"]);
-      expect(bootstrap.changeset.title).toStartWith("hunk-jj-revset-");
-      expect(bootstrap.changeset.title).toEndWith(" @");
-    });
-  });
-
-  realJjTest("loads jj show output for a configured revset", async () => {
-    const home = createTempDir("hunk-jj-home-");
-
-    await runWithHome(home, async () => {
-      const dir = createTempJjRepo("hunk-jj-show-");
-
-      writeFileSync(join(dir, "alpha.ts"), "export const alpha = 1;\n");
-      jj(dir, "commit", "-m", "initial");
-
-      writeFileSync(join(dir, "alpha.ts"), "export const alpha = 2;\n");
-      jj(dir, "commit", "-m", "update alpha");
-
-      const bootstrap = await loadFromRepo(dir, {
-        kind: "show",
-        ref: "@-",
-        options: { mode: "auto", vcs: "jj" },
-      });
-
-      expect(bootstrap.changeset.files.map((file) => file.path)).toEqual(["alpha.ts"]);
-      expect(bootstrap.changeset.title).toStartWith("hunk-jj-show-");
-      expect(bootstrap.changeset.title).toEndWith(" show @-");
-    });
-  });
-
   test("applies pathspec filtering to untracked files in working tree reviews", async () => {
     const dir = createTempRepo("hunk-git-untracked-pathspec-");
 
@@ -802,17 +701,6 @@ describe("loadAppBootstrap", () => {
     });
 
     expect(bootstrap.changeset.files.map((file) => file.path)).toEqual(["alpha.ts"]);
-  });
-
-  test("rejects stash show when configured for jj", async () => {
-    const dir = createTempDir("hunk-stash-jj-");
-
-    await expect(
-      loadFromRepo(dir, {
-        kind: "stash-show",
-        options: { mode: "auto", vcs: "jj" },
-      }),
-    ).rejects.toThrow("`dunk stash show` requires Git VCS mode.");
   });
 
   test("reports a friendly error when no stash entries exist", async () => {

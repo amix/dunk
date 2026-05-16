@@ -2,13 +2,7 @@ import fs from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { DUNK_CONFIG_RELATIVE_PATH } from "./dunkPaths";
 import { resolveGlobalConfigPath } from "./paths";
-import type {
-  CliInput,
-  CommonOptions,
-  LayoutMode,
-  PersistedViewPreferences,
-  VcsMode,
-} from "./types";
+import type { CliInput, CommonOptions, LayoutMode, PersistedViewPreferences } from "./types";
 
 export const DEFAULT_VIEW_PREFERENCES: PersistedViewPreferences = {
   mode: "auto",
@@ -38,11 +32,6 @@ function normalizeLayoutMode(value: unknown): LayoutMode | undefined {
   return value === "auto" || value === "split" || value === "stack" ? value : undefined;
 }
 
-/** Accept only the VCS backends dunk can load directly. */
-function normalizeVcsMode(value: unknown): VcsMode | undefined {
-  return value === "git" || value === "jj" ? value : undefined;
-}
-
 /** Accept only plain booleans from config files. */
 function normalizeBoolean(value: unknown) {
   return typeof value === "boolean" ? value : undefined;
@@ -62,7 +51,6 @@ function readConfigPreferences(source: Record<string, unknown>): CommonOptions {
 
   return {
     mode: normalizeLayoutMode(source.mode),
-    vcs: normalizeVcsMode(source.vcs),
     theme: normalizeString(source.theme),
     excludeUntracked: normalizeBoolean(source.exclude_untracked),
     lineNumbers: normalizeBoolean(source.line_numbers),
@@ -78,7 +66,6 @@ function mergeOptions(base: CommonOptions, overrides: CommonOptions): CommonOpti
   return {
     ...base,
     mode: overrides.mode ?? base.mode,
-    vcs: overrides.vcs ?? base.vcs,
     theme: overrides.theme ?? base.theme,
     pager: overrides.pager ?? base.pager,
     watch: overrides.watch ?? base.watch,
@@ -113,7 +100,7 @@ export function findRepoRoot(cwd = process.cwd()) {
   let current = resolve(cwd);
 
   for (;;) {
-    if (fs.existsSync(join(current, ".git")) || fs.existsSync(join(current, ".jj"))) {
+    if (fs.existsSync(join(current, ".git"))) {
       return current;
     }
 
@@ -124,15 +111,6 @@ export function findRepoRoot(cwd = process.cwd()) {
 
     current = parent;
   }
-}
-
-/** Choose the VCS backend that best matches the discovered checkout. */
-function detectRepoVcsMode(repoRoot?: string): VcsMode {
-  if (repoRoot && fs.existsSync(join(repoRoot, ".jj"))) {
-    return "jj";
-  }
-
-  return "git";
 }
 
 /** Parse one TOML config file into a plain object. */
@@ -160,7 +138,6 @@ export function resolveConfiguredCliInput(
 
   let resolvedOptions: CommonOptions = {
     mode: DEFAULT_VIEW_PREFERENCES.mode,
-    vcs: detectRepoVcsMode(repoRoot),
     // Keep the built-in theme default explicit so stdin-backed startup paths do not depend on
     // renderer theme-mode detection for their initial palette.
     theme: "graphite",
@@ -194,7 +171,6 @@ export function resolveConfiguredCliInput(
     pager: input.options.pager ?? false,
     watch: input.options.watch ?? false,
     excludeUntracked: resolvedOptions.excludeUntracked ?? false,
-    vcs: resolvedOptions.vcs ?? "git",
   };
 
   return {
