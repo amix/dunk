@@ -165,13 +165,14 @@ Example:
 ```toml
 theme = "graphite"   # graphite, midnight, paper, ember
 mode = "auto"        # auto, split, stack
+watch = false        # reload as code and comments change (same as --watch)
 exclude_untracked = false
 line_numbers = false
 wrap_lines = true
 selection_auto_copy = true
 ```
 
-`exclude_untracked` only affects `dunk diff` working-tree sessions.
+`exclude_untracked` only affects `dunk diff` working-tree sessions. `--watch` on the command line overrides `watch` in config.
 
 ## OpenTUI component
 

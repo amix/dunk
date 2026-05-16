@@ -52,6 +52,7 @@ function readConfigPreferences(source: Record<string, unknown>): CommonOptions {
   return {
     mode: normalizeLayoutMode(source.mode),
     theme: normalizeString(source.theme),
+    watch: normalizeBoolean(source.watch),
     excludeUntracked: normalizeBoolean(source.exclude_untracked),
     lineNumbers: normalizeBoolean(source.line_numbers),
     wrapLines: normalizeBoolean(source.wrap_lines),
@@ -169,7 +170,7 @@ export function resolveConfiguredCliInput(
     ...resolvedOptions,
     // Per-invocation flags always win — they come from CLI args, not config layers.
     pager: input.options.pager ?? false,
-    watch: input.options.watch ?? false,
+    watch: input.options.watch ?? resolvedOptions.watch ?? false,
     excludeUntracked: resolvedOptions.excludeUntracked ?? false,
   };
 

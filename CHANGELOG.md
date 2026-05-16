@@ -8,6 +8,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added
+
+- `watch = true` in `.dunk/config.toml` (or `~/.config/dunk/config.toml`) now enables watch mode without passing `--watch` every time. The `--watch`/absence of it on the command line still overrides the config value.
+
 ### Removed
 
 - Jujutsu support. `dunk` now targets Git only — there's no more `vcs` config key, jj workspace auto-detection, or jj revset handling for `dunk diff`/`dunk show`. Use a colocated Git checkout if you work in jj.
