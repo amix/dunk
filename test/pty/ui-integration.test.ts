@@ -86,6 +86,89 @@ ptyDescribe("live UI integration", () => {
     }
   });
 
+  test("comma and period jump between files in a real PTY", async () => {
+    const fixture = harness.createPinnedHeaderRepoFixture();
+    const session = await harness.launchHunk({
+      args: ["diff", "--mode", "split"],
+      cwd: fixture.dir,
+      cols: 220,
+      rows: 10,
+    });
+
+    try {
+      const initial = await session.waitForText(/Press \? for help/, {
+        timeout: ptyTimeouts.waitForText,
+      });
+
+      expect(initial).toContain("first.ts");
+      expect(initial).toContain("line01 = 101");
+
+      // `.` moves to the next file (second.ts) and pins its header to the top.
+      await session.press(".");
+      const onSecond = await harness.waitForSnapshot(
+        session,
+        (text) =>
+          text.includes("second.ts") &&
+          text.includes("line17 = 117") &&
+          harness.countMatches(text, /first\.ts/g) === 1,
+        ptyTimeouts.waitForSnapshot,
+      );
+      expect(onSecond).toContain("line17 = 117");
+
+      // `,` moves back to the previous file (first.ts).
+      await session.press(",");
+      const backOnFirst = await harness.waitForSnapshot(
+        session,
+        (text) => text.includes("first.ts") && text.includes("line01 = 101"),
+        ptyTimeouts.waitForSnapshot,
+      );
+      expect(backOnFirst).toContain("line01 = 101");
+    } finally {
+      session.close();
+    }
+  });
+
+  test("comma and period are inert while the filter is focused", async () => {
+    const fixture = harness.createPinnedHeaderRepoFixture();
+    const session = await harness.launchHunk({
+      args: ["diff", "--mode", "split"],
+      cwd: fixture.dir,
+      cols: 220,
+      rows: 10,
+    });
+
+    try {
+      const initial = await session.waitForText(/Press \? for help/, {
+        timeout: ptyTimeouts.waitForText,
+      });
+      expect(initial).toContain("line01 = 101");
+
+      await session.type("/");
+      await harness.waitForSnapshot(
+        session,
+        (text) => text.includes("filter: type to filter files"),
+        ptyTimeouts.waitForSnapshot,
+      );
+
+      // `.` is a printable key with a nav meaning; while the filter owns the
+      // keyboard it must land in the filter query, not jump files. "." is a
+      // substring of both file names so the stream stays visible.
+      await session.type(".");
+      const filtered = await harness.waitForSnapshot(
+        session,
+        (text) =>
+          text.includes("filter: .") &&
+          text.includes("line01 = 101") &&
+          !text.includes("line17 = 117"),
+        ptyTimeouts.waitForSnapshot,
+      );
+      expect(filtered).toContain("filter: .");
+      expect(filtered).not.toContain("line17 = 117");
+    } finally {
+      session.close();
+    }
+  });
+
   test("backward cross-file hunk navigation reveals the target hunk in a real PTY", async () => {
     const fixture = harness.createCrossFileHunkNavigationRepoFixture();
     const session = await harness.launchHunk({

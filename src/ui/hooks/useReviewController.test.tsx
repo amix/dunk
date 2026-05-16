@@ -270,4 +270,89 @@ describe("useReviewController", () => {
       });
     }
   });
+
+  test("moveToFile steps through visible files clamped, aligning the new file header", async () => {
+    const controllerRef: { current: ReviewController | null } = { current: null };
+    const setup = await testRender(
+      <ReviewControllerHarness
+        initialFiles={[
+          createTwoHunkFile(),
+          createDiffFile("beta", "beta.ts", "export const beta = 1;\n", "export const beta = 2;\n"),
+          createDiffFile(
+            "gamma",
+            "gamma.ts",
+            "export const gamma = 1;\n",
+            "export const gamma = 2;\n",
+          ),
+        ]}
+        onController={(nextController) => {
+          controllerRef.current = nextController;
+        }}
+      />,
+      { width: 80, height: 4 },
+    );
+
+    try {
+      await flush(setup);
+
+      // Move off hunk 0 so a file jump must reset the hunk index.
+      await act(async () => {
+        expectValue(controllerRef.current).selectHunk("alpha", 1);
+      });
+      await flush(setup);
+      expect(expectValue(controllerRef.current).selectedHunkIndex).toBe(1);
+
+      await act(async () => {
+        expectValue(controllerRef.current).moveToFile(1);
+      });
+      await flush(setup);
+      let controller = expectValue(controllerRef.current);
+      expect(controller.selectedFile?.path).toBe("beta.ts");
+      expect(controller.selectedHunkIndex).toBe(0);
+      expect(controller.selectedFileTopAlignRequestId).toBe(1);
+
+      await act(async () => {
+        expectValue(controllerRef.current).moveToFile(1);
+      });
+      await flush(setup);
+      expect(expectValue(controllerRef.current).selectedFile?.path).toBe("gamma.ts");
+
+      // Forward at the last file is a no-op and must not bump the align request.
+      await act(async () => {
+        expectValue(controllerRef.current).moveToFile(1);
+      });
+      await flush(setup);
+      controller = expectValue(controllerRef.current);
+      expect(controller.selectedFile?.path).toBe("gamma.ts");
+      expect(controller.selectedFileTopAlignRequestId).toBe(2);
+
+      await act(async () => {
+        expectValue(controllerRef.current).moveToFile(-1);
+      });
+      await flush(setup);
+      controller = expectValue(controllerRef.current);
+      expect(controller.selectedFile?.path).toBe("beta.ts");
+      const alignAfterBeta = controller.selectedFileTopAlignRequestId;
+
+      // Step to the first file, then a backward press at the first file is a
+      // no-op and must not bump the align request.
+      await act(async () => {
+        expectValue(controllerRef.current).moveToFile(-1);
+      });
+      await flush(setup);
+      expect(expectValue(controllerRef.current).selectedFile?.path).toBe("alpha.ts");
+
+      await act(async () => {
+        expectValue(controllerRef.current).moveToFile(-1);
+      });
+      await flush(setup);
+      controller = expectValue(controllerRef.current);
+      expect(controller.selectedFile?.path).toBe("alpha.ts");
+      expect(controller.selectedFileTopAlignRequestId).toBe(alignAfterBeta + 1);
+    } finally {
+      await act(async () => {
+        setup.renderer.destroy();
+      });
+    }
+  });
 });

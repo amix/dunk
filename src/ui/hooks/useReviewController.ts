@@ -37,6 +37,7 @@ export interface ReviewController {
   filter: string;
   moveToAnnotatedFile: (delta: number) => void;
   moveToAnnotatedHunk: (delta: number) => void;
+  moveToFile: (delta: number) => void;
   moveToHunk: (delta: number) => void;
   scrollToNote: boolean;
   selectedFile: DiffFile | undefined;
@@ -229,6 +230,25 @@ export function useReviewController({ files }: { files: DiffFile[] }): ReviewCon
     ],
   );
 
+  /** Step through the visible files one at a time, clamped to the ends. */
+  const moveToFile = useCallback(
+    (delta: number) => {
+      if (visibleFiles.length === 0) {
+        return;
+      }
+      const currentIndex = visibleFiles.findIndex((file) => file.id === selectedFile?.id);
+      const baseIndex = currentIndex >= 0 ? currentIndex : 0;
+      const nextIndex = clamp(baseIndex + delta, 0, visibleFiles.length - 1);
+      const nextFile = visibleFiles[nextIndex];
+      if (!nextFile || nextFile.id === selectedFile?.id) {
+        return;
+      }
+      // Start the new file at its header so a file jump always lands at the top.
+      selectFile(nextFile.id, 0, { alignFileHeaderTop: true });
+    },
+    [selectFile, selectedFile?.id, visibleFiles],
+  );
+
   /** Cycle through only the currently visible files that carry annotations. */
   const moveToAnnotatedFile = useCallback(
     (delta: number) => {
@@ -262,6 +282,7 @@ export function useReviewController({ files }: { files: DiffFile[] }): ReviewCon
     clearFilter,
     moveToAnnotatedFile,
     moveToAnnotatedHunk,
+    moveToFile,
     moveToHunk,
     selectFile,
     selectFirstHunk,
