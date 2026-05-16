@@ -179,6 +179,55 @@ describe("annotated hunk navigation", () => {
     });
   });
 
+  test("returns null when there are no annotated cursors to navigate", () => {
+    const empty: HunkCursor[] = [];
+    const stream: HunkCursor[] = [{ fileId: "alpha", hunkIndex: 0 }];
+    expect(findNextHunkCursor(empty, indexHunkCursors(empty), "alpha", 0, 1, stream)).toBeNull();
+    expect(findNextHunkCursor(empty, indexHunkCursors(empty), "alpha", 0, -1, stream)).toBeNull();
+  });
+
+  test("from an unannotated hunk, picks the nearest annotated one in stream order", () => {
+    // Full review stream: a0 a1 a2 | b0 b1. Annotated subset: a0 and b1.
+    const stream: HunkCursor[] = [
+      { fileId: "alpha", hunkIndex: 0 },
+      { fileId: "alpha", hunkIndex: 1 },
+      { fileId: "alpha", hunkIndex: 2 },
+      { fileId: "beta", hunkIndex: 0 },
+      { fileId: "beta", hunkIndex: 1 },
+    ];
+    const annotated: HunkCursor[] = [
+      { fileId: "alpha", hunkIndex: 0 },
+      { fileId: "beta", hunkIndex: 1 },
+    ];
+    const annotatedIndex = indexHunkCursors(annotated);
+
+    // From the unannotated middle hunk a1, forward must land on the next
+    // annotated hunk in stream order (beta 1), not the first one (alpha 0).
+    expect(findNextHunkCursor(annotated, annotatedIndex, "alpha", 1, 1, stream)).toEqual({
+      fileId: "beta",
+      hunkIndex: 1,
+    });
+
+    // Backward must land on the previous annotated hunk (alpha 0), not the
+    // last one (beta 1).
+    expect(findNextHunkCursor(annotated, annotatedIndex, "alpha", 1, -1, stream)).toEqual({
+      fileId: "alpha",
+      hunkIndex: 0,
+    });
+
+    // Non-cyclic: from a position past every annotated hunk, clamp to the
+    // nearest edge instead of wrapping. (No annotated hunk after beta 0 except
+    // beta 1, so forward from the unannotated beta 0 → beta 1.)
+    expect(findNextHunkCursor(annotated, annotatedIndex, "beta", 0, 1, stream)).toEqual({
+      fileId: "beta",
+      hunkIndex: 1,
+    });
+    expect(findNextHunkCursor(annotated, annotatedIndex, "beta", 0, -1, stream)).toEqual({
+      fileId: "alpha",
+      hunkIndex: 0,
+    });
+  });
+
   test("jumps from an unannotated hunk to the nearest annotated one", () => {
     // Only hunk 1 (new range [17,17]) is annotated; hunk 0 is not.
     const fileA = createTestFile("alpha", "alpha.ts", beforeA, afterA, [

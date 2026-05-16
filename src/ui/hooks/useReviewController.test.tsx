@@ -72,6 +72,31 @@ function createSingleHunkFile() {
   return createDiffFile("alpha", "alpha.ts", lines(...beforeLines), lines(...afterLines));
 }
 
+/**
+ * One file with three well-separated hunks; only hunks 0 and 2 are annotated.
+ * The middle hunk is deliberately left without a comment so comment navigation
+ * starts from an unannotated position.
+ */
+function createThreeHunkPartlyAnnotatedFile() {
+  const beforeLines = Array.from(
+    { length: 50 },
+    (_, index) => `export const line${index + 1} = ${index + 1};`,
+  );
+  const afterLines = [...beforeLines];
+  afterLines[0] = "export const line1 = 100;"; // hunk 0
+  afterLines[19] = "export const line20 = 2000;"; // hunk 1 (middle, unannotated)
+  afterLines[39] = "export const line40 = 4000;"; // hunk 2
+
+  const file = createDiffFile("alpha", "alpha.ts", lines(...beforeLines), lines(...afterLines));
+  const hunks = file.metadata.hunks;
+  expect(hunks).toHaveLength(3);
+  file.annotations = [
+    { newRange: [hunks[0]!.additionStart, hunks[0]!.additionStart], summary: "c0" },
+    { newRange: [hunks[2]!.additionStart, hunks[2]!.additionStart], summary: "c2" },
+  ];
+  return file;
+}
+
 /** Let deferred filters and follow-up effects settle before reading controller state. */
 async function flush(setup: Awaited<ReturnType<typeof testRender>>) {
   await act(async () => {
@@ -190,6 +215,54 @@ describe("useReviewController", () => {
       await flush(setup);
 
       expect(expectValue(controllerRef.current).selectedFile?.metadata.hunks).toHaveLength(1);
+      expect(expectValue(controllerRef.current).selectedHunkIndex).toBe(0);
+    } finally {
+      await act(async () => {
+        setup.renderer.destroy();
+      });
+    }
+  });
+
+  test("comment navigation from an unannotated hunk lands on the nearest annotated one", async () => {
+    const controllerRef: { current: ReviewController | null } = { current: null };
+    const setup = await testRender(
+      <ReviewControllerHarness
+        initialFiles={[createThreeHunkPartlyAnnotatedFile()]}
+        onController={(nextController) => {
+          controllerRef.current = nextController;
+        }}
+      />,
+      { width: 80, height: 4 },
+    );
+
+    try {
+      await flush(setup);
+
+      // Select the unannotated middle hunk.
+      await act(async () => {
+        expectValue(controllerRef.current).selectHunk("alpha", 1);
+      });
+      await flush(setup);
+      expect(expectValue(controllerRef.current).selectedHunkIndex).toBe(1);
+
+      // Forward must reach the nearest annotated hunk *after* the cursor
+      // (hunk 2), not the first annotated hunk (hunk 0) — the original bug.
+      await act(async () => {
+        expectValue(controllerRef.current).moveToAnnotatedHunk(1);
+      });
+      await flush(setup);
+      expect(expectValue(controllerRef.current).selectedHunkIndex).toBe(2);
+
+      // Reset to the unannotated middle hunk and go backward: must reach the
+      // nearest annotated hunk *before* the cursor (hunk 0), not the last one.
+      await act(async () => {
+        expectValue(controllerRef.current).selectHunk("alpha", 1);
+      });
+      await flush(setup);
+      await act(async () => {
+        expectValue(controllerRef.current).moveToAnnotatedHunk(-1);
+      });
+      await flush(setup);
       expect(expectValue(controllerRef.current).selectedHunkIndex).toBe(0);
     } finally {
       await act(async () => {
