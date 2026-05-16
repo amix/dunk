@@ -211,6 +211,7 @@ export function useReviewController({ files }: { files: DiffFile[] }): ReviewCon
         selectedFile?.id,
         selectedHunkIndex,
         delta,
+        hunkCursors,
       );
       if (!nextCursor) {
         return;
@@ -221,6 +222,7 @@ export function useReviewController({ files }: { files: DiffFile[] }): ReviewCon
     [
       annotatedHunkCursorIndex,
       annotatedHunkCursors,
+      hunkCursors,
       selectHunk,
       selectedFile?.id,
       selectedHunkIndex,

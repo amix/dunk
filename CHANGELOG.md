@@ -12,6 +12,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 - Jujutsu support. `dunk` now targets Git only — there's no more `vcs` config key, jj workspace auto-detection, or jj revset handling for `dunk diff`/`dunk show`. Use a colocated Git checkout if you work in jj.
 
+### Fixed
+
+- `}`/`{` (next/previous comment) now jump to the nearest comment relative to your position in the review stream. Pressing them from a hunk that has no comment of its own previously snapped to the first or last comment in the whole review instead of the closest one.
+
 ## [0.13.0] - 2026-05-14
 
 ### Added
