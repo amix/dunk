@@ -40,7 +40,7 @@ CLI input
 
 - CLI entrypoints: `diff`, `show`, `stash show`, `patch`, `pager`, `difftool`.
 - All input sources normalize into one internal changeset model.
-- Pager mode has two paths: full diff UI for patch-like stdin, plain-text fallback for non-diff pager content.
+- Pager mode resolves to one of four `StartupPlan` outcomes (the single enumeration of pager behavior): full diff UI for patch-like stdin on a usable TTY, plain-text fallback for non-diff pager content, a static ANSI diff for captured pager hosts (LazyGit etc.: `TERM=dumb` + a non-TTY pipe), and raw passthrough for any other non-TTY/dumb pipe.
 - View defaults are layered through built-ins, user config, repo `.dunk/config.toml`, command sections, pager sections, and CLI flags.
 - Review comments live in one committed `.dunk/comments.json` per repo. Watch mode picks up changes so a coding agent and a human reviewer can ping-pong on the same review.
 - Prefer one source of truth for each user-visible behavior. When rendering, navigation, scrolling, or note placement share the same model, derive them from the same planning layer rather than maintaining parallel implementations.

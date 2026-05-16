@@ -56,6 +56,10 @@ describe("startup planning", () => {
       parseCliImpl: async () => ({ kind: "pager", options: { theme: "paper" } }),
       readStdinText: async () => "diff --git a/a.ts b/a.ts\n@@ -1 +1 @@\n-old\n+new\n",
       looksLikePatchInputImpl: () => true,
+      // The interactive TUI path requires a usable TTY and a non-captured,
+      // non-dumb terminal; without these the pager now falls back instead.
+      stdoutIsTTY: true,
+      env: { TERM: "xterm-256color" },
       resolveRuntimeCliInputImpl(input) {
         seenInputs.push(input);
         return input;
@@ -86,6 +90,83 @@ describe("startup planning", () => {
       },
     });
     expect(seenInputs).toHaveLength(3);
+  });
+
+  test("renders a static diff for a captured pager host", async () => {
+    const plan = await prepareStartupPlan(["bun", "dunk", "pager"], {
+      parseCliImpl: async () => ({ kind: "pager", options: {} }),
+      readStdinText: async () => "diff --git a/a.ts b/a.ts\n@@ -1 +1 @@\n-old\n+new\n",
+      looksLikePatchInputImpl: () => true,
+      // LazyGit-style: TERM=dumb + GIT_PAGER, stdout is a non-TTY pipe. This
+      // must beat the generic non-TTY passthrough below.
+      stdoutIsTTY: false,
+      env: { TERM: "dumb", GIT_PAGER: "dunk" },
+      resolveRuntimeCliInputImpl: (input) => input,
+      resolveConfiguredCliInputImpl: (input) => ({ input }) as never,
+      loadAppBootstrapImpl: async (input) => createBootstrap(input),
+    });
+
+    expect(plan.kind).toBe("static-diff-pager");
+    if (plan.kind !== "static-diff-pager") {
+      throw new Error("Expected static-diff-pager plan.");
+    }
+    expect(plan.bootstrap.input).toMatchObject({ kind: "patch", file: "-" });
+  });
+
+  test.each([
+    { name: "LAZYGIT marker", env: { TERM: "dumb", LAZYGIT_STATE: "1" } },
+    { name: "GIT_PAGER", env: { TERM: "dumb", GIT_PAGER: "dunk" } },
+    { name: "lv filter mode", env: { TERM: "dumb", LV: "-c" } },
+  ])("captured-host detection fires for $name", async ({ env }) => {
+    const plan = await prepareStartupPlan(["bun", "dunk", "pager"], {
+      parseCliImpl: async () => ({ kind: "pager", options: {} }),
+      readStdinText: async () => "diff --git a/a.ts b/a.ts\n@@ -1 +1 @@\n-old\n+new\n",
+      looksLikePatchInputImpl: () => true,
+      stdoutIsTTY: false,
+      env,
+      resolveRuntimeCliInputImpl: (input) => input,
+      resolveConfiguredCliInputImpl: (input) => ({ input }) as never,
+      loadAppBootstrapImpl: async (input) => createBootstrap(input),
+    });
+
+    expect(plan.kind).toBe("static-diff-pager");
+  });
+
+  test("GIT_PAGER without TERM=dumb is not a captured host (no false positive)", async () => {
+    // A globally-exported GIT_PAGER must not force static output for a normal
+    // pager pipe; the TERM=dumb gate keeps interactive use on the TUI path.
+    const plan = await prepareStartupPlan(["bun", "dunk", "pager"], {
+      parseCliImpl: async () => ({ kind: "pager", options: {} }),
+      readStdinText: async () => "diff --git a/a.ts b/a.ts\n@@ -1 +1 @@\n-old\n+new\n",
+      looksLikePatchInputImpl: () => true,
+      stdoutIsTTY: false,
+      env: { TERM: "xterm-256color", GIT_PAGER: "dunk" },
+      loadAppBootstrapImpl: async () => {
+        throw new Error("should not bootstrap");
+      },
+    });
+
+    expect(plan.kind).toBe("passthrough");
+  });
+
+  test("echoes the raw patch when there is no usable TTY and no captured host", async () => {
+    const stdinText = "diff --git a/a.ts b/a.ts\n@@ -1 +1 @@\n-old\n+new\n";
+    let bootstrapped = false;
+
+    const plan = await prepareStartupPlan(["bun", "dunk", "pager"], {
+      parseCliImpl: async () => ({ kind: "pager", options: {} }),
+      readStdinText: async () => stdinText,
+      looksLikePatchInputImpl: () => true,
+      stdoutIsTTY: false,
+      env: { TERM: "xterm-256color" },
+      loadAppBootstrapImpl: async () => {
+        bootstrapped = true;
+        throw new Error("should not bootstrap for passthrough");
+      },
+    });
+
+    expect(plan).toEqual({ kind: "passthrough", text: stdinText });
+    expect(bootstrapped).toBe(false);
   });
 
   test("rejects watch mode for stdin-backed patch inputs", async () => {
