@@ -13,6 +13,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - `watch = true` in `.dunk/config.toml` (or `~/.config/dunk/config.toml`) now enables watch mode without passing `--watch` every time. The `--watch`/absence of it on the command line still overrides the config value.
 - Ctrl-Z suspends `dunk` as a normal shell job (the terminal is restored, the process group gets SIGTSTP, and `fg` resumes the renderer). Previously Ctrl-Z was swallowed in raw mode and `dunk` could not be suspended. No-op on Windows.
 - `,` and `.` jump to the previous / next file in the review stream (clamped at the ends), so you can skip whole files without stepping through every hunk. Shown in `?` help.
+- Captured pager hosts (LazyGit, `git -c core.pager="dunk pager" log -p`, anything that pipes a custom pager into its own panel with `TERM=dumb`) now get a static, colored ANSI diff instead of a broken alt-screen attempt. Other non-TTY / dumb-terminal pipes echo the raw patch verbatim so the pager pipeline keeps working.
 
 ### Removed
 

@@ -21,6 +21,14 @@ export type StartupPlan =
       text: string;
     }
   | {
+      kind: "passthrough";
+      text: string;
+    }
+  | {
+      kind: "static-diff-pager";
+      bootstrap: AppBootstrap;
+    }
+  | {
       kind: "app";
       bootstrap: AppBootstrap;
       cliInput: CliInput;
@@ -36,6 +44,28 @@ export interface StartupDeps {
   loadAppBootstrapImpl?: typeof loadAppBootstrap;
   usesPipedPatchInputImpl?: typeof usesPipedPatchInput;
   openControllingTerminalImpl?: typeof openControllingTerminal;
+  stdoutIsTTY?: boolean;
+  env?: NodeJS.ProcessEnv;
+}
+
+/**
+ * Detect a captured pager host (LazyGit, `git -c core.pager=dunk log -p`)
+ * that pipes our output into its own panel while advertising `TERM=dumb`.
+ * Such hosts give a non-TTY stdout, so this must be checked before the
+ * generic non-TTY passthrough or the static path would never fire for them.
+ */
+function isCapturedPagerHost(env: NodeJS.ProcessEnv) {
+  // Mirrors upstream hunk's captured-host signal set, all gated on TERM=dumb:
+  // `LV=-c` (the `lv` pager invoked in filtered/captured mode), `GIT_PAGER`
+  // (git driving us as a custom pager, e.g. `git -c core.pager=dunk log -p`),
+  // and any `LAZYGIT*` var (LazyGit's diff panel). Misses degrade safely to
+  // passthrough; a false positive would need TERM=dumb on a real TTY.
+  return (
+    env.TERM === "dumb" &&
+    (env.LV === "-c" ||
+      Boolean(env.GIT_PAGER) ||
+      Object.keys(env).some((key) => key.startsWith("LAZYGIT")))
+  );
 }
 
 /**
@@ -51,6 +81,7 @@ export async function prepareStartupPlan(
 ): Promise<StartupPlan> {
   const parseCliImpl = deps.parseCliImpl ?? parseCli;
   let parsedCliInput = await parseCliImpl(argv);
+  let staticPager = false;
 
   if (parsedCliInput.kind === "help") {
     return {
@@ -72,6 +103,22 @@ export async function prepareStartupPlan(
         text: stdinText,
       };
     }
+
+    const env = deps.env ?? process.env;
+    const stdoutIsTTY = deps.stdoutIsTTY ?? Boolean(process.stdout.isTTY);
+    const capturedPagerHost = isCapturedPagerHost(env);
+
+    // Known captured hosts get a static ANSI render even though their stdout
+    // is a non-TTY pipe — so this check must precede the generic passthrough.
+    // Anything else without a usable TTY (or a dumb terminal) just echoes the
+    // raw patch so the pager pipeline keeps working.
+    if (!capturedPagerHost && (!stdoutIsTTY || env.TERM === "dumb")) {
+      return {
+        kind: "passthrough",
+        text: stdinText,
+      };
+    }
+    staticPager = capturedPagerHost;
 
     parsedCliInput = {
       kind: "patch",
@@ -116,6 +163,14 @@ export async function prepareStartupPlan(
   }
 
   const bootstrap = await loadAppBootstrapImpl(cliInput);
+
+  if (staticPager) {
+    return {
+      kind: "static-diff-pager",
+      bootstrap,
+    };
+  }
+
   const controllingTerminal = usesPipedPatchInputImpl(cliInput)
     ? openControllingTerminalImpl()
     : null;

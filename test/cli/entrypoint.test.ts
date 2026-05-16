@@ -224,4 +224,48 @@ describe("CLI entrypoint contracts", () => {
       rmSync(repoDir, { recursive: true, force: true });
     }
   });
+
+  const SAMPLE_PATCH =
+    "diff --git a/a.ts b/a.ts\n" +
+    "index 0000000..1111111 100644\n" +
+    "--- a/a.ts\n" +
+    "+++ b/a.ts\n" +
+    "@@ -1,2 +1,2 @@\n" +
+    "-const old = 1;\n" +
+    "+const renewed = 2;\n" +
+    " const stable = true;\n";
+
+  test("a captured pager host gets a static ANSI diff, not a TUI takeover", () => {
+    const proc = Bun.spawnSync([bunExecutable, "run", "src/main.tsx", "pager"], {
+      cwd: process.cwd(),
+      stdin: Buffer.from(SAMPLE_PATCH),
+      stdout: "pipe",
+      stderr: "pipe",
+      env: { ...process.env, TERM: "dumb", GIT_PAGER: "dunk" },
+    });
+
+    const stdout = Buffer.from(proc.stdout).toString("utf8");
+
+    expect(proc.exitCode).toBe(0);
+    expect(stdout).not.toContain("[?1049h"); // never enters the alt screen
+    expect(stdout).toContain("[48;2;"); // truecolor backgrounds from the theme
+    expect(stdout).toContain("const renewed = 2;");
+    expect(stdout).toContain("const old = 1;");
+  });
+
+  test("a plain non-TTY pipe echoes the raw patch verbatim", () => {
+    const proc = Bun.spawnSync([bunExecutable, "run", "src/main.tsx", "pager"], {
+      cwd: process.cwd(),
+      stdin: Buffer.from(SAMPLE_PATCH),
+      stdout: "pipe",
+      stderr: "pipe",
+      env: { ...process.env, TERM: "xterm-256color", GIT_PAGER: undefined },
+    });
+
+    const stdout = Buffer.from(proc.stdout).toString("utf8");
+
+    expect(proc.exitCode).toBe(0);
+    expect(stdout).toBe(SAMPLE_PATCH);
+    expect(stdout).not.toContain("[?1049h");
+  });
 });

@@ -18,6 +18,22 @@ async function main() {
     process.exit(0);
   }
 
+  if (startupPlan.kind === "passthrough") {
+    // Captured non-TTY pipe we can't usefully render in: echo the patch back
+    // verbatim so the host's pager pipeline keeps working. (UTF-8 text — the
+    // same assumption as the plain-text pager path.)
+    await Bun.write(Bun.stdout, startupPlan.text);
+    process.exit(0);
+  }
+
+  if (startupPlan.kind === "static-diff-pager") {
+    const { renderStaticDiffPager } = await import("./ui/staticDiffPager");
+    // Bun.write drains before resolving, so the full diff reaches the host
+    // before exit (process.exit would otherwise truncate a large diff).
+    await Bun.write(Bun.stdout, renderStaticDiffPager(startupPlan.bootstrap));
+    process.exit(0);
+  }
+
   if (startupPlan.kind !== "app") {
     throw new Error("Unreachable startup plan.");
   }
