@@ -32,7 +32,7 @@ interface CommentsShowOptions extends CommentsListOptions {
 function requireRepoRoot(cwd?: string): string {
   const repoRoot = findRepoRoot(cwd ?? process.cwd());
   if (!repoRoot) {
-    throw new DunkUserError("Not inside a git or jj repository.", [
+    throw new DunkUserError("Not inside a git repository.", [
       "`dunk comments` reads `.dunk/comments.json` from the repo root; run it from inside a checkout.",
     ]);
   }

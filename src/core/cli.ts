@@ -147,7 +147,7 @@ function renderCliHelp() {
     "",
     "Notes:",
     "  Run `dunk <command> --help` for command-specific syntax and options.",
-    '  "target" refers to a generic set of changes; it can be a ref (git) or revset (jj)',
+    '  "target" refers to a generic set of changes; it can be any git ref or commit range',
     "",
   ].join("\n");
 }

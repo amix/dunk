@@ -3,7 +3,6 @@ import { join } from "node:path";
 import { findRepoRoot } from "./config";
 import { DUNK_COMMENTS_RELATIVE_PATH } from "./dunkPaths";
 import { buildGitDiffRawArgs, listGitUntrackedFiles, resolveGitRepoRoot, runGitText } from "./git";
-import { runJjText } from "./jj";
 import type { CliInput } from "./types";
 
 /** Return whether the current input can be rebuilt from files or VCS state without rereading stdin. */
@@ -32,8 +31,7 @@ function statSignature(path: string) {
  *
  * Polling should scale with filesystem activity, not patch size. Use cheap
  * commands that only report whether something changed: `git diff --raw` for
- * tracked work, `git rev-parse` for ref-backed reviews, and
- * `jj log -T commit_id` for Jujutsu inputs.
+ * tracked work and `git rev-parse` for ref-backed reviews.
  *
  * `--raw` rather than `--numstat`: numstat reports only counts, so two
  * same-shape edits (foo -> bar then bar -> baz, each "1\t1\tpath") would share a
@@ -66,34 +64,13 @@ function gitVcsSignature(input: Extract<CliInput, { kind: "vcs" | "show" | "stas
   }
 }
 
-function jjVcsSignature(input: Extract<CliInput, { kind: "vcs" | "show" }>) {
-  // jj log with a fixed template emits just the commit id, which is enough
-  // to detect any change in the working copy or the reviewed revset.
-  switch (input.kind) {
-    case "vcs":
-      return runJjText({
-        input,
-        args: ["log", "--no-graph", "-T", "commit_id", "-r", input.range ?? "@"],
-      });
-    case "show":
-      return runJjText({
-        input,
-        args: ["log", "--no-graph", "-T", "commit_id", "-r", input.ref ?? "@"],
-      });
-  }
-}
-
 /** Compute a change-detection signature for one watchable input. */
 export function computeWatchSignature(input: CliInput) {
   const parts: string[] = [input.kind];
 
   switch (input.kind) {
     case "vcs":
-      parts.push(input.options.vcs === "jj" ? jjVcsSignature(input) : gitVcsSignature(input));
-      break;
     case "show":
-      parts.push(input.options.vcs === "jj" ? jjVcsSignature(input) : gitVcsSignature(input));
-      break;
     case "stash-show":
       parts.push(gitVcsSignature(input));
       break;

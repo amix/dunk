@@ -17,10 +17,9 @@ import {
 } from "./comments";
 import { LARGE_FILE_MAX_BYTES } from "./limits";
 import { DEFAULT_VIEW_PREFERENCES, findRepoRoot } from "./config";
-import { resolveGitBranchBase, resolveJjBranchBase } from "./branchReview";
+import { resolveGitBranchBase } from "./branchReview";
 import type { DriftedCommentSummary } from "./types";
 import { normalizeDiffMetadataPaths, normalizeDiffPath } from "./diffPaths";
-import { DunkUserError } from "./errors";
 import {
   buildGitDiffArgs,
   buildGitDiffNumstatArgs,
@@ -31,13 +30,6 @@ import {
   runGitText,
   runGitUntrackedFileDiffText,
 } from "./git";
-import {
-  buildJjDiffArgs,
-  buildJjShowArgs,
-  createJjStagedError,
-  resolveJjRepoRoot,
-  runJjText,
-} from "./jj";
 import type {
   AppBootstrap,
   Changeset,
@@ -984,37 +976,6 @@ async function loadGitChangeset(
   };
 }
 
-/** Build a changeset from the current Jujutsu working-copy commit or a revset. */
-async function loadJjDiffChangeset(
-  input: VcsCommandInput,
-  cwd = process.cwd(),
-): Promise<LoadedVcsChangeset> {
-  if (input.staged) {
-    throw createJjStagedError(input);
-  }
-
-  const repoRoot = resolveJjRepoRoot(input, { cwd });
-  const repoName = basename(repoRoot);
-
-  const branchBase = input.branchReview ? resolveJjBranchBase(input) : undefined;
-  const title = branchBase
-    ? `${repoName} branch vs ${branchBase.displayBase}`
-    : input.range
-      ? `${repoName} ${input.range}`
-      : `${repoName} working copy`;
-
-  const changeset = normalizePatchChangeset(
-    runJjText({ input, args: buildJjDiffArgs(input, branchBase?.jjFromRevset), cwd }),
-    title,
-    repoRoot,
-  );
-
-  return {
-    changeset,
-    sessionNotice: branchBase ? `branch base: ${branchBase.displayBase}` : undefined,
-  };
-}
-
 /** Build a changeset from `git show`, suppressing commit-message chrome so only the patch feeds the UI. */
 async function loadShowChangeset(input: ShowCommandInput, cwd = process.cwd()) {
   const repoRoot = resolveGitRepoRoot(input, { cwd });
@@ -1027,27 +988,8 @@ async function loadShowChangeset(input: ShowCommandInput, cwd = process.cwd()) {
   );
 }
 
-/** Build a changeset from one Jujutsu revset using Git-format patch output. */
-async function loadJjShowChangeset(input: ShowCommandInput, cwd = process.cwd()) {
-  const repoRoot = resolveJjRepoRoot(input, { cwd });
-  const repoName = basename(repoRoot);
-  const revset = input.ref ?? "@";
-
-  return normalizePatchChangeset(
-    runJjText({ input, args: buildJjShowArgs(input), cwd }),
-    `${repoName} show ${revset}`,
-    repoRoot,
-  );
-}
-
 /** Build a changeset from `git stash show -p`, which naturally maps to one reviewable patch. */
 async function loadStashShowChangeset(input: StashShowCommandInput, cwd = process.cwd()) {
-  if (input.options.vcs === "jj") {
-    throw new DunkUserError("`dunk stash show` requires Git VCS mode.", [
-      'Set `vcs = "git"` in dunk config, then try again.',
-    ]);
-  }
-
   const repoRoot = resolveGitRepoRoot(input, { cwd });
   const repoName = basename(repoRoot);
 
@@ -1080,19 +1022,13 @@ export async function loadAppBootstrap(
 
   switch (input.kind) {
     case "vcs": {
-      const loaded =
-        input.options.vcs === "jj"
-          ? await loadJjDiffChangeset(input, cwd)
-          : await loadGitChangeset(input, cwd);
+      const loaded = await loadGitChangeset(input, cwd);
       changeset = loaded.changeset;
       sessionNotice = loaded.sessionNotice;
       break;
     }
     case "show":
-      changeset =
-        input.options.vcs === "jj"
-          ? await loadJjShowChangeset(input, cwd)
-          : await loadShowChangeset(input, cwd);
+      changeset = await loadShowChangeset(input, cwd);
       break;
     case "stash-show":
       changeset = await loadStashShowChangeset(input, cwd);

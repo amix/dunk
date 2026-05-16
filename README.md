@@ -145,32 +145,12 @@ git config --global alias.dshow "-c core.pager=\"dunk pager\" show"
 
 ## Whole-branch review
 
-`dunk diff --branch` shows everything that differs between the current branch and its base — committed history, staged work, unstaged edits, and untracked files — in one review. Pick the base explicitly with `--branch=<ref>`, or let `dunk` resolve it: explicit flag → `[branch_review] base` in `.dunk/config.toml` → `origin/HEAD` → `origin/main` / `main` / `origin/master` / `master` / `origin/trunk` / `trunk`. The resolved base is shown in the status bar so auto-detection is never silent. Works in Jujutsu too (uses a `fork_point(@ | "<base>")` revset).
+`dunk diff --branch` shows everything that differs between the current branch and its base — committed history, staged work, unstaged edits, and untracked files — in one review. Pick the base explicitly with `--branch=<ref>`, or let `dunk` resolve it: explicit flag → `[branch_review] base` in `.dunk/config.toml` → `origin/HEAD` → `origin/main` / `main` / `origin/master` / `master` / `origin/trunk` / `trunk`. The resolved base is shown in the status bar so auto-detection is never silent.
 
 ```toml
 # .dunk/config.toml
 [branch_review]
 base = "origin/main"
-```
-
-## Jujutsu
-
-`dunk` auto-detects Jujutsu workspaces. Inside one, `dunk diff [revset]` and `dunk show [revset]` use jj revsets.
-
-To force a backend, set `vcs = "git"` or `vcs = "jj"` in [config](#config).
-
-To use `dunk` as jj’s pager, run:
-
-```bash
-jj config edit --user
-```
-
-Then add:
-
-```toml
-[ui]
-pager = ["dunk", "pager"]
-diff-formatter = ":git"
 ```
 
 ## Config
@@ -185,7 +165,6 @@ Example:
 ```toml
 theme = "graphite"   # graphite, midnight, paper, ember
 mode = "auto"        # auto, split, stack
-vcs = "git"          # git, jj
 exclude_untracked = false
 line_numbers = false
 wrap_lines = true

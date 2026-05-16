@@ -22,13 +22,10 @@ const GIT_BASE_FALLBACK_REFS = [
  * - `displayBase` is what we show to the user (e.g. "origin/main").
  * - `gitMergeBaseSha` is the SHA of `git merge-base <displayBase> HEAD`, used as the diff target
  *   so the diff is "working tree vs the common ancestor" rather than "working tree vs the tip".
- * - `jjFromRevset` is the `--from` argument for `jj diff` — `fork_point(<displayBase>)`, which
- *   gives the same merge-base semantics that GitHub's three-dot view uses.
  */
 export interface ResolvedBranchBase {
   displayBase: string;
   gitMergeBaseSha?: string;
-  jjFromRevset?: string;
 }
 
 /** Trim and discard one-line output from `git rev-parse` / `git merge-base`. */
@@ -254,27 +251,4 @@ export function resolveGitBranchBase(
   }
 
   return resolveExplicitGitBase(detected, cwd, gitExecutable);
-}
-
-/** Build the Jujutsu `fork_point` revset used as the `--from` argument for branch review. */
-function jjForkPointRevset(base: string) {
-  // Jujutsu's revset language uses double quotes for literal strings, so wrap whatever the user
-  // (or config) named so revsets with slashes or hyphens — e.g. "origin/main" — parse cleanly.
-  const escaped = base.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-  return `fork_point(@ | "${escaped}")`;
-}
-
-/** Resolve a Jujutsu branch-review base. */
-export function resolveJjBranchBase(input: VcsCommandInput): ResolvedBranchBase {
-  const explicitBase = input.branchReview?.explicitBase;
-  const configuredBase = input.options.branchReviewBase;
-  const base = explicitBase ?? configuredBase ?? "trunk()";
-
-  // For Jujutsu we keep resolution lazy: the actual revset evaluation happens inside `jj diff`,
-  // which already raises a clear "Revision not found" / "Failed to parse revset" error when the
-  // base is unresolvable. Catching that here would duplicate jj.ts error translation.
-  return {
-    displayBase: base,
-    jjFromRevset: jjForkPointRevset(base),
-  };
 }
