@@ -156,6 +156,43 @@ describe("config resolution", () => {
     expect(fallbackResolved.input.options.excludeUntracked).toBe(false);
   });
 
+  test("honors the watch key from config and lets the CLI override it", () => {
+    const home = createTempDir("hunk-config-home-");
+    mkdirSync(join(home, ".config", "dunk"), { recursive: true });
+    writeFileSync(join(home, ".config", "dunk", "config.toml"), "watch = true\n");
+
+    const cwd = createTempDir("hunk-config-cwd-");
+    const enabledFromConfig = resolveConfiguredCliInput(
+      { kind: "vcs", staged: false, options: {} },
+      { cwd, env: { HOME: home } },
+    );
+    const cliDisablesOverConfig = resolveConfiguredCliInput(
+      { kind: "vcs", staged: false, options: { watch: false } },
+      { cwd, env: { HOME: home } },
+    );
+    const noConfigHome = createTempDir("hunk-config-home-");
+    const defaultsToFalse = resolveConfiguredCliInput(
+      { kind: "vcs", staged: false, options: {} },
+      { cwd, env: { HOME: noConfigHome } },
+    );
+
+    // Repo config must override the global config layer (no CLI flag): global
+    // `watch = true`, repo `watch = false` → false.
+    const repo = createTempDir("hunk-config-repo-");
+    createRepo(repo);
+    mkdirSync(join(repo, ".dunk"), { recursive: true });
+    writeFileSync(join(repo, ".dunk", "config.toml"), "watch = false\n");
+    const repoOverridesGlobal = resolveConfiguredCliInput(
+      { kind: "vcs", staged: false, options: {} },
+      { cwd: repo, env: { HOME: home } },
+    );
+
+    expect(enabledFromConfig.input.options.watch).toBe(true);
+    expect(cliDisablesOverConfig.input.options.watch).toBe(false);
+    expect(defaultsToFalse.input.options.watch).toBe(false);
+    expect(repoOverridesGlobal.input.options.watch).toBe(false);
+  });
+
   test("loadAppBootstrap exposes resolved initial preferences to the UI", async () => {
     const home = createTempDir("hunk-config-home-");
     const repo = createTempDir("hunk-config-repo-");
