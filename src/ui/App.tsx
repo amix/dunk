@@ -987,6 +987,7 @@ export function App({
     focusArea,
     focusFilter,
     moveToAnnotatedHunk,
+    moveToFile: review.moveToFile,
     moveToHunk: moveToHunkWithDrift,
     openCommentEditor,
     openInEditor,

@@ -29,6 +29,7 @@ export interface UseAppKeyboardShortcutsOptions {
   focusArea: FocusArea;
   focusFilter: () => void;
   moveToAnnotatedHunk: (delta: number) => void;
+  moveToFile: (delta: number) => void;
   moveToHunk: (delta: number) => void;
   openCommentEditor: () => void;
   openInEditor: () => void;
@@ -61,6 +62,7 @@ export function useAppKeyboardShortcuts({
   focusArea,
   focusFilter,
   moveToAnnotatedHunk,
+  moveToFile,
   moveToHunk,
   openCommentEditor,
   openInEditor,
@@ -335,6 +337,16 @@ export function useAppKeyboardShortcuts({
 
     if (key.sequence === "J" || key.sequence === "]") {
       moveToHunk(1);
+      return;
+    }
+
+    if (key.name === "," || key.sequence === ",") {
+      moveToFile(-1);
+      return;
+    }
+
+    if (key.name === "." || key.sequence === ".") {
+      moveToFile(1);
       return;
     }
 

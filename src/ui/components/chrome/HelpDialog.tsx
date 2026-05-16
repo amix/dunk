@@ -24,6 +24,7 @@ export function HelpDialog({
         ["Space / b", "page down / up"],
         ["Ctrl+D / Ctrl+U", "half page down / up"],
         ["K / J", "previous / next hunk"],
+        [", / .", "previous / next file"],
         ["← / →", "scroll code left / right (Shift = faster)"],
         ["gg / G", "jump to first / last hunk"],
         ["Home / End", "jump to top / bottom"],
