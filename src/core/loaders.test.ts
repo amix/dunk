@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { platform, tmpdir } from "node:os";
 import { join } from "node:path";
+import { WORKTREE_BASE_REF } from "./git";
 import { loadAppBootstrap } from "./loaders";
 import type { CliInput } from "./types";
 
@@ -38,16 +39,32 @@ function git(cwd: string, ...cmd: string[]) {
   return Buffer.from(proc.stdout).toString("utf8");
 }
 
-function createTempRepo(prefix: string) {
+function createTempRepo(prefix: string, ...initArgs: string[]) {
   const dir = createTempDir(prefix);
 
-  git(dir, "init", "--initial-branch", "master");
+  git(dir, "init", "--initial-branch", "master", ...initArgs);
   git(dir, "config", "user.name", "Test User");
   git(dir, "config", "user.email", "test@example.com");
   git(dir, "config", "commit.gpgsign", "false");
 
   return dir;
 }
+
+function gitSupportsSha256() {
+  const probeDir = mkdtempSync(join(tmpdir(), "hunk-sha256-probe-"));
+  try {
+    const probe = Bun.spawnSync(["git", "init", "--object-format=sha256", probeDir], {
+      stdout: "pipe",
+      stderr: "pipe",
+      stdin: "ignore",
+    });
+    return probe.exitCode === 0;
+  } finally {
+    rmSync(probeDir, { recursive: true, force: true });
+  }
+}
+
+const sha256Supported = gitSupportsSha256();
 
 async function loadFromCwd(cwd: string, input: CliInput) {
   const previousCwd = process.cwd();
@@ -136,6 +153,99 @@ describe("loadAppBootstrap", () => {
     expect(bootstrap.changeset.files[0]?.path).toBe("example.ts");
     expect(bootstrap.changeset.files[0]?.stats.additions).toBeGreaterThan(0);
   });
+
+  test("default review merges staged and unstaged changes", async () => {
+    const dir = createTempRepo("hunk-git-default-scope-");
+
+    writeFileSync(join(dir, "staged.ts"), "export const a = 1;\n");
+    writeFileSync(join(dir, "unstaged.ts"), "export const b = 1;\n");
+    git(dir, "add", "staged.ts", "unstaged.ts");
+    git(dir, "commit", "-m", "initial");
+
+    writeFileSync(join(dir, "staged.ts"), "export const a = 2;\n");
+    git(dir, "add", "staged.ts");
+    writeFileSync(join(dir, "unstaged.ts"), "export const b = 2;\n");
+    writeFileSync(join(dir, "extra.txt"), "loose\n");
+
+    const all = await loadFromRepo(dir, {
+      kind: "vcs",
+      staged: false,
+      range: WORKTREE_BASE_REF,
+      options: { mode: "auto" },
+    });
+    // Default merges staged + unstaged and still includes untracked files.
+    expect(all.changeset.files.map((file) => file.path).sort()).toEqual([
+      "extra.txt",
+      "staged.ts",
+      "unstaged.ts",
+    ]);
+
+    const stagedOnly = await loadFromRepo(dir, {
+      kind: "vcs",
+      staged: true,
+      options: { mode: "auto" },
+    });
+    expect(stagedOnly.changeset.files.map((file) => file.path)).toEqual(["staged.ts"]);
+
+    const unstagedOnly = await loadFromRepo(dir, {
+      kind: "vcs",
+      staged: false,
+      options: { mode: "auto" },
+    });
+    expect(unstagedOnly.changeset.files.map((file) => file.path).sort()).toEqual([
+      "extra.txt",
+      "unstaged.ts",
+    ]);
+  });
+
+  test("default review still shows staged files in a repo with no commits", async () => {
+    const dir = createTempRepo("hunk-git-unborn-head-");
+
+    writeFileSync(join(dir, "staged.ts"), "export const value = 1;\n");
+    git(dir, "add", "staged.ts");
+    writeFileSync(join(dir, "loose.ts"), "export const loose = true;\n");
+
+    const bootstrap = await loadFromRepo(dir, {
+      kind: "vcs",
+      staged: false,
+      range: WORKTREE_BASE_REF,
+      options: { mode: "auto" },
+    });
+
+    // Unborn HEAD falls back to git's empty tree, so staged-but-uncommitted
+    // work still appears instead of `git diff HEAD` hard-failing.
+    expect(bootstrap.changeset.files.map((file) => file.path).sort()).toEqual([
+      "loose.ts",
+      "staged.ts",
+    ]);
+    // The fallback stays loader-local: the session keeps the original HEAD base
+    // so a later reload re-evaluates it once the first commit exists.
+    expect(bootstrap.input.kind).toBe("vcs");
+    if (bootstrap.input.kind === "vcs") {
+      expect(bootstrap.input.range).toBe(WORKTREE_BASE_REF);
+    }
+  });
+
+  test.skipIf(!sha256Supported)(
+    "computes the empty-tree base per object format in a sha256 unborn repo",
+    async () => {
+      const dir = createTempRepo("hunk-git-sha256-", "--object-format=sha256");
+
+      writeFileSync(join(dir, "staged.ts"), "export const value = 1;\n");
+      git(dir, "add", "staged.ts");
+
+      const bootstrap = await loadFromRepo(dir, {
+        kind: "vcs",
+        staged: false,
+        range: WORKTREE_BASE_REF,
+        options: { mode: "auto" },
+      });
+
+      // A SHA-1 empty-tree constant would not exist in a sha256 repo, so the
+      // staged file appearing proves the empty tree is resolved per repo.
+      expect(bootstrap.changeset.files.map((file) => file.path)).toEqual(["staged.ts"]);
+    },
+  );
 
   test("includes untracked files in working tree reviews by default", async () => {
     const dir = createTempRepo("hunk-git-untracked-");
@@ -470,6 +580,7 @@ describe("loadAppBootstrap", () => {
       loadFromRepo(dir, {
         kind: "vcs",
         staged: false,
+        range: WORKTREE_BASE_REF,
         options: { mode: "auto" },
       }),
     ).rejects.toThrow("`dunk diff` must be run inside a Git repository.");

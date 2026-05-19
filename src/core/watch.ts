@@ -2,7 +2,13 @@ import fs from "node:fs";
 import { join } from "node:path";
 import { findRepoRoot } from "./config";
 import { DUNK_COMMENTS_RELATIVE_PATH } from "./dunkPaths";
-import { buildGitDiffRawArgs, listGitUntrackedFiles, resolveGitRepoRoot, runGitText } from "./git";
+import {
+  buildGitDiffRawArgs,
+  listGitUntrackedFiles,
+  resolveGitRepoRoot,
+  resolveWorktreeBaseRef,
+  runGitText,
+} from "./git";
 import type { CliInput } from "./types";
 
 /** Return whether the current input can be rebuilt from files or VCS state without rereading stdin. */
@@ -42,7 +48,11 @@ function statSignature(path: string) {
  * actually need the bytes.
  */
 function gitWorkingTreeWatchSignature(input: Extract<CliInput, { kind: "vcs" }>) {
-  const raw = runGitText({ input, args: buildGitDiffRawArgs(input) });
+  // Resolve the same base the loader uses (incl. the unborn-HEAD empty-tree
+  // fallback) so the signature probe doesn't crash on `git diff --raw HEAD` in
+  // a repo with no commits. Untracked detection keeps the original input.
+  const baseInput = { ...input, range: resolveWorktreeBaseRef(input) };
+  const raw = runGitText({ input, args: buildGitDiffRawArgs(baseInput) });
   const repoRoot = resolveGitRepoRoot(input);
   const untrackedSignatures = listGitUntrackedFiles(input, { repoRoot }).map(
     (filePath) => `untracked:${statSignature(join(repoRoot, filePath))}`,

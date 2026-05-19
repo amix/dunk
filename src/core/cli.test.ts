@@ -107,6 +107,33 @@ describe("parseCli", () => {
     expect(cached).toMatchObject({ kind: "vcs", staged: true });
   });
 
+  test("defaults bare `dunk diff` to a staged + unstaged HEAD review", async () => {
+    const parsed = await parseCli(["bun", "dunk", "diff"]);
+
+    expect(parsed).toMatchObject({ kind: "vcs", staged: false, range: "HEAD" });
+  });
+
+  test("parses --unstaged as an index-vs-working-tree review", async () => {
+    const parsed = await parseCli(["bun", "dunk", "diff", "--unstaged"]);
+
+    expect(parsed).toMatchObject({ kind: "vcs", staged: false });
+    if (parsed.kind === "vcs") {
+      expect(parsed.range).toBeUndefined();
+    }
+  });
+
+  test("rejects --staged combined with --unstaged", async () => {
+    await expect(parseCli(["bun", "dunk", "diff", "--staged", "--unstaged"])).rejects.toThrow(
+      /--staged.*--unstaged/,
+    );
+  });
+
+  test("rejects --branch combined with --unstaged", async () => {
+    await expect(parseCli(["bun", "dunk", "diff", "--branch", "--unstaged"])).rejects.toThrow(
+      /--branch.*--staged.*--unstaged/,
+    );
+  });
+
   test("parses untracked file toggles for git diff", async () => {
     const excluded = await parseCli(["bun", "dunk", "diff", "--exclude-untracked"]);
     const included = await parseCli(["bun", "dunk", "diff", "--no-exclude-untracked"]);

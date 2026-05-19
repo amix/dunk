@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { buildGitStashShowArgs, runGitText } from "./git";
+import { WORKTREE_BASE_REF, buildGitStashShowArgs, formatGitCommandLabel, runGitText } from "./git";
 
 describe("git command helpers", () => {
   test("disables external diff tools for stash patches", () => {
@@ -17,6 +17,7 @@ describe("git command helpers", () => {
         input: {
           kind: "vcs",
           staged: false,
+          range: WORKTREE_BASE_REF,
           options: { mode: "auto" },
         },
         args: ["status"],
@@ -24,6 +25,19 @@ describe("git command helpers", () => {
       }),
     ).toThrow(
       "Git is required for `dunk diff`, but `definitely-not-a-real-git-binary` was not found in PATH.",
+    );
+  });
+
+  test("labels working-tree review scope from the comparison base", () => {
+    const common = { kind: "vcs", options: { mode: "auto" } } as const;
+
+    expect(formatGitCommandLabel({ ...common, staged: false, range: WORKTREE_BASE_REF })).toBe(
+      "dunk diff",
+    );
+    expect(formatGitCommandLabel({ ...common, staged: true })).toBe("dunk diff --staged");
+    expect(formatGitCommandLabel({ ...common, staged: false })).toBe("dunk diff --unstaged");
+    expect(formatGitCommandLabel({ ...common, staged: false, range: "main..feature" })).toBe(
+      "dunk diff main..feature",
     );
   });
 });
