@@ -8,6 +8,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.15.1] - 2026-05-19
+
 ### Changed
 
 - `.dunk/comments.json` is now deleted when the last comment is resolved instead of leaving an empty `{ "comments": [] }` file. Reads already treat a missing file as "no comments", so an empty review leaves no artifact for a coding agent or human reviewer to reason about.
@@ -85,7 +87,8 @@ First `dunkdiff` release after the hard-fork rename. Bundles the agent-facing CL
 - `--agent-context` CLI flag and the `AgentContext` sidecar JSON model.
 - Dead `AgentCard` floating-popover surface — the inline `CommentCard` has been the canonical surface for a while.
 
-[Unreleased]: https://github.com/amix/dunk/compare/v0.15.0...HEAD
+[Unreleased]: https://github.com/amix/dunk/compare/v0.15.1...HEAD
+[0.15.1]: https://github.com/amix/dunk/compare/v0.15.0...v0.15.1
 [0.15.0]: https://github.com/amix/dunk/compare/v0.14.0...v0.15.0
 [0.14.0]: https://github.com/amix/dunk/compare/v0.13.0...v0.14.0
 [0.13.0]: https://github.com/amix/dunk/compare/v0.12.2...v0.13.0
