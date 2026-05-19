@@ -8,9 +8,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-05-19
+
 ### Changed
 
-- `dunk diff` now reviews staged **and** unstaged changes together (working tree vs `HEAD`), so a quick `dunk diff` shows everything you've touched since the last commit, including changes you've already `git add`ed. Untracked files are still included. Use `dunk diff --staged` (or `--cached`) for index-vs-`HEAD` only, and the new `dunk diff --unstaged` for working-tree-vs-index only. In a repo with no commits, `dunk diff` falls back to a plain working-tree diff.
+- `dunk diff` now reviews staged **and** unstaged changes together (working tree vs `HEAD`), so a quick `dunk diff` shows everything you've touched since the last commit, including changes you've already `git add`ed. Untracked files are still included. Use `dunk diff --staged` (or `--cached`) for index-vs-`HEAD` only, and the new `dunk diff --unstaged` for working-tree-vs-index only. In a repo with no commits, `dunk diff` diffs against the empty tree so staged-but-uncommitted files still show.
 
 ## [0.14.0] - 2026-05-16
 
@@ -79,7 +81,8 @@ First `dunkdiff` release after the hard-fork rename. Bundles the agent-facing CL
 - `--agent-context` CLI flag and the `AgentContext` sidecar JSON model.
 - Dead `AgentCard` floating-popover surface — the inline `CommentCard` has been the canonical surface for a while.
 
-[Unreleased]: https://github.com/amix/dunk/compare/v0.14.0...HEAD
+[Unreleased]: https://github.com/amix/dunk/compare/v0.15.0...HEAD
+[0.15.0]: https://github.com/amix/dunk/compare/v0.14.0...v0.15.0
 [0.14.0]: https://github.com/amix/dunk/compare/v0.13.0...v0.14.0
 [0.13.0]: https://github.com/amix/dunk/compare/v0.12.2...v0.13.0
 [0.12.2]: https://github.com/amix/dunk/compare/v0.12.1...v0.12.2

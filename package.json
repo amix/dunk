@@ -1,6 +1,6 @@
 {
   "name": "dunkdiff",
-  "version": "0.14.0",
+  "version": "0.15.0",
   "description": "Review diffs in a TUI, leave inline comments, and let a coding agent resolve them.",
   "keywords": [
     "code-review",
