@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { computeAnchor, readCommentsFile, splitLines, writeCommentsFile } from "./comments";
@@ -327,6 +327,24 @@ describe("dunk comments CLI", () => {
 
     const remaining = readCommentsFile(repoRoot);
     expect(remaining.comments.map((c) => c.id)).toEqual([2]);
+  });
+
+  test("resolving the last comment deletes the comments file", () => {
+    const repoRoot = createTempRepo();
+    writeCommentsFile(repoRoot, {
+      schema: 1,
+      comments: [
+        { id: 1, file: "a.ts", line: 1, range: [1, 1], anchor: "aaaaaaaaaaaaaaaa", body: "only" },
+      ],
+    });
+
+    const output = runCommentsResolve([1], { cwd: repoRoot });
+    expect(output).toBe("Resolved 1 comment: #1.\n");
+
+    // CLI-visible: the review reports clean.
+    expect(runCommentsList("text", { cwd: repoRoot })).toBe("No pending comments.\n");
+    // And the literal contract of this change: no empty artifact left behind.
+    expect(existsSync(join(repoRoot, ".dunk", "comments.json"))).toBe(false);
   });
 
   test("resolve refuses partial success when one id is missing", () => {

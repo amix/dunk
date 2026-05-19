@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   computeAnchor,
+  mutateCommentsFile,
   nextCommentId,
   readCommentsFile,
   resolveComments,
@@ -65,6 +66,84 @@ describe("dunk comments", () => {
 
       const tempPath = join(repoRoot, ".dunk", ".comments.json.tmp");
       expect(existsSync(tempPath)).toBe(false);
+    });
+  });
+
+  test("writeCommentsFile deletes the file when the review has no comments", () => {
+    withTempRepo((repoRoot) => {
+      const path = join(repoRoot, ".dunk", "comments.json");
+      writeCommentsFile(repoRoot, {
+        schema: 1,
+        comments: [
+          { id: 1, file: "a.ts", line: 1, range: [1, 1], anchor: "aaaaaaaaaaaaaaaa", body: "x" },
+        ],
+      });
+      expect(existsSync(path)).toBe(true);
+
+      writeCommentsFile(repoRoot, { schema: 1, comments: [] });
+
+      // No empty `{ "comments": [] }` artifact is left behind, and reads still
+      // round-trip to "no comments".
+      expect(existsSync(path)).toBe(false);
+      expect(readCommentsFile(repoRoot).comments).toEqual([]);
+    });
+  });
+
+  test("writeCommentsFile with no comments is a no-op when the file is absent", () => {
+    withTempRepo((repoRoot) => {
+      expect(() => writeCommentsFile(repoRoot, { schema: 1, comments: [] })).not.toThrow();
+      expect(existsSync(join(repoRoot, ".dunk", "comments.json"))).toBe(false);
+    });
+  });
+
+  test("mutateCommentsFile deletes the file when the last comment is removed", () => {
+    withTempRepo((repoRoot) => {
+      const path = join(repoRoot, ".dunk", "comments.json");
+      writeCommentsFile(repoRoot, {
+        schema: 1,
+        comments: [
+          { id: 7, file: "a.ts", line: 1, range: [1, 1], anchor: "aaaaaaaaaaaaaaaa", body: "x" },
+        ],
+      });
+
+      const next = mutateCommentsFile(repoRoot, (current) => withRemovedComment(current, 7));
+
+      expect(next.comments).toEqual([]);
+      expect(existsSync(path)).toBe(false);
+    });
+  });
+
+  test("a concurrent deletion mid-mutation is treated as an empty review, not an error", () => {
+    withTempRepo((repoRoot) => {
+      const path = join(repoRoot, ".dunk", "comments.json");
+      writeCommentsFile(repoRoot, {
+        schema: 1,
+        comments: [
+          { id: 1, file: "a.ts", line: 1, range: [1, 1], anchor: "aaaaaaaaaaaaaaaa", body: "old" },
+        ],
+      });
+
+      // The first attempt deletes the file after the read but before the
+      // fingerprint re-check, so currentFingerprint hits ENOENT and the
+      // optimistic loop retries against the now-absent (empty) file.
+      let deletedOnce = false;
+      const result = mutateCommentsFile(repoRoot, (current) => {
+        if (!deletedOnce) {
+          deletedOnce = true;
+          rmSync(path, { force: true });
+        }
+        return withAddedComment(current, {
+          file: "b.ts",
+          line: 2,
+          range: [2, 2],
+          anchor: "bbbbbbbbbbbbbbbb",
+          body: "fresh",
+        }).file;
+      });
+
+      expect(deletedOnce).toBe(true);
+      expect(result.comments.map((c) => c.body)).toEqual(["fresh"]);
+      expect(readCommentsFile(repoRoot).comments.map((c) => c.body)).toEqual(["fresh"]);
     });
   });
 

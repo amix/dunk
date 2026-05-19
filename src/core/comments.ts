@@ -1,9 +1,9 @@
 /** `.dunk/comments.json` reader/writer and drift detection. */
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { isAbsolute, join, relative, resolve as resolvePath } from "node:path";
 import { z } from "zod";
-import { DUNK_COMMENTS_FILENAME, DUNK_DIR } from "./dunkPaths";
+import { DUNK_COMMENTS_FILENAME, DUNK_COMMENTS_RELATIVE_PATH, DUNK_DIR } from "./dunkPaths";
 import { DunkUserError } from "./errors";
 import { hunkLineRange } from "./hunkRange";
 import { LARGE_FILE_MAX_BYTES } from "./limits";
@@ -217,7 +217,7 @@ function parseCommentsFile(raw: string, path: string): CommentsFile {
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
     throw new DunkUserError(`Malformed JSON in ${path}: ${detail}`, [
-      "Repair the file by hand, or delete it to start fresh — dunk recreates an empty one on the next write.",
+      "Repair the file by hand, or delete it to start fresh — dunk treats a missing file as no comments and recreates it on the next comment.",
     ]);
   }
 
@@ -242,20 +242,55 @@ function parseCommentsFile(raw: string, path: string): CommentsFile {
   return result.data;
 }
 
+/** The absolute path to `.dunk/comments.json` for one repo root. */
+function commentsFilePath(repoRoot: string): string {
+  return join(repoRoot, DUNK_COMMENTS_RELATIVE_PATH);
+}
+
+/**
+ * Read the comments file's raw bytes, or `null` when it does not exist.
+ *
+ * Resolving the last comment now deletes the file, and the TUI and agent CLI
+ * ping-pong on the same review, so a concurrent deletion can land between an
+ * `existsSync` check and the read. Catching `ENOENT` from a single read closes
+ * that race instead of throwing for what is just an empty review.
+ */
+function readCommentsRawOrNull(path: string): string | null {
+  try {
+    return readFileSync(path, "utf8");
+  } catch (error) {
+    if (error instanceof Error && (error as NodeJS.ErrnoException).code === "ENOENT") {
+      return null;
+    }
+    throw error;
+  }
+}
+
 /** Read `.dunk/comments.json` from the repo root, returning [] if missing. */
 export function readCommentsFile(repoRoot: string): CommentsFile {
-  const path = join(repoRoot, DUNK_DIR, DUNK_COMMENTS_FILENAME);
-  if (!existsSync(path)) {
+  const path = commentsFilePath(repoRoot);
+  const raw = readCommentsRawOrNull(path);
+  if (raw === null) {
     return { schema: SCHEMA_VERSION, comments: [] };
   }
-  return parseCommentsFile(readFileSync(path, "utf8"), path);
+  return parseCommentsFile(raw, path);
 }
 
 /** Atomically write the comments file using a unique temp + rename. */
 export function writeCommentsFile(repoRoot: string, file: CommentsFile): void {
   const dir = join(repoRoot, DUNK_DIR);
-  mkdirSync(dir, { recursive: true });
   const finalPath = join(dir, DUNK_COMMENTS_FILENAME);
+
+  // An empty review has no file. A `{ "schema": 1, "comments": [] }` artifact
+  // is just noise an agent or human reviewer would have to reason about, and
+  // reads already treat a missing file as "no comments", so deleting on empty
+  // round-trips cleanly. `force` makes this a no-op when the file is absent.
+  if (file.comments.length === 0) {
+    rmSync(finalPath, { force: true });
+    return;
+  }
+
+  mkdirSync(dir, { recursive: true });
   // Unique per-write temp filename so two writers (TUI + agent CLI) never
   // collide on the same `.tmp` and double-rename through it. Same-filesystem
   // rename remains atomic, so concurrent readers still see one whole file.
@@ -513,12 +548,12 @@ function readCommentsFileWithFingerprint(repoRoot: string): {
   file: CommentsFile;
   fingerprint: string | null;
 } {
-  const path = join(repoRoot, DUNK_DIR, DUNK_COMMENTS_FILENAME);
-  if (!existsSync(path)) {
+  const path = commentsFilePath(repoRoot);
+  const raw = readCommentsRawOrNull(path);
+  if (raw === null) {
     return { file: { schema: SCHEMA_VERSION, comments: [] }, fingerprint: null };
   }
 
-  const raw = readFileSync(path, "utf8");
   return {
     file: parseCommentsFile(raw, path),
     fingerprint: createHash("sha256").update(raw).digest("hex"),
@@ -527,11 +562,12 @@ function readCommentsFileWithFingerprint(repoRoot: string): {
 
 /** Compute the on-disk fingerprint for one comments file, or null if absent. */
 function currentFingerprint(repoRoot: string): string | null {
-  const path = join(repoRoot, DUNK_DIR, DUNK_COMMENTS_FILENAME);
-  if (!existsSync(path)) {
+  const path = commentsFilePath(repoRoot);
+  const raw = readCommentsRawOrNull(path);
+  if (raw === null) {
     return null;
   }
-  return createHash("sha256").update(readFileSync(path, "utf8")).digest("hex");
+  return createHash("sha256").update(raw).digest("hex");
 }
 
 /**
@@ -560,6 +596,6 @@ export function mutateCommentsFile(
   }
 
   throw new Error(
-    `dunk comments: gave up after ${MUTATE_MAX_ATTEMPTS} optimistic retries on ${join(repoRoot, DUNK_DIR, DUNK_COMMENTS_FILENAME)}.`,
+    `dunk comments: gave up after ${MUTATE_MAX_ATTEMPTS} optimistic retries on ${commentsFilePath(repoRoot)}.`,
   );
 }
