@@ -25,8 +25,10 @@ import {
   buildGitDiffNumstatArgs,
   buildGitShowArgs,
   buildGitStashShowArgs,
+  classifyVcsScope,
   listGitUntrackedFiles,
   resolveGitRepoRoot,
+  resolveWorktreeBaseRef,
   runGitText,
   runGitUntrackedFileDiffText,
 } from "./git";
@@ -897,15 +899,23 @@ async function loadGitChangeset(
   const repoRoot = resolveGitRepoRoot(input, { cwd });
   const repoName = basename(repoRoot);
 
+  // Title reflects what the user asked for, so classify the original input
+  // before branch resolution / the unborn-HEAD fallback rewrite the base.
+  const scope = classifyVcsScope(input);
+
   // Branch review: resolve <base>...HEAD to a concrete merge-base SHA, then route through the
   // existing "git diff <single-rev>" path so untracked files, large-file skips, and watch reload
   // keep working without a parallel code path.
   //
   // `gitDiffInput` is local to this loader by design — do not leak it past here. The original
   // `input` (with `branchReview` still set) is what user-facing helpers like
-  // `formatGitCommandLabel` need, while `gitDiffInput` carries the resolved SHA in `range` for
-  // the git arg builders below.
-  let gitDiffInput = input;
+  // `formatGitCommandLabel` need, while `gitDiffInput` carries the resolved base in `range` for
+  // the git arg builders below. The unborn-HEAD fallback (empty tree) is resolved the same way
+  // so it stays loader-local and reload re-evaluates HEAD instead of sticking to a stale base.
+  let gitDiffInput: VcsCommandInput = {
+    ...input,
+    range: resolveWorktreeBaseRef(input, { cwd }),
+  };
   let branchDisplayBase: string | undefined;
   if (input.branchReview && !input.staged) {
     const resolved = resolveGitBranchBase(input, { cwd });
@@ -917,13 +927,16 @@ async function loadGitChangeset(
     };
   }
 
-  const title = gitDiffInput.staged
-    ? `${repoName} staged changes`
-    : branchDisplayBase
-      ? `${repoName} branch vs ${branchDisplayBase}`
-      : gitDiffInput.range
-        ? `${repoName} ${gitDiffInput.range}`
-        : `${repoName} working tree`;
+  const title =
+    scope === "staged"
+      ? `${repoName} staged changes`
+      : branchDisplayBase
+        ? `${repoName} branch vs ${branchDisplayBase}`
+        : scope === "unstaged"
+          ? `${repoName} unstaged changes`
+          : scope === "all"
+            ? `${repoName} working tree`
+            : `${repoName} ${input.range}`;
   const largeTrackedFiles = parseGitNumstat(
     runGitText({ input: gitDiffInput, args: buildGitDiffNumstatArgs(gitDiffInput), cwd }),
   ).filter((file) => shouldSkipLargeTrackedDiff(file, repoRoot));

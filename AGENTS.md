@@ -98,7 +98,7 @@ CLI input
 - Comments belong beside the code, not hidden in a separate mode or workflow.
 - Comments are hunk-specific: render them in the diff flow near the annotated row, and keep a clear spatial relationship to the code they explain.
 - Drifted comments (file removed, line out of range, or anchor mismatch) pin to the top of the diff so they stay visible until resolved or dismissed.
-- `dunk diff` working-tree reviews include untracked files by default. Use `--exclude-untracked` if you explicitly want tracked changes only.
+- `dunk diff` reviews staged + unstaged changes together (working tree vs `HEAD`) and includes untracked files by default. `--staged`/`--cached` scopes to index-vs-`HEAD`, `--unstaged` to working-tree-vs-index. Use `--exclude-untracked` if you explicitly want tracked changes only. Working-tree scope is encoded purely as the comparison base (`range`); there is no separate scope field.
 - The agent skill at `skills/dunk-review/SKILL.md` describes how a coding agent should read, fix, and prune `.dunk/comments.json`. Don't run interactive TUI commands from agents — they should drive through the file.
 
 ## commands

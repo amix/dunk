@@ -8,6 +8,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Changed
+
+- `dunk diff` now reviews staged **and** unstaged changes together (working tree vs `HEAD`), so a quick `dunk diff` shows everything you've touched since the last commit, including changes you've already `git add`ed. Untracked files are still included. Use `dunk diff --staged` (or `--cached`) for index-vs-`HEAD` only, and the new `dunk diff --unstaged` for working-tree-vs-index only. In a repo with no commits, `dunk diff` falls back to a plain working-tree diff.
+
 ## [0.14.0] - 2026-05-16
 
 ### Added

@@ -14,6 +14,7 @@ import {
   runCommentsShow,
 } from "./cliComments";
 import { DunkUserError } from "./errors";
+import { WORKTREE_BASE_REF } from "./git";
 import { resolveBundledDunkReviewSkillPath } from "./paths";
 import { resolveCliVersion } from "./version";
 import type { BranchReviewRequest } from "./types";
@@ -115,8 +116,9 @@ function renderCliHelp() {
     "Review diffs in a TUI, leave inline comments, and let a coding agent resolve them through .dunk/comments.json.",
     "",
     "Commands:",
-    "  dunk diff [target] [-- <pathspec...>]   review working tree changes or compare against a target",
-    "  dunk diff --staged [-- <pathspec...>]   review staged changes",
+    "  dunk diff [target] [-- <pathspec...>]   review staged + unstaged changes or compare against a target",
+    "  dunk diff --staged [-- <pathspec...>]   review only staged changes",
+    "  dunk diff --unstaged [-- <pathspec...>] review only unstaged changes",
     "  dunk diff --branch[=base]               review everything on the current branch vs its base",
     "  dunk diff <left> <right>                compare two concrete files",
     "  dunk show [target] [-- <pathspec...>]   review the last commit or a given target",
@@ -141,7 +143,8 @@ function renderCliHelp() {
     "  --theme <theme>                         named theme override",
     "",
     "Git diff options:",
-    "  --staged, --cached                      review staged changes",
+    "  --staged, --cached                      review only staged changes",
+    "  --unstaged                              review only unstaged changes",
     "  --exclude-untracked                     hide untracked files in working tree reviews",
     "  --branch [base]                         review the whole branch vs base (origin/HEAD by default)",
     "",
@@ -201,8 +204,9 @@ async function parseDiffCommand(tokens: string[], _argv: string[]): Promise<Pars
   const command = applyWatchOption(
     createCommand("diff", "review diffs or compare two concrete files"),
   )
-    .option("--staged", "show staged changes instead of the working tree")
+    .option("--staged", "review only staged changes (index vs HEAD)")
     .option("--cached", "alias for --staged")
+    .option("--unstaged", "review only unstaged changes (working tree vs index)")
     .option("--exclude-untracked", "exclude untracked files from working tree reviews")
     .addOption(
       new Option(
@@ -231,6 +235,12 @@ async function parseDiffCommand(tokens: string[], _argv: string[]): Promise<Pars
   await parseStandaloneCommand(command, commandTokens);
 
   const staged = Boolean(parsedOptions.staged) || Boolean(parsedOptions.cached);
+  const unstaged = Boolean(parsedOptions.unstaged);
+  if (staged && unstaged) {
+    throw new DunkUserError("`dunk diff --staged` cannot be combined with `--unstaged`.", [
+      "Run `dunk diff` with no scope flag to review staged and unstaged changes together.",
+    ]);
+  }
   // Scan the command tokens (already stripped of post-`--` pathspecs) so a
   // pathspec literally named e.g. `--no-wrap` does not flip a view option.
   const options = buildCommonOptions(parsedOptions, commandTokens);
@@ -238,10 +248,11 @@ async function parseDiffCommand(tokens: string[], _argv: string[]): Promise<Pars
 
   const branchReview = parseBranchReviewOption(parsedOptions.branch);
   if (branchReview) {
-    if (staged) {
-      throw new DunkUserError("`dunk diff --branch` cannot be combined with `--staged`.", [
-        "`--branch` already includes staged and unstaged work on top of the branch base.",
-      ]);
+    if (staged || unstaged) {
+      throw new DunkUserError(
+        "`dunk diff --branch` cannot be combined with `--staged` or `--unstaged`.",
+        ["`--branch` already includes staged and unstaged work on top of the branch base."],
+      );
     }
     if (parsedTargets.length > 0) {
       throw new DunkUserError("`dunk diff --branch` does not take positional revision arguments.", [
@@ -260,12 +271,24 @@ async function parseDiffCommand(tokens: string[], _argv: string[]): Promise<Pars
   }
 
   if (parsedTargets.length === 0) {
+    // Working-tree review scope is encoded purely in the comparison base:
+    //   --staged   -> index vs HEAD       (staged: true, no range)
+    //   --unstaged -> working tree vs index (plain `git diff`, no range)
+    //   default    -> working tree vs HEAD  (range "HEAD" => staged + unstaged combined)
     return {
       kind: "vcs",
       staged,
+      range: staged || unstaged ? undefined : WORKTREE_BASE_REF,
       pathspecs: normalizedPathspecs,
       options,
     };
+  }
+
+  if (unstaged) {
+    throw new DunkUserError("`dunk diff --unstaged` does not take positional revision arguments.", [
+      "`--unstaged` only scopes a working-tree review (working tree vs index).",
+      "Drop the revision, or use `dunk diff <range>` to compare against it.",
+    ]);
   }
 
   if (parsedTargets.length === 1) {

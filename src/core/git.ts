@@ -5,6 +5,15 @@ import type { VcsCommandInput, ShowCommandInput, StashShowCommandInput } from ".
 
 export type GitBackedInput = VcsCommandInput | ShowCommandInput | StashShowCommandInput;
 
+/**
+ * Comparison base for a default working-tree review.
+ *
+ * Diffing the working tree against HEAD surfaces staged and unstaged edits in
+ * one stream. `--staged` (index vs HEAD) and `--unstaged` (working tree vs
+ * index) carry no range and narrow the scope to one side.
+ */
+export const WORKTREE_BASE_REF = "HEAD";
+
 export interface RunGitTextOptions {
   input: GitBackedInput;
   args: string[];
@@ -156,20 +165,48 @@ export function buildGitStashShowArgs(input: StashShowCommandInput) {
   return withNormalizedDiffPrefixes(args);
 }
 
+/**
+ * The single classification of a `dunk diff` review's scope. Title, command
+ * label, and untracked-inclusion all derive from this so the default-vs-staged
+ * vs-unstaged mapping cannot drift between consumers.
+ */
+export type VcsScope = "staged" | "branch" | "unstaged" | "all" | "range";
+
+/** Classify a vcs input's review scope from its comparison base. */
+export function classifyVcsScope(input: VcsCommandInput): VcsScope {
+  if (input.staged) {
+    return "staged";
+  }
+  if (input.branchReview) {
+    return "branch";
+  }
+  if (!input.range) {
+    return "unstaged";
+  }
+  return input.range === WORKTREE_BASE_REF ? "all" : "range";
+}
+
+function formatVcsCommandLabel(input: VcsCommandInput) {
+  switch (classifyVcsScope(input)) {
+    case "staged":
+      return "dunk diff --staged";
+    case "branch":
+      return input.branchReview?.explicitBase
+        ? `dunk diff --branch=${input.branchReview.explicitBase}`
+        : "dunk diff --branch";
+    case "unstaged":
+      return "dunk diff --unstaged";
+    case "all":
+      return "dunk diff";
+    case "range":
+      return `dunk diff ${input.range}`;
+  }
+}
+
 export function formatGitCommandLabel(input: GitBackedInput) {
   switch (input.kind) {
     case "vcs":
-      if (input.staged) {
-        return "dunk diff --staged";
-      }
-
-      if (input.branchReview) {
-        return input.branchReview.explicitBase
-          ? `dunk diff --branch=${input.branchReview.explicitBase}`
-          : "dunk diff --branch";
-      }
-
-      return input.range ? `dunk diff ${input.range}` : "dunk diff";
+      return formatVcsCommandLabel(input);
     case "show":
       return input.ref ? `dunk show ${input.ref}` : "dunk show";
     case "stash-show":
@@ -371,7 +408,10 @@ function isWorkingTreeGitDiffInput(
     return false;
   }
 
-  if (!input.range) {
+  // No range is `--unstaged` (working tree vs index); the injected HEAD base is
+  // the default staged+unstaged review. Both keep the working tree on one side,
+  // so untracked files still belong in the stream.
+  if (!input.range || input.range === WORKTREE_BASE_REF) {
     return true;
   }
 
@@ -496,6 +536,64 @@ export function runGitUntrackedFileDiffText(
     gitExecutable,
     acceptedExitCodes: [0, 1],
   }).stdout;
+}
+
+// The empty-tree id is immutable per repo (it only depends on the object
+// format), so it is safe to cache. HEAD existence is intentionally *not*
+// cached: it is cheap relative to the diff/status spawns and a long-lived
+// session can switch to an orphan branch, making a cached "exists" stale.
+const gitEmptyTreeCache = new Map<string, string>();
+
+function gitWorktreeCacheKey(gitExecutable: string, cwd: string) {
+  return `${gitExecutable}\0${cwd}`;
+}
+
+/** Resolve git's empty tree object id (SHA-1 or SHA-256, per repo). */
+function resolveGitEmptyTreeId(input: GitBackedInput, cwd: string, gitExecutable: string) {
+  const key = gitWorktreeCacheKey(gitExecutable, cwd);
+  const cached = gitEmptyTreeCache.get(key);
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  // `--stdin` with the inherited empty stdin hashes a zero-entry tree.
+  const emptyTreeId = runGitText({
+    input,
+    args: ["hash-object", "-t", "tree", "--stdin"],
+    cwd,
+    gitExecutable,
+  }).trim();
+  gitEmptyTreeCache.set(key, emptyTreeId);
+  return emptyTreeId;
+}
+
+/**
+ * Resolve the effective comparison base for a working-tree review.
+ *
+ * The default `dunk diff` carries `range: "HEAD"` so it merges staged and
+ * unstaged work. A repo with no commits has an unborn HEAD where `git diff
+ * HEAD` would hard-fail, so fall back to git's empty tree — that still surfaces
+ * staged-but-uncommitted files as additions, preserving the default scope.
+ * `--staged`, `--unstaged`, and explicit ranges pass through untouched.
+ */
+export function resolveWorktreeBaseRef(
+  input: VcsCommandInput,
+  { cwd = process.cwd(), gitExecutable = "git" }: Omit<RunGitTextOptions, "input" | "args"> = {},
+) {
+  if (input.range !== WORKTREE_BASE_REF) {
+    return input.range;
+  }
+
+  const headExists =
+    runGitCommand({
+      input,
+      args: ["rev-parse", "--verify", "--quiet", "HEAD"],
+      acceptedExitCodes: [0, 1],
+      cwd,
+      gitExecutable,
+    }).exitCode === 0;
+
+  return headExists ? WORKTREE_BASE_REF : resolveGitEmptyTreeId(input, cwd, gitExecutable);
 }
 
 export function resolveGitRepoRoot(

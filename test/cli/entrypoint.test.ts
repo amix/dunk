@@ -163,6 +163,59 @@ describe("CLI entrypoint contracts", () => {
     expect(stdout).not.toContain("\u001b[?1049h");
   });
 
+  test("documents the staged + unstaged default and the --unstaged scope flag", () => {
+    const proc = Bun.spawnSync([bunExecutable, "run", "src/main.tsx"], {
+      cwd: process.cwd(),
+      stdin: "ignore",
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+
+    const stdout = Buffer.from(proc.stdout).toString("utf8");
+
+    expect(proc.exitCode).toBe(0);
+    expect(stdout).toContain("review staged + unstaged changes or compare against a target");
+    expect(stdout).toContain("dunk diff --unstaged");
+    expect(stdout).toContain(
+      "--unstaged                              review only unstaged changes",
+    );
+  });
+
+  test("rejects --staged combined with --unstaged without a Bun stack trace", () => {
+    const repoDir = mkdtempSync(join(tmpdir(), "hunk-scope-conflict-"));
+    git(repoDir, "init");
+
+    try {
+      const proc = Bun.spawnSync(
+        [
+          bunExecutable,
+          "run",
+          join(process.cwd(), "src/main.tsx"),
+          "diff",
+          "--staged",
+          "--unstaged",
+        ],
+        {
+          cwd: repoDir,
+          stdin: "ignore",
+          stdout: "pipe",
+          stderr: "pipe",
+          env: process.env,
+        },
+      );
+
+      const stdout = Buffer.from(proc.stdout).toString("utf8");
+      const stderr = Buffer.from(proc.stderr).toString("utf8");
+
+      expect(proc.exitCode).toBe(1);
+      expect(stdout).toBe("");
+      expect(stderr).toContain("`dunk diff --staged` cannot be combined with `--unstaged`.");
+      expect(stderr).not.toContain("Bun v");
+    } finally {
+      rmSync(repoDir, { recursive: true, force: true });
+    }
+  });
+
   test("prints a friendly git-repo error without a Bun stack trace", () => {
     const nonRepoDir = mkdtempSync(join(tmpdir(), "hunk-nonrepo-"));
     const sourceEntrypoint = join(process.cwd(), "src/main.tsx");
