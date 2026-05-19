@@ -8,6 +8,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Changed
+
+- `.dunk/comments.json` is now deleted when the last comment is resolved instead of leaving an empty `{ "comments": [] }` file. Reads already treat a missing file as "no comments", so an empty review leaves no artifact for a coding agent or human reviewer to reason about.
+
 ## [0.15.0] - 2026-05-19
 
 ### Changed
