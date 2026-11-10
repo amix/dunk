@@ -65,7 +65,7 @@
     "react": "^19.3.1",
     "simple-git-hooks": "^2.14.0",
     "tuistory": "^0.0.16",
-    "typescript": "^5.9.3"
+    "typescript": "^7.0.2"
   },
   "simple-git-hooks": {
     "pre-commit": "bunx lint-staged"
