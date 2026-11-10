@@ -49,13 +49,6 @@ bun run lint:fix
 
 `bun install` also installs a local `pre-commit` hook that runs `lint-staged`, so staged JS/TS files are auto-formatted and linted before commit.
 
-Build and verify the npm package:
-
-```bash
-bun run build:npm
-bun run check:pack
-```
-
 Benchmark scripts live in [`benchmarks/`](benchmarks/README.md).
 
 Common runs:

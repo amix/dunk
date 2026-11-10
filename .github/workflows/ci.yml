@@ -71,47 +71,6 @@ jobs:
       - name: TTY smoke tests
         run: bun run test:tty-smoke
 
-  pack-npm:
-    name: Verify npm package
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version: 1.3.10
-
-      - name: Set up Node
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
-        with:
-          node-version: 22
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Build npm runtime bundle
-        run: bun run build:npm
-
-      - name: Verify npm pack output
-        run: bun run check:pack
-
-      - name: Simulate global npm install
-        run: |
-          pkg_dir="$(mktemp -d)"
-          install_dir="$(mktemp -d)"
-          node_dir="$(dirname "$(command -v node)")"
-          npm pack --pack-destination "$pkg_dir" >/dev/null
-          pkg="$(find "$pkg_dir" -maxdepth 1 -name 'dunkdiff-*.tgz' | head -n1)"
-          npm install -g --prefix "$install_dir" "$pkg"
-          PATH="$install_dir/bin:$node_dir:/usr/bin:/bin"
-          if command -v bun >/dev/null 2>&1; then
-            echo "bun unexpectedly available on the sanitized PATH" >&2
-            exit 1
-          fi
-          dunk --help | grep 'Usage: dunk'
-
   prebuilt-npm:
     name: Verify prebuilt npm package (${{ matrix.os }})
     runs-on: ${{ matrix.os }}

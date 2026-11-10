@@ -174,12 +174,6 @@ selection_auto_copy = true
 
 `exclude_untracked` only affects `dunk diff` working-tree sessions. `--watch` on the command line overrides `watch` in config.
 
-## OpenTUI component
-
-`dunk` exports `DunkDiffView` from `dunkdiff/opentui` for embedding the diff renderer in your own OpenTUI app.
-
-See [docs/opentui-component.md](docs/opentui-component.md).
-
 ## Examples
 
 Runnable demo diffs live in [`examples/`](examples/README.md). Each example prints the exact command to run from the repo root.
