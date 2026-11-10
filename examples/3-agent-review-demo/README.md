@@ -1,6 +1,6 @@
 # 3-agent-review-demo
 
-A flagship dunk demo: a small command-palette refactor with inline agent rationale attached to the interesting hunks.
+A flagship dunk demo: a small command-palette refactor to practice the agent review loop on.
 
 ## Run
 
@@ -8,7 +8,7 @@ A flagship dunk demo: a small command-palette refactor with inline agent rationa
 dunk patch examples/3-agent-review-demo/change.patch
 ```
 
-The companion `agent-context.json` is preserved as historical reference — the current dunk drives review through `.dunk/comments.json` and the `dunk comments {list,show,resolve}` CLI instead.
+Press `a` on a hunk to leave a comment; an agent picks it up with `dunk comments list`.
 
 ## What to look for
 

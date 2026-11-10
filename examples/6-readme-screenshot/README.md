@@ -1,6 +1,6 @@
 # 6-readme-screenshot
 
-A screenshot-optimized demo for the main README: a multi-file UI refactor with inline agent rationale.
+A screenshot-optimized demo for the main README: a multi-file UI refactor.
 
 ## Run
 
@@ -9,8 +9,6 @@ dunk patch examples/6-readme-screenshot/change.patch \
   --mode split \
   --theme midnight
 ```
-
-The `agent-context.json` sidecar is kept as historical reference; current dunk drives review through `.dunk/comments.json` and `dunk comments {list,show,resolve}`.
 
 ## Screenshot setup
 

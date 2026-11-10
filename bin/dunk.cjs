@@ -132,7 +132,7 @@ const printablePackages = hostCandidates()
   .join(" or ");
 console.error(
   printablePackages.length > 0
-    ? `Failed to locate a matching prebuilt dunk binary. Try reinstalling dunk or manually installing ${printablePackages}.`
+    ? `Failed to locate a matching prebuilt dunk binary. Try reinstalling dunkdiff or manually installing ${printablePackages}.`
     : `Unsupported platform for prebuilt dunk binaries: ${os.platform()} ${os.arch()}`,
 );
 process.exit(1);
