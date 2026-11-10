@@ -31,6 +31,19 @@ function shellQuote(value: string) {
   return `'${value.replaceAll("'", "'\\''")}'`;
 }
 
+// util-linux `script` (Linux) and BSD `script` (macOS) take different flags for the same job.
+const scriptIsUtilLinux =
+  Bun.spawnSync(["script", "--version"], { stdin: "ignore", stdout: "pipe", stderr: "pipe" })
+    .exitCode === 0;
+
+/** Record `command` in a pseudo-terminal, flushing every write to `transcript`. */
+function recordInTerminal(command: string, transcript: string) {
+  const recorder = scriptIsUtilLinux
+    ? `script -q -f -e -c ${shellQuote(command)} ${shellQuote(transcript)}`
+    : `script -q -F -e ${shellQuote(transcript)} bash -c ${shellQuote(command)}`;
+  return `timeout 7 ${recorder}`;
+}
+
 function stripTerminalControl(text: string) {
   return text
     .replace(/^Script started.*?\n/s, "")
@@ -47,7 +60,6 @@ function createFixtureFiles(lines = 1) {
 
   const before = join(dir, "before.ts");
   const after = join(dir, "after.ts");
-  const agent = join(dir, "agent.json");
   const patch = join(dir, "input.patch");
   const coloredPatch = join(dir, "input-colored.patch");
 
@@ -70,21 +82,8 @@ function createFixtureFiles(lines = 1) {
       ).join("\n") + "\n",
     );
   }
-  writeFileSync(
-    agent,
-    JSON.stringify({
-      version: 1,
-      files: [
-        {
-          path: "after.ts",
-          annotations: [{ newRange: [2, 2], summary: "Adds bonus export." }],
-        },
-      ],
-    }),
-  );
-
   const patchProc = Bun.spawnSync(
-    ["git", "diff", "--no-index", "--no-color", "--", before, after],
+    ["git", "diff", "--no-index", "--no-color", "--", "before.ts", "after.ts"],
     {
       cwd: dir,
       stdin: "ignore",
@@ -93,7 +92,7 @@ function createFixtureFiles(lines = 1) {
     },
   );
   const coloredPatchProc = Bun.spawnSync(
-    ["git", "diff", "--no-index", "--color=always", "--", before, after],
+    ["git", "diff", "--no-index", "--color=always", "--", "before.ts", "after.ts"],
     {
       cwd: dir,
       stdin: "ignore",
@@ -117,7 +116,7 @@ function createFixtureFiles(lines = 1) {
   writeFileSync(patch, Buffer.from(patchProc.stdout).toString("utf8"));
   writeFileSync(coloredPatch, Buffer.from(coloredPatchProc.stdout).toString("utf8"));
 
-  return { dir, before, after, agent, patch, coloredPatch };
+  return { dir, before, after, patch, coloredPatch };
 }
 
 function createLongWrapFixtureFiles() {
@@ -162,7 +161,7 @@ async function runTtySmoke(options: {
   }
 
   const hunkCommand = `bun run ${shellQuote(sourceEntrypoint)} ${args.map(shellQuote).join(" ")}`;
-  const scriptCommand = `timeout 7 script -q -f -e -c ${shellQuote(hunkCommand)} ${shellQuote(transcript)}`;
+  const scriptCommand = recordInTerminal(hunkCommand, transcript);
   const inputCommand = options.inputCommand ?? `(sleep 2; printf q)`;
   const proc = Bun.spawnSync(["bash", "-lc", `${inputCommand} | ${scriptCommand}`], {
     cwd: fixture.dir,
@@ -193,7 +192,7 @@ async function runStdinPagerSmoke(options?: {
   const transcript = join(fixture.dir, "stdin-pager-transcript.txt");
   const subcommand = options?.command === "pager" ? "pager" : "patch -";
   const patchCommand = `cat ${shellQuote(fixture.coloredPatch)} | bun run ${shellQuote(sourceEntrypoint)} ${subcommand}`;
-  const scriptCommand = `timeout 7 script -q -f -e -c ${shellQuote(patchCommand)} ${shellQuote(transcript)}`;
+  const scriptCommand = recordInTerminal(patchCommand, transcript);
   const inputCommand =
     options?.inputCommand ?? `(sleep 2; printf ${shellQuote(options?.input ?? "q")})`;
   const proc = Bun.spawnSync(["bash", "-lc", `${inputCommand} | ${scriptCommand}`], {
