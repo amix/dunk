@@ -2,31 +2,25 @@ import { describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import {
-  resolveBundledDunkReviewSkillPath,
-  resolveGlobalConfigPath,
-  resolveDunkStatePath,
-} from "./paths";
+import { resolveBundledDunkReviewSkillPath, resolveGlobalConfigPath } from "./paths";
 
 function createTempRoot(prefix: string) {
   return mkdtempSync(join(tmpdir(), prefix));
 }
 
 describe("paths", () => {
-  test("resolves XDG config and state paths", () => {
+  test("resolves the XDG config path", () => {
     const env = { XDG_CONFIG_HOME: join("/tmp", "xdg-home") } as NodeJS.ProcessEnv;
 
     expect(resolveGlobalConfigPath(env)).toBe(join("/tmp", "xdg-home", "dunk", "config.toml"));
-    expect(resolveDunkStatePath(env)).toBe(join("/tmp", "xdg-home", "dunk", "state.json"));
   });
 
-  test("falls back to HOME for config and state paths", () => {
+  test("falls back to HOME for the config path", () => {
     const env = { HOME: join("/tmp", "home") } as NodeJS.ProcessEnv;
 
     expect(resolveGlobalConfigPath(env)).toBe(
       join("/tmp", "home", ".config", "dunk", "config.toml"),
     );
-    expect(resolveDunkStatePath(env)).toBe(join("/tmp", "home", ".config", "dunk", "state.json"));
   });
 
   test("locates the bundled dunk review skill from source", () => {

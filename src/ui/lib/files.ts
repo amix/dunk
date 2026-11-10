@@ -128,12 +128,6 @@ export function buildSidebarEntries(files: DiffFile[]): SidebarEntry[] {
   return entries;
 }
 
-/** Build the canonical file label used across headers and note cards. */
-export function fileLabel(file: DiffFile | undefined) {
-  const { filename, stateLabel } = fileLabelParts(file);
-  return stateLabel ? `${filename}${stateLabel}` : filename;
-}
-
 /** Split file label into filename and state label for styled rendering. */
 export function fileLabelParts(file: DiffFile | undefined): {
   filename: string;
