@@ -60,7 +60,7 @@
     "@types/bun": "latest",
     "@types/react": "^19.3.0",
     "lint-staged": "^16.4.0",
-    "oxfmt": "^0.41.0",
+    "oxfmt": "^0.78.0",
     "oxlint": "^1.93.0",
     "react": "^19.3.1",
     "simple-git-hooks": "^2.14.0",

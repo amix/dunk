@@ -1,3 +1,4 @@
 {
-  "ignorePatterns": []
+  "ignorePatterns": [],
+  "embeddedLanguageFormatting": "off"
 }
