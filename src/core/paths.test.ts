@@ -35,13 +35,13 @@ describe("paths", () => {
     expect(resolvedPath).toEndWith(join("skills", "dunk-review", "SKILL.md"));
   });
 
-  test("locates the bundled dunk review skill through a nested dunk package", () => {
-    const tempRoot = createTempRoot("hunk-skill-path-");
+  test("locates the bundled skill from a sibling dunkdiff package in flat node_modules", () => {
+    const tempRoot = createTempRoot("dunk-skill-path-");
 
     try {
-      const nestedPackageRoot = join(tempRoot, "node_modules", "dunk");
+      const nestedPackageRoot = join(tempRoot, "node_modules", "dunkdiff");
       const skillPath = join(nestedPackageRoot, "skills", "dunk-review", "SKILL.md");
-      const fakeBinary = join(tempRoot, "node_modules", "dunk-linux-x64", "bin", "dunk");
+      const fakeBinary = join(tempRoot, "node_modules", "dunkdiff-linux-x64", "bin", "dunk");
 
       mkdirSync(dirname(skillPath), { recursive: true });
       mkdirSync(dirname(fakeBinary), { recursive: true });

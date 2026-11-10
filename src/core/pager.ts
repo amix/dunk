@@ -21,11 +21,17 @@ export function looksLikePatchInput(text: string) {
   );
 }
 
-/** Choose a plain-text pager command while avoiding recursive `hunk pager` launches. */
+/**
+ * Set on the plain-text pager's environment so a `$PAGER` that routes back into
+ * `dunk pager` (directly, via a wrapper, or via a quoted path) can't recurse.
+ */
+const PLAIN_TEXT_PAGER_SENTINEL = "DUNK_IN_TEXT_PAGER";
+
+/** Choose a plain-text pager command while avoiding recursive `dunk pager` launches. */
 export function resolveTextPagerCommand(env: NodeJS.ProcessEnv = process.env) {
   const candidate = env.DUNK_TEXT_PAGER ?? env.PAGER;
 
-  if (!candidate || /(^|\s)hunk(\s|$)/.test(candidate)) {
+  if (!candidate || env[PLAIN_TEXT_PAGER_SENTINEL] || /(^|\s|\/)dunk(\s|$)/.test(candidate)) {
     return "less -R";
   }
 
@@ -56,7 +62,7 @@ export async function pagePlainText(
   const pager = deps.spawnImpl(pagerCommand, {
     shell: true,
     stdio: ["pipe", "inherit", "inherit"],
-    env,
+    env: { ...env, [PLAIN_TEXT_PAGER_SENTINEL]: "1" },
   });
 
   pager.stdin?.end(text);

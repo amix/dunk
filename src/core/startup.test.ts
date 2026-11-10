@@ -187,6 +187,48 @@ describe("startup planning", () => {
     ).rejects.toBeInstanceOf(DunkUserError);
   });
 
+  test("opens stdin-backed pager input unwatched when watch comes from config", async () => {
+    const seenInputs: CliInput[] = [];
+
+    const plan = await prepareStartupPlan(["bun", "dunk", "pager"], {
+      parseCliImpl: async () => ({ kind: "pager", options: {} }),
+      readStdinText: async () => "diff --git a/a.ts b/a.ts\n@@ -1 +1 @@\n-old\n+new\n",
+      looksLikePatchInputImpl: () => true,
+      stdoutIsTTY: true,
+      env: { TERM: "xterm-256color" },
+      resolveRuntimeCliInputImpl: (input) => input,
+      // Simulates `watch = true` in ~/.config/dunk/config.toml.
+      resolveConfiguredCliInputImpl: (input) =>
+        ({ input: { ...input, options: { ...input.options, watch: true } } }) as never,
+      loadAppBootstrapImpl: async (input) => {
+        seenInputs.push(input);
+        return createBootstrap(input);
+      },
+      usesPipedPatchInputImpl: () => false,
+    });
+
+    expect(plan.kind).toBe("app");
+    expect(seenInputs[0]?.options.watch).toBe(false);
+  });
+
+  test("keeps watch from config enabled for reloadable inputs", async () => {
+    const seenInputs: CliInput[] = [];
+
+    await prepareStartupPlan(["bun", "dunk", "patch", "changes.patch"], {
+      parseCliImpl: async () => ({ kind: "patch", file: "changes.patch", options: {} }),
+      resolveRuntimeCliInputImpl: (input) => input,
+      resolveConfiguredCliInputImpl: (input) =>
+        ({ input: { ...input, options: { ...input.options, watch: true } } }) as never,
+      loadAppBootstrapImpl: async (input) => {
+        seenInputs.push(input);
+        return createBootstrap(input);
+      },
+      usesPipedPatchInputImpl: () => false,
+    });
+
+    expect(seenInputs[0]?.options.watch).toBe(true);
+  });
+
   test("opens the controlling terminal for piped patch startup", async () => {
     const cliInput: CliInput = {
       kind: "patch",

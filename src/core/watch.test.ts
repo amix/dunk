@@ -143,4 +143,65 @@ describe("computeWatchSignature", () => {
 
     expect(changedSignature).not.toEqual(initialSignature);
   });
+
+  test.each([
+    ["working tree vs HEAD", createGitInput({ range: "HEAD" })],
+    ["unstaged", createGitInput()],
+    ["branch review", createGitInput({ branchReview: { explicitBase: "master" } })],
+  ])("tracks repeated edits to an already-dirty file (%s)", (_label, input) => {
+    const dir = createTempRepo("dunk-watch-repeat-edit-");
+
+    writeFileSync(join(dir, "tracked.ts"), "export const tracked = 1;\n");
+    git(dir, "add", "tracked.ts");
+    git(dir, "commit", "-m", "initial");
+    writeFileSync(join(dir, "tracked.ts"), "export const tracked = 2;\n");
+
+    const firstEditSignature = withCwd(dir, () => computeWatchSignature(input));
+    // Same size, so only content/mtime differ — the raw blob id stays all zeros.
+    writeFileSync(join(dir, "tracked.ts"), "export const tracked = 3;\n");
+    const secondEditSignature = withCwd(dir, () => computeWatchSignature(input));
+
+    expect(secondEditSignature).not.toEqual(firstEditSignature);
+  });
+
+  test("tracks staged edits and ignores working-tree-only edits in a staged review", () => {
+    const dir = createTempRepo("dunk-watch-staged-");
+
+    writeFileSync(join(dir, "tracked.ts"), "export const tracked = 1;\n");
+    git(dir, "add", "tracked.ts");
+    git(dir, "commit", "-m", "initial");
+    writeFileSync(join(dir, "tracked.ts"), "export const tracked = 2;\n");
+    git(dir, "add", "tracked.ts");
+
+    const input = createGitInput({ staged: true });
+    const initialSignature = withCwd(dir, () => computeWatchSignature(input));
+    writeFileSync(join(dir, "tracked.ts"), "export const tracked = 3;\n");
+    const worktreeOnlySignature = withCwd(dir, () => computeWatchSignature(input));
+    git(dir, "add", "tracked.ts");
+    const restagedSignature = withCwd(dir, () => computeWatchSignature(input));
+
+    expect(worktreeOnlySignature).toEqual(initialSignature);
+    expect(restagedSignature).not.toEqual(initialSignature);
+  });
+
+  test("tracks branch history changes when the working tree stays clean", () => {
+    const dir = createTempRepo("dunk-watch-branch-history-");
+
+    writeFileSync(join(dir, "base.ts"), "export const base = 1;\n");
+    git(dir, "add", "base.ts");
+    git(dir, "commit", "-m", "base");
+    git(dir, "checkout", "-b", "feature");
+    for (const name of ["one", "two"]) {
+      writeFileSync(join(dir, `${name}.ts`), `export const ${name} = 1;\n`);
+      git(dir, "add", `${name}.ts`);
+      git(dir, "commit", "-m", name);
+    }
+
+    const input = createGitInput({ branchReview: { explicitBase: "master" } });
+    const initialSignature = withCwd(dir, () => computeWatchSignature(input));
+    git(dir, "reset", "--hard", "HEAD~1");
+    const changedSignature = withCwd(dir, () => computeWatchSignature(input));
+
+    expect(changedSignature).not.toEqual(initialSignature);
+  });
 });
