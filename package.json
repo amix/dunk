@@ -49,23 +49,23 @@
     "bench:large-stream-profile": "bun run benchmarks/large-stream-profile.ts"
   },
   "dependencies": {
-    "@pierre/diffs": "^1.1.19",
-    "commander": "^14.0.3",
-    "diff": "^8.0.3",
-    "zod": "^4.3.6"
+    "@pierre/diffs": "^1.6.4",
+    "commander": "^15.1.0",
+    "diff": "^9.0.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@opentui/core": "^0.1.88",
-    "@opentui/react": "^0.1.88",
+    "@opentui/core": "0.1.101",
+    "@opentui/react": "0.1.101",
     "@types/bun": "latest",
-    "@types/react": "^19.2.14",
-    "lint-staged": "^16.4.0",
-    "oxfmt": "^0.41.0",
-    "oxlint": "^1.56.0",
-    "react": "^19.2.4",
-    "simple-git-hooks": "^2.13.1",
+    "@types/react": "^19.3.0",
+    "lint-staged": "^17.6.0",
+    "oxfmt": "^0.78.0",
+    "oxlint": "^1.93.0",
+    "react": "^19.3.1",
+    "simple-git-hooks": "^2.14.0",
     "tuistory": "^0.0.16",
-    "typescript": "^5.9.3"
+    "typescript": "^7.0.2"
   },
   "simple-git-hooks": {
     "pre-commit": "bunx lint-staged"

@@ -623,6 +623,8 @@ function createSkippedLargeMetadata(
     isPartial: true,
     additionLines: [],
     deletionLines: [],
+    additionCharacterCount: 0,
+    deletionCharacterCount: 0,
     cacheKey: `${filePath}:large-diff-skipped`,
   };
 }
@@ -687,7 +689,7 @@ function parseUntrackedPatchFile(patchText: string, filePath: string) {
   let parsedPatches: ReturnType<typeof parsePatchFiles>;
 
   try {
-    parsedPatches = parsePatchFiles(patchText, "patch", true);
+    parsedPatches = parsePatchFiles(patchText, { cacheKeyPrefix: "patch", throwOnError: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(
@@ -746,7 +748,10 @@ function normalizePatchChangeset(patchText: string, title: string, sourceLabel: 
 
   let parsedPatches: ReturnType<typeof parsePatchFiles>;
   try {
-    parsedPatches = parsePatchFiles(normalizedPatchText, "patch", true);
+    parsedPatches = parsePatchFiles(normalizedPatchText, {
+      cacheKeyPrefix: "patch",
+      throwOnError: true,
+    });
   } catch {
     return {
       id: `changeset:${Date.now()}`,

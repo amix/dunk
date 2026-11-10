@@ -67,7 +67,7 @@ async function main() {
     useMouse: shouldUseMouseForApp({
       hasControllingTerminal: Boolean(controllingTerminal),
     }),
-    useAlternateScreen: true,
+    screenMode: "alternate-screen",
     // Ctrl-C is routed through the job-control interrupt handler below so it
     // runs dunk's ordered shutdown instead of OpenTUI's hard exit.
     exitOnCtrlC: false,

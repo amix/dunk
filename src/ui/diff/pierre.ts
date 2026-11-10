@@ -152,13 +152,17 @@ function parseStyleValue(styleValue: unknown) {
   return styles;
 }
 
+// Pierre 1.6 retuned its red token slot (#ff6762 / #d52c36) to coral (#ff855e / #d5512f); keep
+// both so either palette stays clear of the diff-semantic hues.
 const RESERVED_PIERRE_TOKEN_COLORS = {
   dark: {
     "#ff6762": "keyword",
+    "#ff855e": "keyword",
     "#5ecc71": "string",
   },
   light: {
     "#d52c36": "keyword",
+    "#d5512f": "keyword",
     "#199f43": "string",
   },
 } as const;
