@@ -15,7 +15,7 @@ import type { Annotation, Changeset, DiffFile, DriftReason, LineRange } from "./
  * comments are user/agent-editable, so a crafted entry could otherwise make
  * `dunk comments show` print arbitrary local files.
  */
-export function resolveCommentPathWithinRepo(repoRoot: string, relPath: string): string | null {
+function resolveCommentPathWithinRepo(repoRoot: string, relPath: string): string | null {
   if (typeof relPath !== "string" || relPath.length === 0 || isAbsolute(relPath)) {
     return null;
   }
@@ -84,7 +84,7 @@ export interface CommentsFile {
 }
 
 /** Comment that anchored cleanly against the current diff. */
-export interface AnchoredComment extends PersistedComment {
+interface AnchoredComment extends PersistedComment {
   state: "anchored";
 }
 
@@ -420,7 +420,7 @@ function relocateAnchor(lines: string[], originalLine: number, anchor: string): 
 }
 
 /** Map an anchored comment to the inline annotation shape used by the renderer. */
-export function commentToAnnotation(comment: AnchoredComment): Annotation {
+function commentToAnnotation(comment: AnchoredComment): Annotation {
   return {
     id: `dunk-comment:${comment.id}`,
     summary: comment.body,

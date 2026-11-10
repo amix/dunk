@@ -21,7 +21,7 @@ export interface PlannedHunkBounds extends VerticalBounds {
 }
 
 /** Measure how many terminal rows one planned review row will occupy once rendered. */
-export function plannedReviewRowHeight(
+function plannedReviewRowHeight(
   row: PlannedReviewRow,
   { showHunkHeaders, layout, width }: PlannedReviewRowLayoutOptions,
 ) {

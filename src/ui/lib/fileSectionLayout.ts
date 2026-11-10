@@ -12,7 +12,7 @@ export interface FileSectionLayout {
 }
 
 /** Return the in-stream header height for one review section. */
-export function getInStreamFileHeaderHeight(sectionIndex: number) {
+function getInStreamFileHeaderHeight(sectionIndex: number) {
   return sectionIndex === 0 ? 0 : 1;
 }
 

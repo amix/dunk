@@ -31,7 +31,7 @@ interface RunGitCommandOptions extends RunGitTextOptions {
 }
 
 /** Append Git pathspec arguments only when the caller requested them. */
-export function appendGitPathspecs(args: string[], pathspecs?: string[]) {
+function appendGitPathspecs(args: string[], pathspecs?: string[]) {
   if (!pathspecs || pathspecs.length === 0) {
     return;
   }
