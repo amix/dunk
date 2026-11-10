@@ -14,6 +14,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - `dunk diff --branch --watch` now reloads when branch history changes under a clean working tree (commit, reset, rebase, checkout). A base ref that moves, e.g. after `git fetch`, still needs `r`.
 - `watch = true` in config no longer breaks `dunk pager` and `dunk patch -`. With `core.pager = "dunk pager"`, every `git diff` used to fail with "`--watch` requires a file- or Git-backed input"; stdin input now just opens unwatched. Passing `--watch` explicitly with stdin is still an error.
 - `dunk pager` no longer re-launches itself when `$PAGER` points back at `dunk pager` and the input isn't a diff; it falls back to `less -R`.
+- `dunk skill path` finds the bundled skill when the prebuilt binary runs straight from a flat `node_modules` install. It was looking for a `dunk` package instead of `dunkdiff`.
 
 ## [0.15.1] - 2026-05-19
 

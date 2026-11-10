@@ -60,8 +60,8 @@ export function resolveBundledDunkReviewSkillPath(searchRoots?: string[]) {
   const roots = searchRoots ?? [import.meta.dir, process.execPath];
   const relativeCandidates = [
     DUNK_REVIEW_SKILL_RELATIVE_PATH,
-    join("dunk", DUNK_REVIEW_SKILL_RELATIVE_PATH),
-    join("node_modules", "dunk", DUNK_REVIEW_SKILL_RELATIVE_PATH),
+    join("dunkdiff", DUNK_REVIEW_SKILL_RELATIVE_PATH),
+    join("node_modules", "dunkdiff", DUNK_REVIEW_SKILL_RELATIVE_PATH),
   ];
 
   for (const root of roots) {
