@@ -8,6 +8,7 @@ import {
   resolveGitRepoRoot,
   resolveWorktreeBaseRef,
   runGitText,
+  WORKTREE_BASE_REF,
 } from "./git";
 import type { CliInput } from "./types";
 
@@ -77,10 +78,18 @@ function parseUnhashedWorkingTreePaths(raw: string): string[] {
  * actually need the bytes.
  */
 function gitWorkingTreeWatchSignature(input: Extract<CliInput, { kind: "vcs" }>) {
+  // Branch reviews diff against a merge-base the loader resolves per load, and
+  // re-resolving it every poll costs up to ~9 git spawns. HEAD plus the tree vs
+  // HEAD pins the same diff for a fixed base, so commits, resets, rebases, and
+  // checkouts all register. A base ref that moves (`git fetch`) still needs `r`.
+  const comparedInput = input.branchReview
+    ? { ...input, branchReview: undefined, range: WORKTREE_BASE_REF }
+    : input;
   // Resolve the same base the loader uses (incl. the unborn-HEAD empty-tree
   // fallback) so the signature probe doesn't crash on `git diff --raw HEAD` in
   // a repo with no commits. Untracked detection keeps the original input.
-  const baseInput = { ...input, range: resolveWorktreeBaseRef(input) };
+  const baseInput = { ...comparedInput, range: resolveWorktreeBaseRef(comparedInput) };
+  const head = input.branchReview ? runGitText({ input, args: ["rev-parse", "HEAD"] }) : "";
   const raw = runGitText({ input, args: buildGitDiffRawArgs(baseInput) });
   const repoRoot = resolveGitRepoRoot(input);
   const trackedSignatures = parseUnhashedWorkingTreePaths(raw).map(
@@ -90,7 +99,7 @@ function gitWorkingTreeWatchSignature(input: Extract<CliInput, { kind: "vcs" }>)
     (filePath) => `untracked:${statSignature(join(repoRoot, filePath))}`,
   );
 
-  return [raw, ...trackedSignatures, ...untrackedSignatures].join("\n---\n");
+  return [head, raw, ...trackedSignatures, ...untrackedSignatures].join("\n---\n");
 }
 
 function gitVcsSignature(input: Extract<CliInput, { kind: "vcs" | "show" | "stash-show" }>) {

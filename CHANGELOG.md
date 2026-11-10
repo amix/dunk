@@ -11,6 +11,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Fixed
 
 - `--watch` now reloads when a tracked file that is already modified is edited again. Previously only the first edit to a file registered, so a coding agent's follow-up edits to the same file never showed up until you pressed `r`.
+- `dunk diff --branch --watch` now reloads when branch history changes under a clean working tree (commit, reset, rebase, checkout). A base ref that moves, e.g. after `git fetch`, still needs `r`.
 
 ## [0.15.1] - 2026-05-19
 

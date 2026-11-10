@@ -183,4 +183,25 @@ describe("computeWatchSignature", () => {
     expect(worktreeOnlySignature).toEqual(initialSignature);
     expect(restagedSignature).not.toEqual(initialSignature);
   });
+
+  test("tracks branch history changes when the working tree stays clean", () => {
+    const dir = createTempRepo("dunk-watch-branch-history-");
+
+    writeFileSync(join(dir, "base.ts"), "export const base = 1;\n");
+    git(dir, "add", "base.ts");
+    git(dir, "commit", "-m", "base");
+    git(dir, "checkout", "-b", "feature");
+    for (const name of ["one", "two"]) {
+      writeFileSync(join(dir, `${name}.ts`), `export const ${name} = 1;\n`);
+      git(dir, "add", `${name}.ts`);
+      git(dir, "commit", "-m", name);
+    }
+
+    const input = createGitInput({ branchReview: { explicitBase: "master" } });
+    const initialSignature = withCwd(dir, () => computeWatchSignature(input));
+    git(dir, "reset", "--hard", "HEAD~1");
+    const changedSignature = withCwd(dir, () => computeWatchSignature(input));
+
+    expect(changedSignature).not.toEqual(initialSignature);
+  });
 });
