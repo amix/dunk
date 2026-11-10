@@ -151,15 +151,19 @@ export async function prepareStartupPlan(
 
   const runtimeCliInput = resolveRuntimeCliInputImpl(parsedCliInput);
   const configured = resolveConfiguredCliInputImpl(runtimeCliInput);
-  const cliInput = configured.input;
+  let cliInput = configured.input;
 
   if (cliInput.options.watch && !watchMod.canReloadInput(cliInput)) {
-    throw new DunkUserError(
-      "`--watch` requires a file- or Git-backed input that dunk can reopen.",
-      [
-        "Use a patch file path instead of stdin, and avoid `--agent-context -` for watched sessions.",
-      ],
-    );
+    if (runtimeCliInput.options.watch) {
+      throw new DunkUserError(
+        "`--watch` requires a file- or Git-backed input that dunk can reopen.",
+        ["Use a patch file path instead of stdin."],
+      );
+    }
+
+    // `watch = true` from config is a default, not a demand: stdin patches and
+    // `dunk pager` (Git's core.pager) can't be reopened, so open them unwatched.
+    cliInput = { ...cliInput, options: { ...cliInput.options, watch: false } };
   }
 
   const bootstrap = await loadAppBootstrapImpl(cliInput);
