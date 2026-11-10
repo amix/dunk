@@ -84,10 +84,12 @@ describe("prebuilt package helpers", () => {
   });
 
   test("buildPlatformPackageManifest declares the native binary as a bin entry", () => {
+    const repository = { type: "git", url: "git+https://github.com/amix/dunk.git" };
     const manifest = buildPlatformPackageManifest(
       {
         version: "1.2.3",
         description: "Desktop diff viewer",
+        repository,
         license: "MIT",
       },
       getPlatformPackageSpecForHost("linux", "x64"),
@@ -95,6 +97,7 @@ describe("prebuilt package helpers", () => {
 
     expect(manifest.name).toBe("dunkdiff-linux-x64");
     expect(manifest.version).toBe("1.2.3");
+    expect(manifest.repository).toEqual(repository);
     expect(manifest.bin).toEqual({
       dunk: "./bin/dunk",
     });

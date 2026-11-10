@@ -124,4 +124,5 @@ Key rules:
 
 - The npm package name is `dunkdiff`.
 - The installed CLI command is `dunk`.
-- The automated prebuilt publish workflow lives in `.github/workflows/release-prebuilt-npm.yml`.
+- The automated prebuilt publish workflow lives in `.github/workflows/release-prebuilt-npm.yml`. It publishes through npm trusted publishing, so no npm token is stored in the repo. Each of the five packages (`dunkdiff` and the four `dunkdiff-<os>-<cpu>` packages) needs a trusted publisher on npmjs.com for `amix/dunk`, workflow `release-prebuilt-npm.yml`, environment `npm`, with `npm publish` allowed. A new trusted publisher expires unless it publishes within 2 days, so add it shortly before tagging.
+- To publish from your own machine instead, run `bun run publish:prebuilt:npm -- --tag latest` in a terminal so npm can prompt for 2FA.

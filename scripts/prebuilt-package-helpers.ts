@@ -129,11 +129,14 @@ export function binaryFilenameForSpec(spec: PlatformPackageSpec) {
  *
  * Declaring the native binary in `bin` makes npm restore execute bits on install,
  * including root-owned global installs where the JS wrapper cannot chmod later.
+ * `repository` must match the publishing repo, or npm rejects the provenance
+ * attestation that trusted publishing attaches.
  */
 export function buildPlatformPackageManifest(
   rootPackage: {
     version: string;
     description?: string;
+    repository?: unknown;
     license?: string;
   },
   spec: PlatformPackageSpec,
@@ -150,6 +153,7 @@ export function buildPlatformPackageManifest(
       dunk: `./bin/${binaryName}`,
     },
     files: ["bin", "LICENSE"],
+    repository: rootPackage.repository,
     license: rootPackage.license,
     publishConfig: {
       access: "public",

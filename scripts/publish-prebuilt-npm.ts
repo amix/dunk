@@ -70,9 +70,10 @@ function publishDirectory(directory: string, dryRun: boolean, npmTag: string) {
     args.push("--dry-run");
   }
 
+  // Inherit stdin so a local publish can answer npm's 2FA prompt; npm only offers it on a TTY.
   const proc = Bun.spawnSync(["npm", ...args], {
     cwd: directory,
-    stdin: "ignore",
+    stdin: "inherit",
     stdout: "inherit",
     stderr: "inherit",
     env: process.env,
