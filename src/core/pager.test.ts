@@ -101,12 +101,35 @@ describe("plain text pager fallback", () => {
     expect(resolveTextPagerCommand({})).toBe("less -R");
   });
 
-  test("prefers DUNK_TEXT_PAGER and avoids recursive hunk launches", () => {
+  test("prefers DUNK_TEXT_PAGER and avoids recursive dunk launches", () => {
     expect(resolveTextPagerCommand({ DUNK_TEXT_PAGER: "bat --paging=always" })).toBe(
       "bat --paging=always",
     );
-    expect(resolveTextPagerCommand({ DUNK_TEXT_PAGER: "hunk pager" })).toBe("less -R");
-    expect(resolveTextPagerCommand({ PAGER: "env FOO=1 hunk pager" })).toBe("less -R");
+    expect(resolveTextPagerCommand({ DUNK_TEXT_PAGER: "dunk pager" })).toBe("less -R");
+    expect(resolveTextPagerCommand({ PAGER: "env FOO=1 dunk pager" })).toBe("less -R");
+    expect(resolveTextPagerCommand({ PAGER: "/usr/local/bin/dunk pager" })).toBe("less -R");
+    expect(resolveTextPagerCommand({ PAGER: "dunkless" })).toBe("dunkless");
+  });
+
+  test("falls back to less when re-entered from dunk's own plain-text pager", async () => {
+    let childEnv: NodeJS.ProcessEnv | undefined;
+    const pager = new EventEmitter() as EventEmitter & { stdin: PassThrough };
+    pager.stdin = new PassThrough();
+
+    await pagePlainText(
+      "plain text",
+      { PAGER: "my-pager-wrapper" },
+      createPagerDeps({
+        spawnImpl(_command, options) {
+          childEnv = options.env;
+          queueMicrotask(() => pager.emit("close", 0));
+          return pager as never;
+        },
+      }),
+    );
+
+    // A wrapper that execs `dunk pager` would hand this env to the nested dunk.
+    expect(resolveTextPagerCommand(childEnv)).toBe("less -R");
   });
 
   test("writes directly to stdout when not attached to a terminal", async () => {
