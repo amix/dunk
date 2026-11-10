@@ -8,8 +8,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-11-10
+
 ### Changed
 
+- Updated the diff engine (`@pierre/diffs` 1.6) and terminal UI framework (OpenTUI 0.1.101). Syntax colors are remapped so headings and similar tokens still stay clear of the add/remove diff colors.
 - Removed the `dunkdiff/opentui` `DunkDiffView` component and its docs. They were documented, but the published `dunkdiff` package never shipped the export, so nothing could import it.
 
 ### Fixed
@@ -99,7 +102,8 @@ First `dunkdiff` release after the hard-fork rename. Bundles the agent-facing CL
 - `--agent-context` CLI flag and the `AgentContext` sidecar JSON model.
 - Dead `AgentCard` floating-popover surface — the inline `CommentCard` has been the canonical surface for a while.
 
-[Unreleased]: https://github.com/amix/dunk/compare/v0.15.1...HEAD
+[Unreleased]: https://github.com/amix/dunk/compare/v0.16.0...HEAD
+[0.16.0]: https://github.com/amix/dunk/compare/v0.15.1...v0.16.0
 [0.15.1]: https://github.com/amix/dunk/compare/v0.15.0...v0.15.1
 [0.15.0]: https://github.com/amix/dunk/compare/v0.14.0...v0.15.0
 [0.14.0]: https://github.com/amix/dunk/compare/v0.13.0...v0.14.0
