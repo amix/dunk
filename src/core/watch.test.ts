@@ -143,4 +143,44 @@ describe("computeWatchSignature", () => {
 
     expect(changedSignature).not.toEqual(initialSignature);
   });
+
+  test.each([
+    ["working tree vs HEAD", createGitInput({ range: "HEAD" })],
+    ["unstaged", createGitInput()],
+    ["branch review", createGitInput({ branchReview: { explicitBase: "master" } })],
+  ])("tracks repeated edits to an already-dirty file (%s)", (_label, input) => {
+    const dir = createTempRepo("dunk-watch-repeat-edit-");
+
+    writeFileSync(join(dir, "tracked.ts"), "export const tracked = 1;\n");
+    git(dir, "add", "tracked.ts");
+    git(dir, "commit", "-m", "initial");
+    writeFileSync(join(dir, "tracked.ts"), "export const tracked = 2;\n");
+
+    const firstEditSignature = withCwd(dir, () => computeWatchSignature(input));
+    // Same size, so only content/mtime differ — the raw blob id stays all zeros.
+    writeFileSync(join(dir, "tracked.ts"), "export const tracked = 3;\n");
+    const secondEditSignature = withCwd(dir, () => computeWatchSignature(input));
+
+    expect(secondEditSignature).not.toEqual(firstEditSignature);
+  });
+
+  test("tracks staged edits and ignores working-tree-only edits in a staged review", () => {
+    const dir = createTempRepo("dunk-watch-staged-");
+
+    writeFileSync(join(dir, "tracked.ts"), "export const tracked = 1;\n");
+    git(dir, "add", "tracked.ts");
+    git(dir, "commit", "-m", "initial");
+    writeFileSync(join(dir, "tracked.ts"), "export const tracked = 2;\n");
+    git(dir, "add", "tracked.ts");
+
+    const input = createGitInput({ staged: true });
+    const initialSignature = withCwd(dir, () => computeWatchSignature(input));
+    writeFileSync(join(dir, "tracked.ts"), "export const tracked = 3;\n");
+    const worktreeOnlySignature = withCwd(dir, () => computeWatchSignature(input));
+    git(dir, "add", "tracked.ts");
+    const restagedSignature = withCwd(dir, () => computeWatchSignature(input));
+
+    expect(worktreeOnlySignature).toEqual(initialSignature);
+    expect(restagedSignature).not.toEqual(initialSignature);
+  });
 });

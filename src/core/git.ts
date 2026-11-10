@@ -98,11 +98,11 @@ export function buildGitDiffNumstatArgs(input: VcsCommandInput) {
 }
 
 /**
- * Build a content-addressed change-detection query for tracked files.
+ * Build the cheap tracked-file change-detection query used by watch mode.
  *
- * Unlike `--numstat` (counts only), `--raw` emits per-file mode + blob hash
- * tuples, so any content edit changes the signature even if the per-file
- * additions/deletions stay the same shape.
+ * `--raw` emits per-file mode + blob id tuples. Index-side post-images carry
+ * real blob ids; working-tree post-images print as all zeros, so watch mode
+ * stat-signs those paths separately.
  */
 export function buildGitDiffRawArgs(input: VcsCommandInput) {
   const args = ["diff", "--no-ext-diff", "--find-renames", "--no-color", "--raw", "-z"];

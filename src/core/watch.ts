@@ -33,16 +33,45 @@ function statSignature(path: string) {
 }
 
 /**
+ * List the paths whose working-tree side `git diff --raw -z` could not hash.
+ *
+ * Raw output reports a working-tree post-image as an all-zero blob id ("work
+ * tree out of sync with the index"), so a second edit to an already-dirty file
+ * leaves the raw line unchanged. Those paths need a stat signature instead.
+ * Rename and copy records carry a source and a destination path; the
+ * destination is the file on disk.
+ */
+function parseUnhashedWorkingTreePaths(raw: string): string[] {
+  const fields = raw.split("\0");
+  const paths: string[] = [];
+
+  for (let index = 0; index < fields.length; index += 1) {
+    const header = fields[index];
+    if (!header?.startsWith(":")) {
+      continue;
+    }
+
+    const [, , , dstBlob = "", status = ""] = header.slice(1).split(" ");
+    const pathCount = status.startsWith("R") || status.startsWith("C") ? 2 : 1;
+    const path = fields[index + pathCount];
+    index += pathCount;
+
+    if (path && /^0+$/.test(dstBlob)) {
+      paths.push(path);
+    }
+  }
+
+  return paths;
+}
+
+/**
  * Build a cheap change-detection signature for VCS inputs.
  *
- * Polling should scale with filesystem activity, not patch size. Use cheap
- * commands that only report whether something changed: `git diff --raw` for
- * tracked work and `git rev-parse` for ref-backed reviews.
- *
- * `--raw` rather than `--numstat`: numstat reports only counts, so two
- * same-shape edits (foo -> bar then bar -> baz, each "1\t1\tpath") would share a
- * signature and watch mode would silently keep stale output. `--raw` includes
- * post-image blob hashes that change on any content edit.
+ * Polling should scale with filesystem activity, not patch size. `git diff
+ * --raw` covers tracked work: index-side post-images come with real blob ids,
+ * and working-tree post-images (which raw prints as all zeros) get a stat
+ * signature so repeated edits to an already-dirty file still register.
+ * Untracked files are stat-signed the same way.
  *
  * The full patch still runs once during the reload, which is when we
  * actually need the bytes.
@@ -54,11 +83,14 @@ function gitWorkingTreeWatchSignature(input: Extract<CliInput, { kind: "vcs" }>)
   const baseInput = { ...input, range: resolveWorktreeBaseRef(input) };
   const raw = runGitText({ input, args: buildGitDiffRawArgs(baseInput) });
   const repoRoot = resolveGitRepoRoot(input);
+  const trackedSignatures = parseUnhashedWorkingTreePaths(raw).map(
+    (filePath) => `tracked:${statSignature(join(repoRoot, filePath))}`,
+  );
   const untrackedSignatures = listGitUntrackedFiles(input, { repoRoot }).map(
     (filePath) => `untracked:${statSignature(join(repoRoot, filePath))}`,
   );
 
-  return [raw, ...untrackedSignatures].join("\n---\n");
+  return [raw, ...trackedSignatures, ...untrackedSignatures].join("\n---\n");
 }
 
 function gitVcsSignature(input: Extract<CliInput, { kind: "vcs" | "show" | "stash-show" }>) {
