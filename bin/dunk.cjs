@@ -90,14 +90,6 @@ function findInstalledBinary(startDir) {
   }
 }
 
-function bundledBunRuntime() {
-  try {
-    return require.resolve("bun/bin/bun.exe");
-  } catch {
-    return null;
-  }
-}
-
 const forwardedArgs = process.argv.slice(2);
 if (forwardedArgs.length === 2 && forwardedArgs[0] === "skill" && forwardedArgs[1] === "path") {
   const skillPath = bundledSkillPath();
@@ -119,12 +111,6 @@ const scriptDir = path.dirname(fs.realpathSync(__filename));
 const prebuiltBinary = findInstalledBinary(scriptDir);
 if (prebuiltBinary) {
   run(prebuiltBinary, forwardedArgs);
-}
-
-const bunBinary = bundledBunRuntime();
-if (bunBinary) {
-  const entrypoint = path.join(__dirname, "..", "dist", "npm", "main.js");
-  run(bunBinary, [entrypoint, ...forwardedArgs]);
 }
 
 const printablePackages = hostCandidates()

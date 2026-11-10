@@ -1,7 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@latest/schema.json",
   "entry": [
-    "src/opentui/index.ts",
     "scripts/*.ts",
     "benchmarks/*.ts",
     "src/**/*.test.{ts,tsx}",
