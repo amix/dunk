@@ -1,9 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-  collectIntersectingFileSectionIds,
-  findFileSectionAtOffset,
-  type FileSectionLayout,
-} from "./fileSectionLayout";
+import { collectIntersectingFileSectionIds, type FileSectionLayout } from "./fileSectionLayout";
 
 const layouts: FileSectionLayout[] = [
   {
@@ -36,16 +32,6 @@ const layouts: FileSectionLayout[] = [
 ];
 
 describe("fileSectionLayout helpers", () => {
-  test("findFileSectionAtOffset returns the containing section and clamps past the ends", () => {
-    expect(findFileSectionAtOffset([], 3)).toBeNull();
-    expect(findFileSectionAtOffset(layouts, -5)?.fileId).toBe("alpha");
-    expect(findFileSectionAtOffset(layouts, 4)?.fileId).toBe("alpha");
-    expect(findFileSectionAtOffset(layouts, 5)?.fileId).toBe("beta");
-    expect(findFileSectionAtOffset(layouts, 10)?.fileId).toBe("beta");
-    expect(findFileSectionAtOffset(layouts, 11)?.fileId).toBe("gamma");
-    expect(findFileSectionAtOffset(layouts, 99)?.fileId).toBe("gamma");
-  });
-
   test("collectIntersectingFileSectionIds returns every file whose section overlaps the range", () => {
     expect(Array.from(collectIntersectingFileSectionIds(layouts, 6, 10))).toEqual(["beta"]);
     expect(Array.from(collectIntersectingFileSectionIds(layouts, 4, 12))).toEqual([

@@ -4,7 +4,7 @@ import { dirname, join, resolve } from "node:path";
 const DUNK_REVIEW_SKILL_RELATIVE_PATH = join("skills", "dunk-review", "SKILL.md");
 
 /** Resolve the base config directory dunk should use for user-scoped files. */
-export function resolveUserConfigDir(env: NodeJS.ProcessEnv = process.env) {
+function resolveUserConfigDir(env: NodeJS.ProcessEnv = process.env) {
   if (env.XDG_CONFIG_HOME) {
     return env.XDG_CONFIG_HOME;
   }
@@ -20,12 +20,6 @@ export function resolveUserConfigDir(env: NodeJS.ProcessEnv = process.env) {
 export function resolveGlobalConfigPath(env: NodeJS.ProcessEnv = process.env) {
   const configDir = resolveUserConfigDir(env);
   return configDir ? join(configDir, "dunk", "config.toml") : undefined;
-}
-
-/** Resolve the persisted dunk state file path from the current environment. */
-export function resolveDunkStatePath(env: NodeJS.ProcessEnv = process.env) {
-  const configDir = resolveUserConfigDir(env);
-  return configDir ? join(configDir, "dunk", "state.json") : undefined;
 }
 
 /** Search one path and its parents for one relative child path. */

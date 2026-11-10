@@ -203,13 +203,3 @@ export function measureDiffSectionGeometry(
 
   return geometry;
 }
-
-/** Estimate the number of diff-body rows for one file section in the windowed path. */
-export function estimateDiffSectionBodyRows(
-  file: DiffFile,
-  layout: Exclude<LayoutMode, "auto">,
-  showHunkHeaders: boolean,
-  theme: AppTheme,
-) {
-  return measureDiffSectionGeometry(file, layout, showHunkHeaders, theme).bodyHeight;
-}

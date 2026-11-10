@@ -1,5 +1,18 @@
 {
   "$schema": "https://unpkg.com/knip@latest/schema.json",
-  "project": ["src/**/*.{ts,tsx}", "scripts/**/*.ts", "test/**/*.{ts,tsx}", "bin/**/*.cjs"],
-  "ignoreDependencies": ["bun"]
+  "entry": [
+    "src/opentui/index.ts",
+    "scripts/*.ts",
+    "benchmarks/*.ts",
+    "src/**/*.test.{ts,tsx}",
+    "scripts/**/*.test.ts",
+    "test/**/*.test.{ts,tsx}"
+  ],
+  "project": [
+    "src/**/*.{ts,tsx}",
+    "scripts/**/*.ts",
+    "benchmarks/**/*.ts",
+    "test/**/*.{ts,tsx}",
+    "bin/**/*.cjs"
+  ]
 }

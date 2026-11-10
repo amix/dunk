@@ -5,7 +5,7 @@ description: Read user-authored review comments via `dunk comments` (or `.dunk/c
 
 # Dunk review
 
-Dunk is an interactive terminal diff viewer. The TUI is for the user — never run `dunk diff`, `dunk show`, or other interactive commands directly. Review comments live on disk in `.dunk/comments.json` (one committed file per repo). Drive them through the `dunk comments` CLI; only fall back to editing the JSON by hand when the binary isn't available.
+Dunk is an interactive terminal diff viewer. The TUI is for the user — never run `dunk diff`, `dunk show`, or other interactive commands directly. Review comments live on disk in `.dunk/comments.json` (one local, gitignored file per repo; it's deleted when the last comment is resolved). Drive them through the `dunk comments` CLI; only fall back to editing the JSON by hand when the binary isn't available.
 
 If `dunk comments list` reports "No pending comments." (or `.dunk/comments.json` is missing/empty), the user has nothing pending; ask before doing speculative work.
 
@@ -31,7 +31,7 @@ dunk comments show <id> [--json]         # print one comment plus the hunk lines
 dunk comments resolve <id> [<id>...]     # atomically remove one or more entries
 ```
 
-- `list` prints `#<id>  <file>:<start-end>` followed by the indented body. Drifted entries show `drifted: missing-file | out-of-range | anchor-mismatch` on the header line.
+- `list` prints `#<id>  <file>:<start-end>` followed by the indented body. Drifted entries show `drifted: missing-file | out-of-range | anchor-mismatch` on the header line. (The TUI can also show a comment as drifted with `not-in-hunk` when its line is no longer part of the current diff; `dunk comments` doesn't, because it reads files, not a diff.)
 - `show` defaults to 10 lines of surrounding post-image context; pass `--context <N>` to widen or narrow it. In-range lines are prefixed `>`, surrounding lines with a leading space.
 - `--json` on `list` returns `{ schema, comments: [{ id, file, line, range, anchor, body, state, reason? }] }`. `--json` on `show` returns a single comment object plus a `context` field: `{ window: [start, end], total, lines: [{ number, text, inRange }] }` — `lines` are byte-stable against the file on disk.
 - `resolve` is all-or-nothing: if any id is missing it errors and writes nothing. Pass several ids to remove them in one atomic write.

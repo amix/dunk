@@ -1,6 +1,6 @@
 import type { LayoutMode } from "../../core/types";
 
-export type ResponsiveViewport = "full" | "medium" | "tight";
+type ResponsiveViewport = "full" | "medium" | "tight";
 
 const SPLIT_VIEWPORT_MIN_WIDTH = 160;
 const FULL_VIEWPORT_MIN_WIDTH = 220;

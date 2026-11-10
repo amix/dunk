@@ -50,13 +50,13 @@ export interface CommonOptions {
   wrapLines?: boolean;
   hunkHeaders?: boolean;
   selectionAutoCopy?: boolean;
-  /** Default base ref/revset for `dunk diff --branch` when no explicit base is passed. */
+  /** Default base ref for `dunk diff --branch` when no explicit base is passed. */
   branchReviewBase?: string;
 }
 
 /** Branch-review request attached to a `dunk diff` invocation. */
 export interface BranchReviewRequest {
-  /** Base ref or revset the user typed on the CLI, if any. */
+  /** Base ref the user typed on the CLI, if any. */
   explicitBase?: string;
 }
 

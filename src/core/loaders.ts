@@ -20,6 +20,7 @@ import { DEFAULT_VIEW_PREFERENCES, findRepoRoot } from "./config";
 import { resolveGitBranchBase } from "./branchReview";
 import type { DriftedCommentSummary } from "./types";
 import { normalizeDiffMetadataPaths, normalizeDiffPath } from "./diffPaths";
+import { stripTerminalControl } from "./pager";
 import {
   buildGitDiffArgs,
   buildGitDiffNumstatArgs,
@@ -61,15 +62,6 @@ function basename(path: string) {
 /** Remove git-style a/ and b/ prefixes before matching diff paths. */
 function stripPrefixes(path: string) {
   return path.replace(/^[ab]\//, "");
-}
-
-/** Remove terminal escape sequences so Git-colored pager input still parses as plain patch text. */
-function stripTerminalControl(text: string) {
-  return text
-    .replace(/\x1bP[\s\S]*?\x1b\\/g, "")
-    .replace(/\x1b\][\s\S]*?(?:\x07|\x1b\\)/g, "")
-    .replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, "")
-    .replace(/\x1b[@-_]/g, "");
 }
 
 /**
@@ -253,6 +245,8 @@ function buildDiffFile(
   };
 }
 
+type GitHeaderRewriteMode = "add" | "strip";
+
 /**
  * Re-add Git's `a/` and `b/` path prefixes to patch headers when stdin came from a
  * `git diff` that was emitted with `diff.noprefix=true` (or otherwise stripped prefixes).
@@ -260,7 +254,7 @@ function buildDiffFile(
  * `@pierre/diffs` requires `a/` and `b/` on `diff --git`, `---`, and `+++` lines and throws
  * a `TypeError` on the first noprefix header, which leaves the review with zero files. The
  * git-backed paths force `diff.noprefix=false` when they invoke git internally; this helper
- * covers the patch path (`hunk patch`, `hunk pager`) where the input was produced by an
+ * covers the patch path (`dunk patch`, `dunk pager`) where the input was produced by an
  * outer `git` process we do not control.
  *
  * The rewrite is scoped to header lines only: once the `+++ ` line has been emitted for a
@@ -268,8 +262,6 @@ function buildDiffFile(
  * SQL/Lua/Haskell comment, which becomes `--- foo` on disk) is not mistaken for a file
  * header inside the hunk body.
  */
-type GitHeaderRewriteMode = "add" | "strip";
-
 function normalizeGitPatchPrefixes(patchText: string) {
   if (!patchText.includes("diff --git ")) {
     return patchText;
@@ -445,15 +437,9 @@ function shouldStripMnemonicPair(oldPath: string, newPath: string, blockLines: s
     return true;
   }
 
-  if (rename.oldPath === oldPath && rename.newPath === newPath) {
-    return false;
-  }
-
-  if (rename.oldPath === oldMnemonic.path && rename.newPath === newMnemonic.path) {
-    return true;
-  }
-
-  return true;
+  // Rename metadata that repeats the prefixed paths verbatim means those prefixes are real path
+  // segments (a noprefix rename), not mnemonic side markers.
+  return !(rename.oldPath === oldPath && rename.newPath === newPath);
 }
 
 /** Convert already-prefixed or mnemonic-prefixed path pairs into Pierre's canonical shape. */

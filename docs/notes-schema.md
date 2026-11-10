@@ -1,27 +1,25 @@
-# `.dunk/comments.json` (draft)
+# `.dunk/comments.json`
 
-Status: **draft**, not yet implemented.
-
-A single JSON file holds every comment for the repo. It lives at
-`.dunk/comments.json` and is meant to be **committed**, so notes ride
-through normal git workflows.
+A single JSON file holds every review comment for the repo. It lives at
+`.dunk/comments.json`, is local to the checkout (`.dunk/` is gitignored), and
+is deleted when the last comment is resolved, so an empty review leaves no
+file behind.
 
 ## Why one file
 
 - One file is the simplest thing that can possibly work.
-- Across branches: the file just is what it is on each branch. If a comment
-  references a file that no longer exists or has changed, drift detection
-  pins it to the top of the diff. No special "current branch" logic.
-- Merge conflicts are easier to read than reconciling many tiny files when
-  two authors edit the same comments.
+- Across branches: if a comment references a file that no longer exists or
+  has changed, drift detection pins it to the top of the diff. No special
+  "current branch" logic.
+- The TUI and the `dunk comments` CLI read and write the same file, so a
+  human reviewer and a coding agent can ping-pong on one review.
 
 ## Layout
 
 ```
 .dunk/
-  comments.json     # committed, the source of truth for review comments
-  config.toml       # gitignored, local view config (carried over from upstream)
-  latest.json       # gitignored, local cache
+  comments.json     # review comments (absent when there are none)
+  config.toml       # optional repo-local view config
 ```
 
 ## Schema
@@ -73,31 +71,30 @@ through normal git workflows.
 
 For each comment on load:
 
-1. If `file` is missing → **drifted** (render in the drifted stack at the top of the diff, dark background).
-2. If `line` is out of range → **drifted**.
+1. If `file` is missing or unreadable → **drifted** (`missing-file`), rendered in the drifted stack at the top of the diff.
+2. If `line` is out of range → **drifted** (`out-of-range`).
 3. Recompute the anchor at `line` with the same normalization. If it matches `anchor` → **anchored**, render at `line`.
-4. Otherwise → **drifted**. No fuzzy fallback in v1.
+4. Otherwise look for a unique line within ±10 rows whose context hashes to `anchor`. If exactly one matches, re-pin the comment there and shift `range` by the same delta.
+5. Otherwise → **drifted** (`anchor-mismatch`).
 
-Drifted comments are dismissed with the same shortcuts as anchored ones:
-`d` removes one, `D` removes all in the focused stack. Cleaning up stale
-review chatter after a refactor is just "focus the drifted stack, hit `D`."
+The TUI adds one more case: an anchored comment whose line isn't inside any
+hunk of the current diff is shown as drifted with reason `not-in-hunk`.
+
+`d` removes the focused drifted comment and `D` clears every drifted comment
+(after a confirm); anchored comments are never touched by `D`.
 
 ## Atomic write
 
-Write to `.dunk/.comments.json.tmp`, then `rename(2)` over
-`.dunk/comments.json`. Same filesystem, so the rename is atomic and
-readers never see a half-written file.
-
-## Conflicts
-
-A single committed file means concurrent edits can conflict. That's the
-trade for simplicity. Resolve like any other JSON merge — the array is
-ordered by `id` so diffs stay localized.
+Write to a unique per-writer temp file in `.dunk/`
+(`.comments.json.<pid>.<time>.<random>.tmp`), then `rename(2)` it over
+`.dunk/comments.json`. Same filesystem, so the rename is atomic and readers
+never see a half-written file. Writers re-read and compare a content hash
+before renaming, retrying a few times if another writer landed first.
 
 ## Things explicitly _not_ in v1
 
 - Threaded replies. Body is a flat string.
 - Resolved/unresolved state. Delete to "resolve".
 - Line-range or column-precise anchors.
-- Fuzzy drift recovery.
+- Fuzzy drift recovery beyond the bounded ±10-line search.
 - Cross-file / cross-comment links.

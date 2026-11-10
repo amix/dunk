@@ -1,8 +1,8 @@
 import type { DiffFile, LayoutMode } from "../../core/types";
 
-export const DIFF_CODE_TAB_WIDTH = 2;
-export const DIFF_RAIL_PREFIX_WIDTH = 1;
-export const DIFF_SPLIT_SEPARATOR_WIDTH = 1;
+const DIFF_CODE_TAB_WIDTH = 2;
+const DIFF_RAIL_PREFIX_WIDTH = 1;
+const DIFF_SPLIT_SEPARATOR_WIDTH = 1;
 
 /** Expand tabs the same way the diff renderer does before measuring visible columns. */
 export function expandDiffTabs(text: string) {
@@ -10,7 +10,7 @@ export function expandDiffTabs(text: string) {
 }
 
 /** Measure one rendered code line without allocating an expanded copy. */
-export function measureRenderedCodeLineWidth(line: string | undefined) {
+function measureRenderedCodeLineWidth(line: string | undefined) {
   if (!line) {
     return 0;
   }

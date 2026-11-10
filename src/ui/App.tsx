@@ -678,7 +678,7 @@ export function App({
     void runEditorLaunch(plan, { cwd: target.repoRoot })
       .then(() => {
         // Detached GUI editors return immediately — chaining a reload then would
-        // race the user's typing. Watch mode picks those changes up via fs.watch.
+        // race the user's typing. Watch mode's poll picks those changes up instead.
         if (plan.needsTty) {
           triggerRefreshCurrentInput();
         }
@@ -793,7 +793,7 @@ export function App({
   );
 
   // Hold the current refresher in a ref so view-only state changes (theme,
-  // layout, comment toggle, …) don't tear down and re-arm the watch poll. A
+  // layout, wrap, …) don't tear down and re-arm the watch poll. A
   // restart resets `lastSignature`, which would silently swallow any source
   // change that landed during the toggle.
   const refreshCurrentInputRef = useRef(refreshCurrentInput);

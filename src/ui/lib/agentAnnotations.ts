@@ -1,7 +1,6 @@
 import type { Hunk } from "@pierre/diffs";
 import type { Annotation, DiffFile } from "../../core/types";
 import { hunkLineRange } from "../../core/hunkRange";
-import { fileLabel } from "./files";
 
 export interface VisibleAgentNote {
   id: string;
@@ -33,15 +32,6 @@ function annotationOverlapsHunk(annotation: Annotation, hunk: Hunk) {
   return false;
 }
 
-/** Return the annotations relevant to the currently selected hunk. */
-export function getSelectedAnnotations(file: DiffFile | undefined, hunk: Hunk | undefined) {
-  if (!file || !hunk) {
-    return [];
-  }
-
-  return file.annotations.filter((annotation) => annotationOverlapsHunk(annotation, hunk));
-}
-
 /** Mark which hunks in a file have any inline annotations attached. */
 export function getAnnotatedHunkIndices(file: DiffFile | undefined) {
   const annotated = new Set<number>();
@@ -56,11 +46,6 @@ export function getAnnotatedHunkIndices(file: DiffFile | undefined) {
   });
 
   return annotated;
-}
-
-/** Format an inclusive line range for note labels. */
-function formatRange(range: [number, number]) {
-  return range[0] === range[1] ? `${range[0]}` : `${range[0]}-${range[1]}`;
 }
 
 /** Resolve the primary visual anchor for an annotation. */
@@ -80,35 +65,4 @@ export function annotationAnchor(annotation: Annotation): AnnotationAnchor | nul
   }
 
   return null;
-}
-
-/** Build a concise side-aware range label for inline note rows. */
-export function annotationRangeLabel(annotation: Annotation) {
-  const locationParts: string[] = [];
-
-  if (annotation.oldRange) {
-    locationParts.push(`◀ old ${formatRange(annotation.oldRange)}`);
-  }
-
-  if (annotation.newRange) {
-    locationParts.push(`▶ new ${formatRange(annotation.newRange)}`);
-  }
-
-  return locationParts.join(" · ") || "hunk";
-}
-
-/** Build the compact file-and-lines label shown on a framed agent note card. */
-export function annotationLocationLabel(file: DiffFile, annotation: Annotation) {
-  const locationParts: string[] = [];
-
-  if (annotation.oldRange) {
-    locationParts.push(`-${formatRange(annotation.oldRange)}`);
-  }
-
-  if (annotation.newRange) {
-    locationParts.push(`+${formatRange(annotation.newRange)}`);
-  }
-
-  const location = locationParts.length > 0 ? ` ${locationParts.join(" ")}` : "";
-  return `${fileLabel(file)}${location}`;
 }

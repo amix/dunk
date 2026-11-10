@@ -29,6 +29,7 @@ Validate a typical change:
 ```bash
 bun run typecheck
 bun test
+bun run test:integration
 bun run test:tty-smoke
 ```
 
@@ -85,7 +86,8 @@ bun run publish:prebuilt:npm -- --dry-run
 
 ## Validation expectations
 
-- Rendering changes: run `bun run typecheck`, `bun test`, `bun run test:tty-smoke`, and do one real TTY smoke run on an actual diff.
+- Rendering changes: run `bun run typecheck`, `bun test`, `bun run test:integration`, `bun run test:tty-smoke`, and do one real TTY smoke run on an actual diff.
+- Interaction, layout, scrolling, or navigation changes: add or update PTY coverage in `test/pty/` and run `bun run test:integration`.
 - CLI, config, or pager changes: verify the relevant source invocation still works, such as `diff`, `show`, `patch`, or `pager`.
 - Packaging or release changes: run the pack and prebuilt checks locally before opening a PR.
 
@@ -127,6 +129,6 @@ Key rules:
 
 ## Release notes
 
-- The npm package name is `dunk`.
+- The npm package name is `dunkdiff`.
 - The installed CLI command is `dunk`.
 - The automated prebuilt publish workflow lives in `.github/workflows/release-prebuilt-npm.yml`.

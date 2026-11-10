@@ -19,6 +19,5 @@ Each folder tells a small review story and includes the exact command to run fro
 ## Notes
 
 - The patch-based examples include checked-in `change.patch` files, so you can open them without creating a temporary repo.
-- The agent demos include legacy `agent-context.json` sidecars from the pre-fork era; current dunk drives review through `.dunk/comments.json` and `dunk comments {list,show,resolve}`.
 - The pager tour is intentionally taller than a typical terminal viewport so you can try `↑`, `↓`, `PageUp`, `PageDown`, `Home`, `End`, and `[` / `]` right away.
 - The OpenTUI component example folder also includes `from-patch.tsx` if you want the same demo driven by raw unified diff text instead of `before` / `after` contents.

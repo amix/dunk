@@ -12,7 +12,7 @@ export interface FileSectionLayout {
 }
 
 /** Return the in-stream header height for one review section. */
-export function getInStreamFileHeaderHeight(sectionIndex: number) {
+function getInStreamFileHeaderHeight(sectionIndex: number) {
   return sectionIndex === 0 ? 0 : 1;
 }
 
@@ -58,42 +58,6 @@ export function buildFileSectionLayouts(
   });
 
   return layouts;
-}
-
-/** Find the file section covering one absolute review-stream row. */
-export function findFileSectionAtOffset(fileSectionLayouts: FileSectionLayout[], offset: number) {
-  if (fileSectionLayouts.length === 0) {
-    return null;
-  }
-
-  const firstSection = fileSectionLayouts[0]!;
-  const lastSection = fileSectionLayouts[fileSectionLayouts.length - 1]!;
-
-  if (offset <= firstSection.sectionTop) {
-    return firstSection;
-  }
-
-  if (offset >= lastSection.sectionBottom) {
-    return lastSection;
-  }
-
-  let low = 0;
-  let high = fileSectionLayouts.length - 1;
-
-  while (low <= high) {
-    const mid = (low + high) >>> 1;
-    const layout = fileSectionLayouts[mid]!;
-
-    if (offset < layout.sectionTop) {
-      high = mid - 1;
-    } else if (offset >= layout.sectionBottom) {
-      low = mid + 1;
-    } else {
-      return layout;
-    }
-  }
-
-  return lastSection;
 }
 
 /** Collect every file section that intersects one absolute review-stream range. */

@@ -31,7 +31,7 @@ interface RunGitCommandOptions extends RunGitTextOptions {
 }
 
 /** Append Git pathspec arguments only when the caller requested them. */
-export function appendGitPathspecs(args: string[], pathspecs?: string[]) {
+function appendGitPathspecs(args: string[], pathspecs?: string[]) {
   if (!pathspecs || pathspecs.length === 0) {
     return;
   }
@@ -387,6 +387,8 @@ export function runGitText(options: RunGitTextOptions) {
   return runGitCommand(options).stdout;
 }
 
+const workingTreeGitDiffInputCache = new Map<string, boolean>();
+
 /**
  * Return whether one `dunk diff` input still compares against the live working tree.
  *
@@ -394,8 +396,6 @@ export function runGitText(options: RunGitTextOptions) {
  * appear. Explicit revision-set expressions like `a..b`, `a...b`, or `rev^!` expand into positive
  * and negative revisions and should stay commit-to-commit only.
  */
-const workingTreeGitDiffInputCache = new Map<string, boolean>();
-
 function isWorkingTreeGitDiffInput(
   input: VcsCommandInput,
   {

@@ -170,19 +170,3 @@ function CommentRow({
     </box>
   );
 }
-
-/** Trailing blank row beneath one comment card. */
-export function CommentCardSpacer({
-  theme,
-  width,
-}: {
-  side?: "old" | "new";
-  theme: AppTheme;
-  width: number;
-}) {
-  return (
-    <box style={{ width: "100%", height: 1, backgroundColor: theme.noteBackground }}>
-      <text>{" ".repeat(Math.max(0, width))}</text>
-    </box>
-  );
-}

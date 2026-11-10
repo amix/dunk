@@ -122,7 +122,7 @@ function renderCliHelp() {
     "  dunk diff --branch[=base]               review everything on the current branch vs its base",
     "  dunk diff <left> <right>                compare two concrete files",
     "  dunk show [target] [-- <pathspec...>]   review the last commit or a given target",
-    "  dunk stash show [ref]                   review a stash entry (git only)",
+    "  dunk stash show [ref]                   review a stash entry",
     "  dunk patch [file]                       review a patch file or stdin",
     "  dunk pager                              general Git pager wrapper with diff detection",
     "  dunk difftool <left> <right> [path]     review Git difftool file pairs",

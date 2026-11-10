@@ -79,7 +79,6 @@
     "@opentui/react": "^0.1.88",
     "@types/bun": "latest",
     "@types/react": "^19.2.14",
-    "@types/ws": "^8.18.1",
     "lint-staged": "^16.4.0",
     "oxfmt": "^0.41.0",
     "oxlint": "^1.56.0",
